@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import Constants from 'expo-constants';
-import { supabase, supabaseConfigErrorMessage } from '../lib/supabaseClient';
+import { supabase } from '../lib/supabaseClient';
 
 type AuthContextValue = {
   loading: boolean;
@@ -55,9 +55,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const authRedirectUrl = Constants.expoConfig?.extra?.authRedirectUrl as string | undefined;
 
+  const SUPABASE_CONFIG_ERROR_MESSAGE =
+    'Missing Supabase configuration. Set SUPABASE_URL and SUPABASE_ANON_KEY in your environment.';
+
   const ensureClient = () => {
     if (!supabase) {
-      throw new Error(supabaseConfigErrorMessage);
+      throw new Error(SUPABASE_CONFIG_ERROR_MESSAGE);
     }
     return supabase;
   };
