@@ -14,8 +14,9 @@ A cross-platform Expo app that lets employees interact with internal services, l
    ```
 
 3. **Configure environment**
-   - Copy `.env.example` to `.env`.
-   - Fill in the Supabase URL and anon key from your project.
+   - Copy `.env.example` to `.env` (e.g., `cp .env.example .env`).
+   - Fill in `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and any other values required by `app.config.ts`.
+   - Confirm the file is loaded in your shell/session before running Expo (`cat .env` or `source .env` if you load it manually).
 
 4. **Run locally**
    - `npm run start` to launch Expo Dev Tools and the Metro bundler.
@@ -35,6 +36,7 @@ A cross-platform Expo app that lets employees interact with internal services, l
   SUPABASE_URL=
   SUPABASE_ANON_KEY=
   ```
+- After you add the real keys, restart Expo (`npx expo start -c`) so `app.config.ts` re-reads them and populates `Constants.expoConfig.extra`.
 - Additional runtime configuration is controlled through `app.config.ts` and `app.json`.
 
 ## Project structure
