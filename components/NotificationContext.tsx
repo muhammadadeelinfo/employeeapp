@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useMemo, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const notifications = [
   { id: '1', title: 'Shift Reminder', detail: '8:00 AM – Lobby Coverage', time: '2m ago' },
@@ -33,9 +33,12 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
     <NotificationContext.Provider value={value}>
       {children}
       {open && (
-        <View style={styles.overlay} pointerEvents="box-none">
-          <View style={styles.panel}>
-            <Text style={styles.panelTitle}>Notifications</Text>
+        <Pressable style={styles.overlay} onPress={() => setOpen(false)}>
+          <Pressable style={styles.panel} onPress={(event) => event.stopPropagation()}>
+            <View style={styles.panelHeader}>
+              <Text style={styles.panelTitle}>Notifications</Text>
+              <Text style={styles.panelMeta}>{notifications.length} waiting</Text>
+            </View>
             {notifications.map((item) => (
               <View key={item.id} style={styles.notificationItem}>
                 <View>
@@ -45,11 +48,11 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
                 <Text style={styles.notificationTime}>{item.time}</Text>
               </View>
             ))}
-            <TouchableOpacity style={styles.closeButton} onPress={() => setOpen(false)}>
-              <Text style={styles.closeText}>Close</Text>
+            <TouchableOpacity style={styles.actionButton} onPress={() => setOpen(false)}>
+              <Text style={styles.actionText}>Mark all as read</Text>
             </TouchableOpacity>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       )}
     </NotificationContext.Provider>
   );
@@ -71,33 +74,46 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     alignItems: 'flex-end',
-    paddingTop: 64,
-    paddingRight: 16,
+    paddingTop: 70,
+    paddingRight: 20,
   },
   panel: {
-    width: 280,
-    borderRadius: 18,
-    backgroundColor: '#0f172a',
+    width: 300,
+    borderRadius: 20,
+    padding: 18,
+    backgroundColor: 'rgba(15, 23, 42, 0.95)',
     borderWidth: 1,
-    borderColor: 'rgba(148,163,184,0.4)',
-    padding: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.4,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 12,
+    borderColor: 'rgba(59,130,246,0.6)',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.65,
+    shadowRadius: 25,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 16,
+    backdropFilter: 'blur(24px)',
+  },
+  panelHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginBottom: 12,
   },
   panelTitle: {
-    color: '#dbeafe',
-    fontSize: 16,
+    color: '#f8fafc',
+    fontSize: 17,
     fontWeight: '700',
-    marginBottom: 12,
+  },
+  panelMeta: {
+    color: '#b1bfed',
+    fontSize: 12,
   },
   notificationItem: {
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.08)',
+    borderBottomColor: 'rgba(255,255,255,0.05)',
     paddingBottom: 10,
     marginBottom: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 6,
   },
   notificationTitle: {
     color: '#f8fafc',
@@ -112,14 +128,16 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginTop: 4,
   },
-  closeButton: {
-    paddingVertical: 8,
-    alignItems: 'center',
+  actionButton: {
+    marginTop: 4,
+    paddingVertical: 10,
     borderRadius: 999,
-    backgroundColor: 'rgba(59,130,246,0.2)',
+    alignItems: 'center',
+    backgroundColor: 'rgba(59,130,246,0.3)',
   },
-  closeText: {
-    color: '#cbd5f5',
+  actionText: {
+    color: '#e0e7ff',
     fontWeight: '600',
+    letterSpacing: 0.5,
   },
 });

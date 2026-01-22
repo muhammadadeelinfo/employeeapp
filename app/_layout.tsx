@@ -11,9 +11,12 @@ import { useExpoPushToken } from '../hooks/useExpoPushToken';
 import { TopBar } from '../components/TopBar';
 import { NotificationProvider } from '../components/NotificationContext';
 
+const hiddenTopBarPaths = ['/login', '/signup'];
+
 export default function RootLayout() {
   const pushToken = useExpoPushToken();
   const pathname = usePathname();
+  const shouldShowTopBar = pathname ? !hiddenTopBarPaths.some((path) => pathname.startsWith(path)) : true;
 
   useEffect(() => {
     if (Constants.appOwnership === 'expo') {
@@ -50,19 +53,19 @@ export default function RootLayout() {
   }, [pushToken]);
 
   return (
-      <NotificationProvider>
-        <SafeAreaProvider>
-          <AuthProvider>
-            <QueryClientProvider client={queryClient}>
-              <StatusBar translucent backgroundColor="transparent" style="light" />
-              {pathname !== '/login' ? <TopBar /> : null}
-              <View style={styles.content}>
-                <Slot />
-              </View>
-            </QueryClientProvider>
-          </AuthProvider>
-        </SafeAreaProvider>
-      </NotificationProvider>
+    <NotificationProvider>
+      <SafeAreaProvider>
+        <AuthProvider>
+          <QueryClientProvider client={queryClient}>
+            <StatusBar translucent backgroundColor="transparent" style="light" />
+            {shouldShowTopBar ? <TopBar /> : null}
+            <View style={styles.content}>
+              <Slot />
+            </View>
+          </QueryClientProvider>
+        </AuthProvider>
+      </SafeAreaProvider>
+    </NotificationProvider>
   );
 }
 
