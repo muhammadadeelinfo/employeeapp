@@ -22,8 +22,3 @@ export const supabase: SupabaseClient | null = isSupabaseConfigured
       },
     })
   : null;
-  auth: {
-    persistSession: true,
-    detectSessionInUrl: false,
-  },
-});
