@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import Constants from 'expo-constants';
-import { supabase } from '../lib/supabaseClient';
+import { supabase, supabaseConfigErrorMessage } from '../lib/supabaseClient';
 
 type AuthContextValue = {
   loading: boolean;
@@ -19,12 +19,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const client = supabase;
+    if (!client) {
+      setLoading(false);
+      return;
+    }
+
     let mounted = true;
 
     (async () => {
       const {
         data: { session: currentSession },
-      } = await supabase.auth.getSession();
+      } = await client.auth.getSession();
 
       if (mounted) {
         setSession(currentSession);
@@ -34,7 +40,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    } = client.auth.onAuthStateChange((_event, newSession) => {
       if (mounted) {
         setSession(newSession);
         setLoading(false);
@@ -49,10 +55,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const authRedirectUrl = Constants.expoConfig?.extra?.authRedirectUrl as string | undefined;
 
+  const ensureClient = () => {
+    if (!supabase) {
+      throw new Error(supabaseConfigErrorMessage);
+    }
+    return supabase;
+  };
+
   const signInWithEmail = async (email: string) => {
     const options = authRedirectUrl ? { emailRedirectTo: authRedirectUrl } : undefined;
+    const client = ensureClient();
 
-    const { error } = await supabase.auth.signInWithOtp({
+    const { error } = await client.auth.signInWithOtp({
       email,
       options,
     });
@@ -63,7 +77,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
+    const client = ensureClient();
+    const { error } = await client.auth.signOut();
     if (error) {
       throw error;
     }

@@ -1,16 +1,24 @@
 import { useEffect, useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
-import { Camera, BarCodeScanningResult } from 'expo-camera';
+import { Camera, BarCodeScanningResult, CameraPermissionResponse } from 'expo-camera';
 import { PrimaryButton } from '../../components/PrimaryButton';
 
 export default function QrClockInScreen() {
-  const [permission, requestPermission] = Camera.useCameraPermissions();
+  const [permission, setPermission] = useState<CameraPermissionResponse | null>(null);
   const [scannedData, setScannedData] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(true);
 
   useEffect(() => {
-    requestPermission();
+    (async () => {
+      const response = await Camera.requestCameraPermissionsAsync();
+      setPermission(response);
+    })();
   }, []);
+
+  const handleRequestPermission = async () => {
+    const response = await Camera.requestCameraPermissionsAsync();
+    setPermission(response);
+  };
 
   const handleBarCodeScanned = ({ data }: BarCodeScanningResult) => {
     setScannedData(data);
@@ -20,20 +28,20 @@ export default function QrClockInScreen() {
 
   if (!permission) {
     return (
-      <View style={styles.center}>
-        <Text>Requesting camera permission...</Text>
-      </View>
-    );
-  }
+    <View style={styles.center}>
+      <Text>Requesting camera permission...</Text>
+    </View>
+  );
+}
 
-  if (!permission.granted) {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.error}>Camera permission is required to scan a QR.</Text>
-        <PrimaryButton title="Grant camera access" onPress={requestPermission} />
-      </View>
-    );
-  }
+if (!permission?.granted) {
+  return (
+    <View style={styles.center}>
+      <Text style={styles.error}>Camera permission is required to scan a QR.</Text>
+      <PrimaryButton title="Grant camera access" onPress={handleRequestPermission} />
+    </View>
+  );
+}
 
   return (
     <View style={styles.container}>
