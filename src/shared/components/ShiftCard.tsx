@@ -64,7 +64,6 @@ export const ShiftCard = ({ shift, onPress, onConfirm, confirmLoading }: Props) 
   const headerStatus = shift.status.replace(/\b\w/g, (char) => char.toUpperCase());
   const detailRows = [
     { icon: 'location', label: 'Location', value: shift.location || 'TBD' },
-    { icon: 'hash', label: 'Shift ID', value: shift.id.slice(0, 8) },
   ];
 
   return (
