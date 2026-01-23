@@ -65,6 +65,16 @@ const normalizeTimestampPair = (date?: unknown, time?: unknown, fallback?: strin
   return fallback ?? fallbackShifts[0].start;
 };
 
+const pickValue = (row: Record<string, unknown>, keys: string[]): string | undefined => {
+  for (const key of keys) {
+    const value = row[key];
+    if (typeof value === 'string' && value.trim()) {
+      return value;
+    }
+  }
+  return undefined;
+};
+
 const mapShiftRecord = (raw: Record<string, unknown>): Shift => {
   const start = normalizeTimestampPair(
     raw.start_date ?? raw.start ?? raw.start_time ?? raw.start_at,
@@ -76,14 +86,19 @@ const mapShiftRecord = (raw: Record<string, unknown>): Shift => {
     raw.end_time ?? raw.shiftEndingTime ?? raw.endTime,
     fallbackShifts[0].end
   );
+  const title =
+    pickValue(raw, ['title', 'shiftTitle', 'name', 'shift_name']) ?? 'Shift';
+  const location = pickValue(raw, ['location', 'address', 'shiftLocation']) ?? 'TBD';
+  const description = pickValue(raw, ['description', 'shiftDescription']);
+  const statusValue = pickValue(raw, ['status', 'shiftStatus']) ?? 'scheduled';
   return {
     id: (typeof raw.id === 'string' && raw.id) || 'unknown',
-    title: (typeof raw.title === 'string' && raw.title) || 'Shift',
-    location: (typeof raw.location === 'string' && raw.location) || 'TBD',
+    title,
+    location,
     start,
     end,
-    status: normalizeStatus((typeof raw.status === 'string' && raw.status) || 'scheduled'),
-    description: (typeof raw.description === 'string' && raw.description) || undefined,
+    status: normalizeStatus(statusValue),
+    description: description ?? undefined,
   };
 };
 
@@ -129,10 +144,7 @@ const tryFetchShiftAssignments = async (employeeId: string): Promise<string[]> =
 
 const tryFetchShiftsByIds = async (ids: string[]): Promise<Record<string, unknown>[]> => {
   if (!ids.length) return [];
-  const { data, error } = await supabase
-    .from('shifts')
-    .select('id,title,location,start,end,status,description,start_date,start_time,end_date,end_time')
-    .in('id', ids);
+  const { data, error } = await supabase.from('shifts').select('*').in('id', ids);
 
   if (error) {
     throw error;
