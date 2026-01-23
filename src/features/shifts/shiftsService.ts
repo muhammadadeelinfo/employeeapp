@@ -109,19 +109,24 @@ const mapShiftRecord = (raw: Record<string, unknown>): Shift => {
   );
   const title =
     pickValue(raw, ['title', 'shiftTitle', 'name', 'shift_name', 'ShiftTitle']) ?? 'Shift';
+  const objectMeta = raw.object as Record<string, unknown> | undefined;
   const location =
     pickValue(raw, ['location', 'address', 'shiftLocation', 'shift_location']) ??
     pickValue(raw, ['objectAddress', 'shiftAddress', 'object_address']) ??
+    (objectMeta ? pickValue(objectMeta, ['address']) : undefined) ??
     'TBD';
-  const objectName = pickValue(raw, [
-    'objectTitle',
-    'objectName',
-    'shiftObject',
-    'shiftobject',
-    'shiftLocation',
-    'locationName',
-  ]);
-  const objectAddress = pickValue(raw, ['objectAddress', 'shiftAddress', 'address', 'object_address']);
+  const objectName =
+    pickValue(raw, [
+      'objectTitle',
+      'objectName',
+      'shiftObject',
+      'shiftobject',
+      'shiftLocation',
+      'locationName',
+    ]) ?? (objectMeta ? pickValue(objectMeta, ['title']) : undefined);
+  const objectAddress =
+    pickValue(raw, ['objectAddress', 'shiftAddress', 'address', 'object_address']) ??
+    (objectMeta ? pickValue(objectMeta, ['address']) : undefined);
   const description = pickValue(raw, ['description', 'shiftDescription']);
   const statusValue = pickValue(raw, ['status', 'shiftStatus']) ?? 'scheduled';
   return {
@@ -214,7 +219,10 @@ const tryFetchShiftAssignments = async (employeeId: string): Promise<AssignmentM
 
 const tryFetchShiftsByIds = async (ids: string[]): Promise<Record<string, unknown>[]> => {
   if (!ids.length) return [];
-  const { data, error } = await supabase.from('shifts').select('*').in('id', ids);
+  const { data, error } = await supabase
+    .from('shifts')
+    .select('*, object:objectId (title, address)')
+    .in('id', ids);
 
   if (error) {
     throw error;
