@@ -80,23 +80,18 @@ export const ShiftCard = ({ shift, onPress, onConfirm, confirmLoading }: Props) 
         <Text style={styles.duration}>{formatDuration(shift.start, shift.end)}</Text>
       </View>
 
-      <View style={styles.detailsGrid}>
-        <View style={styles.detailItem}>
-          <Text style={styles.detailLabel}>Start</Text>
-          <Text style={styles.detailValue}>{formatDateTime(shift.start)}</Text>
-        </View>
-        <View style={styles.detailItem}>
-          <Text style={styles.detailLabel}>End</Text>
-          <Text style={styles.detailValue}>{formatDateTime(shift.end)}</Text>
-        </View>
-        <View style={styles.detailItem}>
-          <Text style={styles.detailLabel}>Duration</Text>
-          <Text style={styles.detailValue}>{formatDuration(shift.start, shift.end)}</Text>
-        </View>
-        <View style={styles.detailItem}>
-          <Text style={styles.detailLabel}>Location</Text>
-          <Text style={styles.detailValue}>{shift.location}</Text>
-        </View>
+      <View style={styles.detailsList}>
+        {[
+          { label: 'Start', value: formatDateTime(shift.start) },
+          { label: 'End', value: formatDateTime(shift.end) },
+          { label: 'Duration', value: formatDuration(shift.start, shift.end) },
+          { label: 'Location', value: shift.location || 'TBD' },
+        ].map((detail) => (
+          <View key={detail.label} style={styles.detailItem}>
+            <Text style={styles.detailLabel}>{detail.label}</Text>
+            <Text style={styles.detailValue}>{detail.value}</Text>
+          </View>
+        ))}
       </View>
 
       {shift.description ? <Text style={styles.description}>{shift.description}</Text> : null}
@@ -183,14 +178,10 @@ const styles = StyleSheet.create({
     color: '#475569',
     fontSize: 13,
   },
-  detailsGrid: {
+  detailsList: {
     marginTop: 10,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
   },
   detailItem: {
-    width: '48%',
     marginBottom: 8,
   },
   detailLabel: {
