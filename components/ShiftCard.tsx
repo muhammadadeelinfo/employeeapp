@@ -67,7 +67,7 @@ export const ShiftCard = ({ shift, onPress, onConfirm, confirmLoading }: Props) 
           <Text style={styles.date}>{formatDate(shift.start)}</Text>
         </View>
         <View style={styles.badgeWrapper}>
-          <View style={[styles.statusBadge, { backgroundColor: statusColors[shift.status] ?? 'rgba(37,99,235,0.1)' }]}>
+          <View style={[styles.statusBadge, { backgroundColor: statusColors[shift.status] ?? '#eff6ff' }]}>
             <Text style={[styles.statusText, { color: statusColors[shift.status] ?? '#1d4ed8' }]}>
               {shift.status.replace(/\b\w/g, (char) => char.toUpperCase())}
             </Text>
@@ -123,17 +123,17 @@ export const ShiftCard = ({ shift, onPress, onConfirm, confirmLoading }: Props) 
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#020617',
-    borderRadius: 18,
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
     padding: 18,
     marginBottom: 16,
-    shadowColor: '#0a0f1f',
-    shadowOpacity: 0.4,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 8,
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
+    borderColor: '#e5e7eb',
   },
   topRow: {
     flexDirection: 'row',
@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#f8fafc',
+    color: '#0f172a',
   },
   titleGroup: {
     marginBottom: 4,
@@ -175,12 +175,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   time: {
-    color: '#475569',
+    color: '#0f172a',
     fontSize: 15,
     fontWeight: '600',
   },
   duration: {
-    color: '#94a3b8',
+    color: '#475569',
     fontSize: 13,
   },
   detailsGrid: {
@@ -201,20 +201,20 @@ const styles = StyleSheet.create({
   },
   detailValue: {
     fontSize: 12,
-    color: '#f8fafc',
+    color: '#0f172a',
     fontWeight: '600',
     marginTop: 2,
   },
   location: {
     fontSize: 13,
-    color: '#cbd5f5',
+    color: '#111827',
     fontWeight: '500',
     marginTop: 4,
   },
   description: {
     marginTop: 8,
     fontSize: 12,
-    color: '#cbd5f5',
+    color: '#475569',
   },
   confirmationMeta: {
     fontSize: 11,
