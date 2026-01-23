@@ -58,6 +58,13 @@ const truncateText = (value: string, maxLength = 36) => {
   return `${value.slice(0, maxLength - 1).trimEnd()}…`;
 };
 
+const simplifyAddress = (value: string) => {
+  const segments = value.split(',').map((segment) => segment.trim()).filter(Boolean);
+  if (!segments.length) return value;
+  if (segments.length <= 2) return segments.join(', ');
+  return `${segments.slice(0, 2).join(', ')}…`;
+};
+
 type Props = {
   shift: Shift;
   onPress?: () => void;
@@ -117,7 +124,7 @@ export const ShiftCard = ({ shift, onPress, onConfirm, confirmLoading }: Props) 
                 <Text style={styles.detailValue}>{detail.title}</Text>
                 {detail.subtitle ? (
                   <Text style={styles.detailSubtitle} numberOfLines={1} ellipsizeMode="tail">
-                    {truncateText(detail.subtitle)}
+                    {simplifyAddress(truncateText(detail.subtitle))}
                   </Text>
                 ) : null}
               </View>
