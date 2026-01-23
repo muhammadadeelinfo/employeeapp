@@ -32,50 +32,57 @@ export default function ProfileScreen() {
   const { user, signOut } = useAuth();
   const provider = user?.identities?.[0]?.provider ?? 'email';
   const status = shiftStatus(user?.user_metadata);
+  const handleSignOut = () => {
+    signOut();
+  };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, styles.containerLight]}>
       <View style={styles.headerBlock}>
         <View style={styles.badge}>
           <Text style={styles.badgeText}>{provider.toUpperCase()} ACCESS</Text>
           <Text style={styles.badgeDate}>Member since {formatDate(user?.created_at)}</Text>
         </View>
-        <Text style={styles.header}>Hello, {profileName(user)}!</Text>
-        <Text style={styles.subHeader}>Profile settings are synced across web and Expo.</Text>
+        <Text style={[styles.header, styles.headerLight]}>Hello, {profileName(user)}!</Text>
+        <Text style={[styles.subHeader, styles.subHeaderLight]}>
+          Profile settings are synced across web and Expo.
+        </Text>
       </View>
 
-      <View style={styles.card}>
-        <Text style={styles.title}>Contact</Text>
+      <View style={[styles.card, styles.cardLight]}>
+        <Text style={[styles.title, styles.titleLight]}>Contact</Text>
         <Text style={styles.detailLabel}>Email</Text>
-        <Text style={styles.detailValue}>{user?.email ?? 'Not signed in'}</Text>
-        <View style={styles.divider} />
+        <Text style={[styles.detailValue, styles.detailValueLight]}>{user?.email ?? 'Not signed in'}</Text>
+        <View style={[styles.divider, styles.dividerLight]} />
         <View style={styles.statusRow}>
           <View>
             <Text style={styles.miniLabel}>Role</Text>
-            <Text style={styles.miniValue}>{user ? 'Employee' : 'Guest'}</Text>
+            <Text style={[styles.miniValue, styles.miniValueLight]}>{user ? 'Employee' : 'Guest'}</Text>
           </View>
           <View>
             <Text style={styles.miniLabel}>Status</Text>
-            <Text style={styles.miniValue}>{status}</Text>
+            <Text style={[styles.miniValue, styles.miniValueLight]}>{status}</Text>
           </View>
         </View>
       </View>
 
-      <View style={styles.card}>
-        <Text style={styles.title}>Security</Text>
+      <View style={[styles.card, styles.cardLight]}>
+        <Text style={[styles.title, styles.titleLight]}>Security</Text>
         <View style={styles.detailBlock}>
           <Text style={styles.detailLabel}>Provider</Text>
-          <Text style={styles.detailValue}>{provider}</Text>
+          <Text style={[styles.detailValue, styles.detailValueLight]}>{provider}</Text>
         </View>
         <View style={styles.detailBlock}>
           <Text style={styles.detailLabel}>Email verified</Text>
-          <Text style={styles.detailValue}>{user?.email_confirmed_at ? 'Yes' : 'No'}</Text>
+          <Text style={[styles.detailValue, styles.detailValueLight]}>
+            {user?.email_confirmed_at ? 'Yes' : 'No'}
+          </Text>
         </View>
       </View>
 
-      <PrimaryButton title="Sign out" onPress={signOut} style={styles.button} />
-      <TouchableOpacity onPress={() => signOut()}>
-        <Text style={styles.link}>Need to switch accounts? Log in again</Text>
+      <PrimaryButton title="Sign out" onPress={handleSignOut} style={styles.button} />
+      <TouchableOpacity onPress={handleSignOut}>
+        <Text style={[styles.link, styles.linkLight]}>Need to switch accounts? Log in again</Text>
       </TouchableOpacity>
     </View>
   );
@@ -85,56 +92,55 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: '#0b0f1c',
   },
   headerBlock: {
     marginBottom: 28,
   },
   badge: {
     alignSelf: 'flex-start',
-    backgroundColor: '#1b2a50',
+    backgroundColor: '#e0f2fe',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
     marginBottom: 12,
   },
   badgeText: {
-    color: '#7dd3fc',
+    color: '#0284c7',
     fontSize: 10,
     letterSpacing: 1,
     textTransform: 'uppercase',
   },
   badgeDate: {
-    color: '#94a3b8',
+    color: '#64748b',
     fontSize: 11,
   },
   header: {
     fontSize: 32,
     fontWeight: '700',
-    color: '#ffffff',
+    color: '#0f172a',
   },
   subHeader: {
     marginTop: 4,
     fontSize: 14,
-    color: '#94a3b8',
+    color: '#475569',
   },
   card: {
-    backgroundColor: '#14192d',
+    backgroundColor: '#ffffff',
     borderRadius: 24,
     padding: 20,
     marginBottom: 18,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.04)',
-    shadowColor: '#000',
-    shadowOpacity: 0.4,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 6,
+    borderColor: '#e5e7eb',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.04,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 4,
   },
   title: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#e2e8f0',
+    color: '#0f172a',
     marginBottom: 16,
     letterSpacing: 0.5,
   },
@@ -147,7 +153,7 @@ const styles = StyleSheet.create({
   detailValue: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#f8fafc',
+    color: '#0f172a',
     marginTop: 2,
   },
   detailBlock: {
@@ -155,7 +161,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: '#e5e7eb',
     marginVertical: 16,
   },
   statusRow: {
@@ -171,7 +177,7 @@ const styles = StyleSheet.create({
   miniValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#fff',
+    color: '#0f172a',
     marginTop: 4,
   },
   button: {
@@ -179,8 +185,26 @@ const styles = StyleSheet.create({
   },
   link: {
     marginTop: 18,
-    color: '#38bdf8',
+    color: '#2563eb',
     textAlign: 'center',
     fontSize: 14,
+  },
+  containerLight: {
+    backgroundColor: '#f8fafc',
+  },
+  cardLight: {
+    backgroundColor: '#fff',
+  },
+  headerLight: {
+    color: '#0f172a',
+  },
+  subHeaderLight: {
+    color: '#475569',
+  },
+  detailValueLight: {
+    color: '#0f172a',
+  },
+  linkLight: {
+    color: '#2563eb',
   },
 });
