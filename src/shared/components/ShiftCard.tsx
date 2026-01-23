@@ -59,6 +59,14 @@ const truncateText = (value: string, maxLength = 36) => {
 };
 
 const simplifyAddress = (value: string) => {
+  const normalized = value.replace(/\s+/g, ' ').trim();
+  const segments = normalized.split(',').map((segment) => segment.trim()).filter(Boolean);
+  if (!segments.length) return '';
+  if (segments.length === 1) return segments[0];
+  return `${segments[0]}, ${segments[1]}`;
+};
+
+const simplifyAddress = (value: string) => {
   const segments = value.split(',').map((segment) => segment.trim()).filter(Boolean);
   if (!segments.length) return value;
   if (segments.length <= 2) return segments.join(', ');
@@ -124,7 +132,7 @@ export const ShiftCard = ({ shift, onPress, onConfirm, confirmLoading }: Props) 
                 <Text style={styles.detailValue}>{detail.title}</Text>
                 {detail.subtitle ? (
                   <Text style={styles.detailSubtitle} numberOfLines={1} ellipsizeMode="tail">
-                    {simplifyAddress(truncateText(detail.subtitle))}
+                    {truncateText(simplifyAddress(detail.subtitle))}
                   </Text>
                 ) : null}
               </View>
