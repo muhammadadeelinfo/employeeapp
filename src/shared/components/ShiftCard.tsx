@@ -1,5 +1,6 @@
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useState } from 'react';
 import type { Shift } from '@features/shifts/shiftsService';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
 
@@ -90,6 +91,7 @@ export const ShiftCard = ({ shift, onPress, onConfirm, confirmLoading }: Props) 
       subtitle: shift.objectAddress ?? shift.location ?? undefined,
     },
   ];
+  const [showFullAddress, setShowFullAddress] = useState(false);
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.9}>
@@ -131,9 +133,22 @@ export const ShiftCard = ({ shift, onPress, onConfirm, confirmLoading }: Props) 
                 <Text style={styles.detailLabel}>{detail.label}</Text>
                 <Text style={styles.detailValue}>{detail.title}</Text>
                 {detail.subtitle ? (
-                  <Text style={styles.detailSubtitle} numberOfLines={1} ellipsizeMode="tail">
-                    {truncateText(simplifyAddress(detail.subtitle))}
-                  </Text>
+                  <>
+                    <Text
+                      style={styles.detailSubtitle}
+                      numberOfLines={showFullAddress ? undefined : 1}
+                      ellipsizeMode="tail"
+                    >
+                      {showFullAddress
+                        ? detail.subtitle
+                        : truncateText(simplifyAddress(detail.subtitle))}
+                    </Text>
+                    <Pressable onPress={() => setShowFullAddress((prev) => !prev)}>
+                      <Text style={styles.addressToggle}>
+                        {showFullAddress ? 'Hide full address' : 'Show full address'}
+                      </Text>
+                    </Pressable>
+                  </>
                 ) : null}
               </View>
             </View>
@@ -292,5 +307,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#059669',
     fontWeight: '600',
+  },
+  addressToggle: {
+    fontSize: 11,
+    color: '#2563eb',
+    marginTop: 2,
+    textDecorationLine: 'underline',
   },
 });
