@@ -51,54 +51,39 @@ const parseIso = (value?: unknown): string | undefined => {
   return undefined;
 };
 
-const normalizeTimestampPair = (date?: unknown, time?: unknown, fallback?: string): string | undefined => {
+const normalizeTimestampPair = (date?: unknown, time?: unknown, fallback?: string): string => {
   const isoDate = parseIso(date);
   const isoTime = parseIso(time);
   if (isoDate && isoTime) {
-    const combined = new Date(`${isoDate.split('T')[0]}T${isoTime.split('T')[1]}`);
+    const combinedDate = isoDate.split('T')[0];
+    const combinedTime = isoTime.includes('T') ? isoTime.split('T')[1] : isoTime;
+    const combined = new Date(`${combinedDate}T${combinedTime}`);
     if (!Number.isNaN(combined.getTime())) return combined.toISOString();
   }
-  return isoDate ?? isoTime ?? fallback;
+  if (isoDate) return isoDate;
+  if (isoTime) return isoTime;
+  return fallback ?? fallbackShifts[0].start;
 };
 
 const mapShiftRecord = (raw: Record<string, unknown>): Shift => {
   const start = normalizeTimestampPair(
-    raw.shiftStartingDate ?? raw.start ?? raw.start_time ?? raw.start_at,
-    raw.shiftStartingTime ?? raw.startTime ?? raw.start_time,
+    raw.start_date ?? raw.start ?? raw.start_time ?? raw.start_at,
+    raw.start_time ?? raw.shiftStartingTime ?? raw.startTime,
     fallbackShifts[0].start
-  )!;
+  );
   const end = normalizeTimestampPair(
-    raw.shiftEndingDate ?? raw.end ?? raw.end_time ?? raw.end_at,
-    raw.shiftEndingTime ?? raw.endTime ?? raw.end_time,
+    raw.end_date ?? raw.end ?? raw.end_time ?? raw.end_at,
+    raw.end_time ?? raw.shiftEndingTime ?? raw.endTime,
     fallbackShifts[0].end
-  )!;
-  const statusValue =
-    (typeof raw.status === 'string' && raw.status) ||
-    (typeof raw.shift_status === 'string' && raw.shift_status) ||
-    'scheduled';
+  );
   return {
-    id:
-      (typeof raw.id === 'string' && raw.id) ||
-      (typeof raw.shift_id === 'string' && raw.shift_id) ||
-      (typeof raw.uuid === 'string' && raw.uuid) ||
-      'unknown',
-    title:
-      (typeof raw.title === 'string' && raw.title) ||
-      (typeof raw.name === 'string' && raw.name) ||
-      (typeof raw.shift_name === 'string' && raw.shift_name) ||
-      'Shift',
-    location:
-      (typeof raw.location === 'string' && raw.location) ||
-      (typeof raw.venue === 'string' && raw.venue) ||
-      (typeof raw.place === 'string' && raw.place) ||
-      'TBD',
+    id: (typeof raw.id === 'string' && raw.id) || 'unknown',
+    title: (typeof raw.title === 'string' && raw.title) || 'Shift',
+    location: (typeof raw.location === 'string' && raw.location) || 'TBD',
     start,
     end,
-    status: normalizeStatus(statusValue),
-    description:
-      (typeof raw.description === 'string' && raw.description) ||
-      (typeof raw.details === 'string' && raw.details) ||
-      undefined,
+    status: normalizeStatus((typeof raw.status === 'string' && raw.status) || 'scheduled'),
+    description: (typeof raw.description === 'string' && raw.description) || undefined,
   };
 };
 
@@ -118,99 +103,56 @@ const mapShiftArray = (data?: Record<string, unknown>[]): Shift[] => {
   return sortShiftsByStart(parsed);
 };
 
-const employeeColumns = ['employee_id', 'user_id', 'profile_id', 'owner_id'];
+const isMissingColumnError = (error: unknown) =>
+  typeof error === 'object' &&
+  error !== null &&
+  'code' in error &&
+  (error as PostgrestError).code === '42703';
 
-type ShiftSource = {
-  table: string;
-  select: string[];
-};
+const tryFetchShiftAssignments = async (employeeId: string): Promise<string[]> => {
+  const { data, error } = await supabase
+    .from('shift_assignments')
+    .select('shiftId')
+    .eq('employeeId', employeeId);
 
-const shiftSources: ShiftSource[] = [
-  {
-    table: 'shift_assignments',
-    select: [
-      'id',
-      'title',
-      'address as location',
-      'shiftStartingDate',
-      'shiftStartingTime',
-      'shiftEndingDate',
-      'shiftEndingTime',
-      'status',
-      'shiftDescription as description',
-      ...employeeColumns,
-    ],
-  },
-  {
-    table: 'shifts',
-    select: ['id', 'title', 'location', 'start', 'end', 'status', 'description', ...employeeColumns],
-  },
-];
-
-const isMissingColumnError = (error: unknown) => {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'code' in error &&
-    (error as PostgrestError).code === '42703'
-  );
-};
-
-const tryFetchFromSource = async (source: ShiftSource, employeeId?: string): Promise<Record<string, unknown>[]> => {
-  const selectString = Array.from(new Set(source.select)).join(',');
-  if (!employeeId) {
-    const { data, error } = await supabase.from(source.table).select(selectString);
-    if (error) {
-      throw error;
+  if (error) {
+    if (isMissingColumnError(error)) {
+      return [];
     }
-    return data ?? [];
+    throw error;
   }
 
-  for (const column of employeeColumns) {
-    try {
-      const { data, error } = await supabase.from(source.table).select(selectString).eq(column, employeeId);
-      if (error) {
-        throw error;
-      }
-      return data ?? [];
-    } catch (error) {
-      if (isMissingColumnError(error)) {
-        continue;
-      }
-      throw error;
-    }
-  }
+  return (data ?? [])
+    .map((row) => (typeof row.shiftId === 'string' ? row.shiftId : undefined))
+    .filter(Boolean) as string[];
+};
 
-  const { data, error } = await supabase.from(source.table).select(selectString);
+const tryFetchShiftsByIds = async (ids: string[]): Promise<Record<string, unknown>[]> => {
+  if (!ids.length) return [];
+  const { data, error } = await supabase
+    .from('shifts')
+    .select('id,title,location,start,end,status,description,start_date,start_time,end_date,end_time')
+    .in('id', ids);
+
   if (error) {
     throw error;
   }
+
   return data ?? [];
 };
 
-const isTableMissingError = (error: unknown) => {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'code' in error &&
-    (error as PostgrestError).code === '42P01'
-  );
-};
-
-const fetchShiftsFromSupabase = async (employeeId?: string): Promise<Record<string, unknown>[] | undefined> => {
-  for (const source of shiftSources) {
-    try {
-      const data = await tryFetchFromSource(source, employeeId);
-      return data;
-    } catch (error) {
-      if (isMissingColumnError(error) || isTableMissingError(error)) {
-        continue;
-      }
-      throw error;
-    }
+const fetchShiftAssignments = async (employeeId?: string): Promise<Shift[]> => {
+  if (!employeeId) {
+    return [];
   }
 
-  return undefined;
+  const ids = await tryFetchShiftAssignments(employeeId);
+  if (!ids.length) {
+    return [];
+  }
+
+  const shiftRows = await tryFetchShiftsByIds(ids);
+  return mapShiftArray(shiftRows);
 };
 
 export const getShifts = async (employeeId?: string): Promise<Shift[]> => {
@@ -218,16 +160,8 @@ export const getShifts = async (employeeId?: string): Promise<Shift[]> => {
     throw new Error('Supabase client not configured');
   }
 
-  const data = await fetchShiftsFromSupabase(employeeId);
-  if (data === undefined) {
-    throw new Error('No shift source available');
-  }
-
-  return mapShiftArray(data);
+  return await fetchShiftAssignments(employeeId);
 };
-
-const matchesEmployeePayload = (record: Record<string, unknown>, employeeId: string) =>
-  employeeColumns.some((column) => record[column] === employeeId);
 
 type ShiftSubscription = {
   unsubscribe: () => void;
@@ -238,34 +172,22 @@ export const subscribeToShiftUpdates = (employeeId: string, onUpdate: () => void
     return { unsubscribe: () => {} };
   }
 
-  const channels: RealtimeChannel[] = shiftSources.map((source) => {
-    const channel = supabase.channel(`shift-stream:${source.table}:${employeeId}`);
+  const channel = supabase.channel(`shift_assignments:${employeeId}`);
+  channel.on(
+    'postgres_changes',
+    {
+      event: '*',
+      schema: 'public',
+      table: 'shift_assignments',
+      filter: `employeeId=eq.${employeeId}`,
+    },
+    () => onUpdate()
+  );
 
-    channel.on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: source.table },
-      (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
-        const record =
-          (payload.new && Object.keys(payload.new).length ? payload.new : undefined) ??
-          (payload.old && Object.keys(payload.old).length ? payload.old : undefined);
-        if (!record) {
-          onUpdate();
-          return;
-        }
-        if (matchesEmployeePayload(record, employeeId)) {
-          onUpdate();
-        }
-      }
-    );
-
-    channel.subscribe();
-    return channel;
-  });
+  channel.subscribe();
 
   return {
-    unsubscribe: () => {
-      channels.forEach((channel) => channel.unsubscribe());
-    },
+    unsubscribe: () => channel.unsubscribe(),
   };
 };
 
