@@ -28,7 +28,7 @@ export const TopBar = () => {
       <View style={styles.bar}>
         <View style={styles.leftGroup}>
           <View style={styles.logoPill}>
-            <Ionicons name="sparkles" size={18} color="#fff" />
+            <Ionicons name="sparkles" size={18} color="#0f172a" />
           </View>
           <View>
             <Text style={styles.title}>Employee Portal</Text>
@@ -52,7 +52,7 @@ export const TopBar = () => {
 const styles = StyleSheet.create({
   safe: {
     width: '100%',
-    backgroundColor: '#030712',
+    backgroundColor: '#f8fafc',
   },
   bar: {
     width: '100%',
@@ -61,9 +61,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#030712',
+    backgroundColor: '#ffffff',
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+    borderBottomColor: '#e5e7eb',
   },
   leftGroup: {
     flexDirection: 'row',
@@ -74,22 +74,22 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: '#1f2937',
+    backgroundColor: '#111827',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 8,
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
   },
   title: {
-    color: '#f8fafc',
+    color: '#0f172a',
     fontSize: 18,
     fontWeight: '700',
   },
   subtitle: {
-    color: '#cbd5f5',
+    color: '#475569',
     fontSize: 12,
     marginTop: 2,
   },
@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: 'rgba(14, 165, 233, 0.1)',
   },
   stageText: {
     fontSize: 12,
@@ -114,14 +114,14 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: '#f8fafc',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
     shadowOpacity: 0.1,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 5,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 4,
   },
   notificationDot: {
     position: 'absolute',
