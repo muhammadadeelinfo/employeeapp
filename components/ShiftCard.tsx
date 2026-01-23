@@ -8,8 +8,13 @@ const statusColors: Record<string, string> = {
   blocked: '#dc2626',
 };
 
-const formatTime = (iso: string) =>
-  new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+const formatTime = (iso: string) => {
+  const parsed = new Date(iso);
+  if (Number.isNaN(parsed.getTime())) {
+    return '—';
+  }
+  return parsed.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+};
 
 type Props = {
   shift: Shift;

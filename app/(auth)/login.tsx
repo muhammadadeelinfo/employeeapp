@@ -1,8 +1,12 @@
-import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { useState } from 'react';
+import { Alert, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { supabase } from '../../lib/supabaseClient';
 import { useRouter } from 'expo-router';
+
+const REMEMBER_KEY = 'employee-portal-remember-me';
+const EMAIL_KEY = 'employee-portal-remembered-email';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -10,6 +14,20 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [isSigningUp, setIsSigningUp] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      const storedRemember = await AsyncStorage.getItem(REMEMBER_KEY);
+      if (storedRemember !== null) {
+        setRememberMe(storedRemember === 'true');
+      }
+      const storedEmail = await AsyncStorage.getItem(EMAIL_KEY);
+      if (storedEmail) {
+        setEmail(storedEmail);
+      }
+    })();
+  }, []);
 
   const handleAuthenticate = async () => {
     if (!email.trim() || !password.trim()) {
@@ -24,6 +42,13 @@ export default function LoginScreen() {
 
     try {
       setLoading(true);
+      await AsyncStorage.setItem(REMEMBER_KEY, rememberMe ? 'true' : 'false');
+      if (rememberMe) {
+        await AsyncStorage.setItem(EMAIL_KEY, email.trim());
+      } else {
+        await AsyncStorage.removeItem(EMAIL_KEY);
+      }
+
       if (isSigningUp) {
         const { error } = await supabase.auth.signUp({
           email: email.trim(),
@@ -74,6 +99,10 @@ export default function LoginScreen() {
         onChangeText={setPassword}
         textContentType="password"
       />
+      <View style={styles.rememberRow}>
+        <Text style={styles.rememberLabel}>Keep me signed in</Text>
+        <Switch value={rememberMe} onValueChange={setRememberMe} />
+      </View>
       <PrimaryButton
         title={isSigningUp ? 'Create account' : 'Sign in'}
         onPress={handleAuthenticate}
@@ -112,6 +141,16 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderWidth: 1,
     borderColor: '#e2e8f0',
+  },
+  rememberRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  rememberLabel: {
+    fontSize: 14,
+    color: '#475569',
   },
   switchRow: {
     marginTop: 12,

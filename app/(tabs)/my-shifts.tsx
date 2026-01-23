@@ -1,17 +1,37 @@
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getShifts } from '../../services/shifts';
+import { getShifts, subscribeToShiftUpdates } from '../../services/shifts';
 import { ShiftCard } from '../../components/ShiftCard';
 import { useLocation } from '../../hooks/useLocation';
 import { useRouter } from 'expo-router';
+import { useAuth } from '../../hooks/useSupabaseAuth';
+import { PrimaryButton } from '../../components/PrimaryButton';
 
 export default function MyShiftsScreen() {
-  const { data: shifts, isLoading, refetch } = useQuery({
-    queryKey: ['shifts'],
-    queryFn: getShifts,
-  });
+  const { user } = useAuth();
+  const userId = user?.id;
   const { location, status } = useLocation();
   const router = useRouter();
+  const { data: shifts, isLoading, error, refetch } = useQuery({
+    queryKey: ['shifts', userId],
+    queryFn: () => getShifts(userId),
+    enabled: !!userId,
+    staleTime: 30 * 1000,
+  });
+  const shiftList = shifts ?? [];
+
+  useEffect(() => {
+    if (!userId) return;
+    const subscription = subscribeToShiftUpdates(userId, () => refetch());
+    return () => subscription.unsubscribe();
+  }, [userId, refetch]);
+
+  useEffect(() => {
+    if (!userId) return;
+    const timer = setInterval(() => refetch(), 120000);
+    return () => clearInterval(timer);
+  }, [userId, refetch]);
 
   return (
     <View style={styles.container}>
@@ -27,10 +47,20 @@ export default function MyShiftsScreen() {
         contentContainerStyle={styles.list}
         refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => refetch()} />}
       >
-        {(shifts ?? []).map((shift) => (
-          <ShiftCard key={shift.id} shift={shift} onPress={() => router.push(`/shift-details/${shift.id}`)} />
-        ))}
-        {!shifts?.length && !isLoading ? <Text style={styles.empty}>No shifts scheduled.</Text> : null}
+        {error ? (
+          <View style={styles.errorCard}>
+            <Text style={styles.errorTitle}>Shift sync failed</Text>
+            <Text style={styles.errorText}>
+              {error.message ?? 'We could not load your assignments right now. Retry or contact support if the issue persists.'}
+            </Text>
+            <PrimaryButton title="Retry sync" onPress={() => refetch()} style={styles.retryButton} />
+          </View>
+        ) : (
+          shiftList.map((shift) => (
+            <ShiftCard key={shift.id} shift={shift} onPress={() => router.push(`/shift-details/${shift.id}`)} />
+          ))
+        )}
+        {!shiftList.length && !isLoading && !error ? <Text style={styles.empty}>No shifts scheduled.</Text> : null}
       </ScrollView>
     </View>
   );
@@ -60,5 +90,28 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 24,
     color: '#9ca3af',
+  },
+  errorCard: {
+    backgroundColor: '#fee2e2',
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#fecaca',
+  },
+  errorTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#991b1b',
+    marginBottom: 4,
+  },
+  errorText: {
+    color: '#b91c1c',
+    fontSize: 14,
+    marginBottom: 10,
+  },
+  retryButton: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 18,
   },
 });
