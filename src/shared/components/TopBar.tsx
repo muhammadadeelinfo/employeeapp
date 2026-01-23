@@ -1,30 +1,68 @@
-'use client';
-'use client';
-
-import Constants from 'expo-constants';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNotifications } from '@shared/context/NotificationContext';
+import { useAuth } from '@hooks/useSupabaseAuth';
+import { useQuery } from '@tanstack/react-query';
+import { getShifts, Shift } from '@features/shifts/shiftsService';
 
-const stageColorMap: Record<string, string> = {
-  production: '#22c55e',
-  staging: '#f97316',
-  development: '#38bdf8',
-};
-
-const stageLabelMap: Record<string, string> = {
-  production: 'Live',
-  staging: 'Preview',
-  development: 'Dev',
+const shiftStatusColors: Record<Shift['status'], string> = {
+  scheduled: '#2563eb',
+  'in-progress': '#059669',
+  completed: '#6b7280',
+  blocked: '#dc2626',
 };
 
 export const TopBar = () => {
-  const stage = Constants.expoConfig?.extra?.expoStage ?? 'development';
-  const stageColor = stageColorMap[stage] ?? '#38bdf8';
-  const stageLabel = stageLabelMap[stage] ?? 'Dev';
   const insets = useSafeAreaInsets();
   const { toggle } = useNotifications();
+  const { user } = useAuth();
+
+  const { data: shifts } = useQuery({
+    queryKey: ['topbar-next-shift', user?.id],
+    queryFn: () => getShifts(user?.id),
+    enabled: !!user?.id,
+    staleTime: 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
+  const nextShift = shifts?.find((shift) => new Date(shift.start).getTime() > Date.now()) ?? shifts?.[0];
+  const shiftStatusColor = nextShift
+    ? shiftStatusColors[nextShift.status] ?? '#2563eb'
+    : '#94a3b8';
+
+  const formatDate = (iso: string | undefined) => {
+    if (!iso) return '—';
+    const parsed = new Date(iso);
+    if (Number.isNaN(parsed.getTime())) return '—';
+    return parsed.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  };
+
+  const formatTimeRange = (start: string | undefined, end: string | undefined) => {
+    if (!start || !end) return '—';
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) return '—';
+    return `${startDate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} – ${endDate.toLocaleTimeString([], {
+      hour: 'numeric',
+      minute: '2-digit',
+    })}`;
+  };
+
+  const firstName =
+    user?.user_metadata?.full_name?.split(' ')[0] ??
+    user?.user_metadata?.name ??
+    user?.email ??
+    'there';
+  const statusLabel = nextShift
+    ? nextShift.status === 'in-progress'
+      ? 'On shift'
+      : nextShift.status === 'blocked'
+      ? 'Blocked'
+      : nextShift.status === 'completed'
+      ? 'Completed'
+      : 'Scheduled'
+    : 'Awaiting schedule';
 
   return (
     <SafeAreaView style={[styles.safe, { paddingTop: insets.top }]}>
@@ -34,14 +72,28 @@ export const TopBar = () => {
             <Ionicons name="shield-checkmark-outline" size={20} color="#1d4ed8" />
           </View>
           <View style={styles.titleGroup}>
-            <Text style={styles.title}>Employee Portal</Text>
-            <Text style={styles.subtitle}>Shift planning & updates</Text>
+            <Text style={styles.title}>Good to see you, {firstName}</Text>
+            <Text style={styles.subtitle}>
+              {nextShift
+                ? `${formatDate(nextShift.start)} · ${formatTimeRange(nextShift.start, nextShift.end)}`
+                : 'No shifts scheduled yet'}
+            </Text>
+            <Text style={styles.locationText}>
+              {nextShift
+                ? nextShift.objectName ?? nextShift.location ?? 'Location TBD'
+                : 'We’ll let you know once the next assignment is ready.'}
+            </Text>
           </View>
         </View>
         <View style={styles.rightGroup}>
-          <View style={[styles.stageChip, { borderColor: stageColor }]}>
-            <View style={[styles.stageDot, { backgroundColor: stageColor, borderColor: stageColor }]} />
-            <Text style={styles.stageText}>{stageLabel}</Text>
+          <View
+            style={[
+              styles.statusBadge,
+              { borderColor: shiftStatusColor, backgroundColor: `${shiftStatusColor}1A` },
+            ]}
+          >
+            <View style={[styles.statusIndicator, { backgroundColor: shiftStatusColor }]} />
+            <Text style={[styles.statusText, { color: shiftStatusColor }]}>{statusLabel}</Text>
           </View>
           <Pressable style={[styles.iconButton, styles.notificationButton]} onPress={toggle}>
             <Ionicons name="notifications-outline" size={20} color="#0f172a" />
@@ -101,33 +153,34 @@ const styles = StyleSheet.create({
     color: '#475569',
     fontSize: 12,
   },
-  stageChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    backgroundColor: 'rgba(14, 165, 233, 0.08)',
-    gap: 6,
-  },
-  stageDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    borderWidth: 1,
-    borderColor: '#dbeafe',
-  },
-  stageText: {
-    color: '#0f172a',
+  locationText: {
     fontSize: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    color: '#0f172a',
+    fontWeight: '600',
+    marginTop: 2,
   },
   rightGroup: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    gap: 8,
+  },
+  statusIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   iconButton: {
     width: 44,
