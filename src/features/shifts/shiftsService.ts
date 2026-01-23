@@ -98,23 +98,30 @@ const pickFirstValue = (row: Record<string, unknown>, keys: string[]): unknown =
 
 const mapShiftRecord = (raw: Record<string, unknown>): Shift => {
   const start = normalizeTimestampPair(
-    pickFirstValue(raw, ['shiftStartingDate', 'start_date', 'start', 'start_at']),
-    pickFirstValue(raw, ['shiftStartingTime', 'start_time', 'startTime']),
+    pickFirstValue(raw, ['shiftStartingDate', 'shiftstartingdate', 'start_date', 'start', 'start_at']),
+    pickFirstValue(raw, ['shiftStartingTime', 'shiftstartingtime', 'start_time', 'startTime']),
     fallbackShifts[0].start
   );
   const end = normalizeTimestampPair(
-    pickFirstValue(raw, ['shiftEndingDate', 'end_date', 'end', 'end_at']),
-    pickFirstValue(raw, ['shiftEndingTime', 'end_time', 'endTime']),
+    pickFirstValue(raw, ['shiftEndingDate', 'shiftendingdate', 'end_date', 'end', 'end_at']),
+    pickFirstValue(raw, ['shiftEndingTime', 'shiftendingtime', 'end_time', 'endTime']),
     fallbackShifts[0].end
   );
   const title =
-    pickValue(raw, ['title', 'shiftTitle', 'name', 'shift_name']) ?? 'Shift';
+    pickValue(raw, ['title', 'shiftTitle', 'name', 'shift_name', 'ShiftTitle']) ?? 'Shift';
   const location =
-    pickValue(raw, ['location', 'address', 'shiftLocation']) ??
-    pickValue(raw, ['objectAddress', 'shiftAddress']) ??
+    pickValue(raw, ['location', 'address', 'shiftLocation', 'shift_location']) ??
+    pickValue(raw, ['objectAddress', 'shiftAddress', 'object_address']) ??
     'TBD';
-  const objectName = pickValue(raw, ['objectTitle', 'objectName', 'shiftObject', 'shiftLocation']);
-  const objectAddress = pickValue(raw, ['objectAddress', 'shiftAddress', 'address']);
+  const objectName = pickValue(raw, [
+    'objectTitle',
+    'objectName',
+    'shiftObject',
+    'shiftobject',
+    'shiftLocation',
+    'locationName',
+  ]);
+  const objectAddress = pickValue(raw, ['objectAddress', 'shiftAddress', 'address', 'object_address']);
   const description = pickValue(raw, ['description', 'shiftDescription']);
   const statusValue = pickValue(raw, ['status', 'shiftStatus']) ?? 'scheduled';
   return {
