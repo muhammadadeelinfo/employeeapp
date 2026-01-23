@@ -25,26 +25,24 @@ export const TopBar = () => {
 
   return (
     <SafeAreaView style={[styles.safe, { paddingTop: insets.top }]}>
-      <View style={styles.wrapper}>
-        <View style={styles.bar}>
-          <View style={styles.leftGroup}>
-            <View style={styles.logoPill}>
-              <Ionicons name="sparkles" size={18} color="#0f172a" />
-            </View>
-            <View>
-              <Text style={styles.title}>Employee Portal</Text>
-              <Text style={styles.subtitle}>Shift planning & updates</Text>
-            </View>
+      <View style={styles.bar}>
+        <View style={styles.leftGroup}>
+          <View style={styles.logoPill}>
+            <Ionicons name="sparkles" size={18} color="#0f172a" />
           </View>
-          <View style={styles.rightGroup}>
-            <View style={[styles.stageChip, { borderColor: stageColor }]}>
-              <Text style={[styles.stageText, { color: stageColor }]}>{stageLabel}</Text>
-            </View>
+          <View>
+            <Text style={styles.title}>Employee Portal</Text>
+            <Text style={styles.subtitle}>Shift planning & updates</Text>
+          </View>
+        </View>
+        <View style={styles.rightGroup}>
+          <View style={[styles.stageChip, { borderColor: stageColor }]}>
+            <Text style={[styles.stageText, { color: stageColor }]}>{stageLabel}</Text>
+          </View>
           <Pressable style={styles.iconButton} onPress={toggle}>
             <Ionicons name="notifications-outline" size={20} color="#fff" />
-              <View style={[styles.notificationDot, styles.redDot]} />
-            </Pressable>
-          </View>
+            <View style={[styles.notificationDot, styles.redDot]} />
+          </Pressable>
         </View>
       </View>
     </SafeAreaView>
@@ -54,12 +52,7 @@ export const TopBar = () => {
 const styles = StyleSheet.create({
   safe: {
     width: '100%',
-    backgroundColor: 'transparent',
-  },
-  wrapper: {
-    width: '100%',
-    paddingHorizontal: 16,
-    marginTop: 8,
+    backgroundColor: '#f8fafc',
   },
   bar: {
     width: '100%',
@@ -74,7 +67,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 8 },
-    elevation: 8,
+    elevation: 6,
   },
   leftGroup: {
     flexDirection: 'row',
