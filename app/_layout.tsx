@@ -57,13 +57,13 @@ function LayoutContent() {
   return (
     <AuthProvider>
       <QueryClientProvider client={queryClient}>
-        <StatusBar
-          translucent={false}
-          backgroundColor={statusBarBgColor}
-          style={statusBarStyle}
-          hidden={false}
-        />
-        {shouldShowTopBar ? <TopBar /> : null}
+        <StatusBar translucent backgroundColor={statusBarBgColor} style={statusBarStyle} hidden={false} />
+        {shouldShowTopBar ? (
+          <>
+            <View style={[styles.statusBarPlaceholder, { backgroundColor: statusBarBgColor }]} />
+            <TopBar />
+          </>
+        ) : null}
         <View style={styles.content}>
           <Slot />
         </View>
@@ -85,5 +85,9 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   content: {
     flex: 1,
+  },
+  statusBarPlaceholder: {
+    height: Constants.statusBarHeight ?? 0,
+    width: '100%',
   },
 });
