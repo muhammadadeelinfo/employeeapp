@@ -63,10 +63,8 @@ type Props = {
 export const ShiftCard = ({ shift, onPress, onConfirm, confirmLoading }: Props) => {
   const headerStatus = shift.status.replace(/\b\w/g, (char) => char.toUpperCase());
   const detailRows = [
-    { icon: 'calendar', label: 'Start', value: formatDateTime(shift.start) },
-    { icon: 'stopwatch', label: 'End', value: formatDateTime(shift.end) },
-    { icon: 'time', label: 'Duration', value: formatDuration(shift.start, shift.end) },
     { icon: 'location', label: 'Location', value: shift.location || 'TBD' },
+    { icon: 'hash', label: 'Shift ID', value: shift.id.slice(0, 8) },
   ];
 
   return (
