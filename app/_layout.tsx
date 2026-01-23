@@ -5,11 +5,11 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import Constants from 'expo-constants';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { View, StyleSheet } from 'react-native';
-import { AuthProvider } from '../hooks/useSupabaseAuth';
-import { queryClient } from '../lib/queryClient';
-import { useExpoPushToken } from '../hooks/useExpoPushToken';
-import { TopBar } from '../components/TopBar';
-import { NotificationProvider } from '../components/NotificationContext';
+import { AuthProvider } from '@hooks/useSupabaseAuth';
+import { queryClient } from '@lib/queryClient';
+import { useExpoPushToken } from '@hooks/useExpoPushToken';
+import { TopBar } from '@shared/components/TopBar';
+import { NotificationProvider } from '@shared/context/NotificationContext';
 
 const hiddenTopBarPaths = ['/login', '/signup'];
 

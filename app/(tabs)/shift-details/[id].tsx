@@ -1,8 +1,8 @@
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { getShiftById } from '../../../services/shifts';
-import { PrimaryButton } from '../../../components/PrimaryButton';
+import { getShiftById } from '@features/shifts/shiftsService';
+import { PrimaryButton } from '@shared/components/PrimaryButton';
 
 export default function ShiftDetailsScreen() {
   const { id } = useLocalSearchParams();

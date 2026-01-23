@@ -1,12 +1,12 @@
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getShifts, subscribeToShiftUpdates, confirmShiftAssignment } from '../../services/shifts';
-import { ShiftCard } from '../../components/ShiftCard';
-import { useLocation } from '../../hooks/useLocation';
+import { getShifts, subscribeToShiftUpdates, confirmShiftAssignment } from '@features/shifts/shiftsService';
+import { ShiftCard } from '@shared/components/ShiftCard';
+import { useLocation } from '@hooks/useLocation';
 import { useRouter } from 'expo-router';
-import { useAuth } from '../../hooks/useSupabaseAuth';
-import { PrimaryButton } from '../../components/PrimaryButton';
+import { useAuth } from '@hooks/useSupabaseAuth';
+import { PrimaryButton } from '@shared/components/PrimaryButton';
 
 export default function MyShiftsScreen() {
   const { user } = useAuth();

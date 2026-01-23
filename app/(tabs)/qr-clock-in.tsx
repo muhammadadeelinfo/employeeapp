@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 import { Camera, CameraView, BarCodeScanningResult, CameraPermissionResponse } from 'expo-camera';
-import { PrimaryButton } from '../../components/PrimaryButton';
+import { PrimaryButton } from '@shared/components/PrimaryButton';
 
 export default function QrClockInScreen() {
   const [permission, setPermission] = useState<CameraPermissionResponse | null>(null);

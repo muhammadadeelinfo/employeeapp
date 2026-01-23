@@ -1,8 +1,8 @@
 import { Alert, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { PrimaryButton } from '../../components/PrimaryButton';
-import { supabase } from '../../lib/supabaseClient';
+import { PrimaryButton } from '@shared/components/PrimaryButton';
+import { supabase } from '@lib/supabaseClient';
 import { useRouter } from 'expo-router';
 
 const REMEMBER_KEY = 'employee-portal-remember-me';

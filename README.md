@@ -41,10 +41,13 @@ A cross-platform Expo app that lets employees interact with internal services, l
 
 ## Project structure
 
-- `App.tsx` – entry point registering the router and providers.
-- `components/`, `hooks/`, `services/`, and `lib/` - grouped features, reusable hooks, API helpers, and shared utilities.
-- `assets/` – static images and fonts used across the app.
-- `app/` – Expo Router layout definitions for stacks and screens.
+- `app/` – Expo Router layouts and screens, with `(tabs)`/`(auth)` folders providing the stack + tab organization for production flows.
+- `src/features/` – feature modules that encapsulate services, selectors, and feature-specific components (e.g., `shifts`).
+- `src/shared/components` – reusable UI primitives such as `PrimaryButton`, `ShiftCard`, and `TopBar`.
+- `src/shared/context` – cross-cutting contexts (notifications, theming, etc.).
+- `src/shared/hooks` – shared hooks, including authentication helpers and location/push utilities.
+- `src/lib` – low-level clients/helpers (`supabaseClient`, `queryClient`) consumed by the rest of the app.
+- `assets/` – fonts, images, and other static resources that ship with the bundle.
 
 ## Testing & maintenance
 

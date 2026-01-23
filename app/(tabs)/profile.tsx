@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { PrimaryButton } from '../../components/PrimaryButton';
-import { useAuth } from '../../hooks/useSupabaseAuth';
+import { PrimaryButton } from '@shared/components/PrimaryButton';
+import { useAuth } from '@hooks/useSupabaseAuth';
 import { Link } from 'expo-router';
 
 export default function ProfileScreen() {

@@ -1,7 +1,7 @@
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { useEffect } from 'react';
 import { useRouter } from 'expo-router';
-import { useAuth } from '../hooks/useSupabaseAuth';
+import { useAuth } from '@hooks/useSupabaseAuth';
 
 export default function RootIndex() {
   const { user, loading } = useAuth();

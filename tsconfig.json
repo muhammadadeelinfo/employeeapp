@@ -2,6 +2,13 @@
   "extends": "expo-router/tsconfig",
   "compilerOptions": {
     "strict": true,
-    "types": ["expo-router/types"]
+    "types": ["expo-router/types"],
+    "baseUrl": ".",
+    "paths": {
+      "@features/*": ["src/features/*"],
+      "@shared/*": ["src/shared/*"],
+      "@hooks/*": ["src/shared/hooks/*"],
+      "@lib/*": ["src/lib/*"]
+    }
   }
 }
