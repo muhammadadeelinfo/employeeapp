@@ -63,13 +63,6 @@ const simplifyAddress = (value: string) => {
   const normalized = value.replace(/\s+/g, ' ').trim();
   const segments = normalized.split(',').map((segment) => segment.trim()).filter(Boolean);
   if (!segments.length) return '';
-  if (segments.length === 1) return segments[0];
-  return `${segments[0]}, ${segments[1]}`;
-};
-
-const simplifyAddress = (value: string) => {
-  const segments = value.split(',').map((segment) => segment.trim()).filter(Boolean);
-  if (!segments.length) return value;
   if (segments.length <= 2) return segments.join(', ');
   return `${segments.slice(0, 2).join(', ')}…`;
 };
