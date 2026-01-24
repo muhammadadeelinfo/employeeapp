@@ -70,7 +70,11 @@ export default function MyShiftsScreen() {
   const shiftList = shifts ?? [];
   const [visibleMonth, setVisibleMonth] = useState(() => startOfMonth(new Date()));
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
-  const calendarFade = useRef(new Animated.Value(1)).current;
+  const calendarFlip = useRef(new Animated.Value(0)).current;
+  const rotateY = calendarFlip.interpolate({
+    inputRange: [-90, 0, 90],
+    outputRange: ['-90deg', '0deg', '90deg'],
+  });
   const todayKey = useMemo(() => dayKey(new Date()), []);
 
   const filteredShifts = useMemo(() => {
@@ -125,18 +129,17 @@ export default function MyShiftsScreen() {
   }, [filteredShifts]);
 
   const handleMonthChange = (offset: number) => {
-    Animated.timing(calendarFade, {
-      toValue: 0.4,
-      duration: 140,
+    Animated.timing(calendarFlip, {
+      toValue: 90,
+      duration: 180,
       useNativeDriver: true,
     }).start(() => {
-      setVisibleMonth((prev) => {
-        const next = new Date(prev.getFullYear(), prev.getMonth() + offset, 1);
-        return next;
-      });
-      Animated.timing(calendarFade, {
-        toValue: 1,
-        duration: 200,
+      setVisibleMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + offset, 1));
+      calendarFlip.setValue(-90);
+      Animated.timing(calendarFlip, {
+        toValue: 0,
+        duration: 220,
+        easing: undefined,
         useNativeDriver: true,
       }).start();
     });
@@ -236,7 +239,17 @@ export default function MyShiftsScreen() {
         </ScrollView>
       ) : (
         !error && (
-          <Animated.View style={[styles.calendarWrapper, { opacity: calendarFade }]}>
+          <Animated.View
+            style={[
+              styles.calendarWrapper,
+              {
+                transform: [
+                  { perspective: 1000 },
+                  { rotateY: rotateY },
+                ],
+              },
+            ]}
+          >
             <View style={styles.calendarHeader}>
               {WEEKDAY_LABELS.map((label) => (
                 <Text key={label} style={styles.calendarHeaderLabel}>
