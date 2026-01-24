@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   header: {
-    marginBottom: 12,
+    marginBottom: 6,
   },
   label: {
     fontSize: 20,
@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 6,
   },
   monthButton: {
     borderRadius: 999,
@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
   },
   viewSwitcher: {
     flexDirection: 'row',
-    marginBottom: 12,
+    marginBottom: 8,
     justifyContent: 'center',
   },
   viewButton: {
