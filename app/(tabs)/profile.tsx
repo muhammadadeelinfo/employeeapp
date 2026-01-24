@@ -1,7 +1,7 @@
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
+import { useTheme } from '@shared/themeContext';
 import { useAuth } from '@hooks/useSupabaseAuth';
-import { Link } from 'expo-router';
 
 const formatDate = (iso?: string) => {
   if (!iso) return '—';
@@ -30,6 +30,7 @@ const shiftStatus = (metadata?: Record<string, unknown> | null) => {
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();
+  const { mode, setMode, theme } = useTheme();
   const provider = user?.identities?.[0]?.provider ?? 'email';
   const status = shiftStatus(user?.user_metadata);
   const handleSignOut = () => {
@@ -38,7 +39,7 @@ export default function ProfileScreen() {
 
   return (
     <ScrollView
-      style={[styles.container, styles.containerLight]}
+      style={[styles.container, { backgroundColor: theme.background }]}
       contentContainerStyle={styles.content}
     >
       <View style={styles.headerBlock}>
@@ -46,46 +47,104 @@ export default function ProfileScreen() {
           <Text style={styles.badgeText}>{provider.toUpperCase()} ACCESS</Text>
           <Text style={styles.badgeDate}>Member since {formatDate(user?.created_at)}</Text>
         </View>
-        <Text style={[styles.header, styles.headerLight]}>Hello, {profileName(user)}!</Text>
-        <Text style={[styles.subHeader, styles.subHeaderLight]}>
+        <Text style={[styles.header, { color: theme.textPrimary }]}>Hello, {profileName(user)}!</Text>
+        <Text style={[styles.subHeader, { color: theme.textSecondary }]}>
           Profile settings are synced across web and Expo.
         </Text>
       </View>
 
-      <View style={[styles.card, styles.cardLight]}>
-        <Text style={[styles.title, styles.titleLight]}>Contact</Text>
+      <View
+        style={[
+          styles.card,
+          {
+            backgroundColor: theme.surface,
+            borderColor: theme.border,
+            shadowColor: theme.shadowBlue,
+          },
+        ]}
+      >
+        <Text style={[styles.title, { color: theme.textPrimary }]}>Contact</Text>
         <Text style={styles.detailLabel}>Email</Text>
-        <Text style={[styles.detailValue, styles.detailValueLight]}>{user?.email ?? 'Not signed in'}</Text>
-        <View style={[styles.divider, styles.dividerLight]} />
+        <Text style={[styles.detailValue, { color: theme.textSecondary }]}>
+          {user?.email ?? 'Not signed in'}
+        </Text>
+        <View style={[styles.divider, { backgroundColor: theme.borderSoft }]} />
         <View style={styles.statusRow}>
           <View>
             <Text style={styles.miniLabel}>Role</Text>
-            <Text style={[styles.miniValue, styles.miniValueLight]}>{user ? 'Employee' : 'Guest'}</Text>
+            <Text style={[styles.miniValue, { color: theme.textSecondary }]}>
+              {user ? 'Employee' : 'Guest'}
+            </Text>
           </View>
           <View>
             <Text style={styles.miniLabel}>Status</Text>
-            <Text style={[styles.miniValue, styles.miniValueLight]}>{status}</Text>
+            <Text style={[styles.miniValue, { color: theme.textSecondary }]}>{status}</Text>
           </View>
         </View>
       </View>
 
-      <View style={[styles.card, styles.cardLight]}>
-        <Text style={[styles.title, styles.titleLight]}>Security</Text>
+      <View
+        style={[
+          styles.card,
+          {
+            backgroundColor: theme.surface,
+            borderColor: theme.border,
+            shadowColor: theme.shadowBlue,
+          },
+        ]}
+      >
+        <Text style={[styles.title, { color: theme.textPrimary }]}>Security</Text>
         <View style={styles.detailBlock}>
           <Text style={styles.detailLabel}>Provider</Text>
-          <Text style={[styles.detailValue, styles.detailValueLight]}>{provider}</Text>
+          <Text style={[styles.detailValue, { color: theme.textSecondary }]}>{provider}</Text>
         </View>
         <View style={styles.detailBlock}>
           <Text style={styles.detailLabel}>Email verified</Text>
-          <Text style={[styles.detailValue, styles.detailValueLight]}>
+          <Text style={[styles.detailValue, { color: theme.textSecondary }]}>
             {user?.email_confirmed_at ? 'Yes' : 'No'}
           </Text>
         </View>
       </View>
 
+      <View
+        style={[
+          styles.card,
+          {
+            backgroundColor: theme.surface,
+            borderColor: theme.border,
+            shadowColor: theme.shadowBlue,
+          },
+        ]}
+      >
+        <Text style={[styles.title, { color: theme.textPrimary }]}>Appearance</Text>
+        <View style={styles.toggleRow}>
+          {(['light', 'dark'] as const).map((option) => (
+            <TouchableOpacity
+              key={option}
+              style={[
+                styles.toggleButton,
+                mode === option && styles.toggleButtonActive,
+                mode === option && { borderColor: theme.primary },
+              ]}
+              onPress={() => setMode(option)}
+            >
+              <Text
+                style={[
+                  styles.toggleLabel,
+                  mode === option && styles.toggleLabelActive,
+                  mode === option && { color: theme.primary },
+                ]}
+              >
+                {option === 'light' ? 'Light mode' : 'Dark mode'}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
       <PrimaryButton title="Sign out" onPress={handleSignOut} style={styles.button} />
       <TouchableOpacity onPress={handleSignOut}>
-        <Text style={[styles.link, styles.linkLight]}>Need to switch accounts? Log in again</Text>
+        <Text style={[styles.link, { color: theme.primary }]}>Need to switch accounts? Log in again</Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -100,7 +159,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   headerBlock: {
-    marginBottom: 28,
+    marginBottom: 24,
   },
   badge: {
     alignSelf: 'flex-start',
@@ -108,7 +167,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
-    marginBottom: 12,
+    marginBottom: 10,
   },
   badgeText: {
     color: '#0284c7',
@@ -123,22 +182,18 @@ const styles = StyleSheet.create({
   header: {
     fontSize: 32,
     fontWeight: '700',
-    color: '#0f172a',
   },
   subHeader: {
     marginTop: 4,
     fontSize: 14,
-    color: '#475569',
   },
   card: {
-    backgroundColor: '#ffffff',
     borderRadius: 24,
     padding: 20,
-    marginBottom: 18,
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: '#e5e7eb',
-    shadowColor: '#0f172a',
-    shadowOpacity: 0.04,
+    shadowOpacity: 0.08,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 8 },
     elevation: 4,
@@ -146,7 +201,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#0f172a',
     marginBottom: 16,
     letterSpacing: 0.5,
   },
@@ -159,7 +213,6 @@ const styles = StyleSheet.create({
   detailValue: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#0f172a',
     marginTop: 2,
   },
   detailBlock: {
@@ -167,7 +220,6 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: '#e5e7eb',
     marginVertical: 16,
   },
   statusRow: {
@@ -183,7 +235,6 @@ const styles = StyleSheet.create({
   miniValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#0f172a',
     marginTop: 4,
   },
   button: {
@@ -191,26 +242,31 @@ const styles = StyleSheet.create({
   },
   link: {
     marginTop: 18,
-    color: '#2563eb',
     textAlign: 'center',
     fontSize: 14,
   },
-  containerLight: {
-    backgroundColor: '#f8fafc',
+  toggleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
   },
-  cardLight: {
-    backgroundColor: '#fff',
+  toggleButton: {
+    flex: 1,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    paddingVertical: 10,
+    alignItems: 'center',
   },
-  headerLight: {
-    color: '#0f172a',
+  toggleButtonActive: {
+    backgroundColor: '#eef2ff',
   },
-  subHeaderLight: {
+  toggleLabel: {
+    fontSize: 14,
+    fontWeight: '600',
     color: '#475569',
   },
-  detailValueLight: {
-    color: '#0f172a',
-  },
-  linkLight: {
+  toggleLabelActive: {
     color: '#2563eb',
   },
 });
