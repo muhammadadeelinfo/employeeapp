@@ -11,20 +11,6 @@ const statusColors: Record<string, string> = {
   completed: '#6b7280',
   blocked: '#dc2626',
 };
-type ShiftPhase = 'past' | 'live' | 'upcoming';
-
-const getShiftPhase = (startIso: string, endIso: string): ShiftPhase => {
-  const now = new Date();
-  const start = new Date(startIso);
-  const end = new Date(endIso);
-  if (now >= end) {
-    return 'past';
-  }
-  if (now >= start) {
-    return 'live';
-  }
-  return 'upcoming';
-};
 
 const formatTime = (iso: string) => {
   const parsed = new Date(iso);

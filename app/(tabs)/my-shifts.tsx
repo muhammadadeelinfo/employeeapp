@@ -96,6 +96,9 @@ export default function MyShiftsScreen() {
   const liveShift = filteredShifts.find((shift) => getShiftPhase(shift.start, shift.end, now) === 'live');
   const nextShift = filteredShifts.find((shift) => new Date(shift.start) > now);
   const focusedShiftId = liveShift?.id ?? nextShift?.id;
+  const focusedDayKey = filteredShifts
+    .find((shift) => shift.id === focusedShiftId)
+    ?.start.split('T')[0];
 
   const renderSkeletons = () => (
     <View style={styles.skeletonContainer}>
@@ -296,6 +299,7 @@ export default function MyShiftsScreen() {
                     const dayShifts = shiftsByDay.get(key) ?? [];
                     const isCurrentMonth = day.getMonth() === visibleMonth.getMonth();
                     const isToday = key === todayKey;
+                    const isFocusedDay = focusedDayKey === key;
                     return (
                       <View
                         key={key}
@@ -304,6 +308,7 @@ export default function MyShiftsScreen() {
                           !isCurrentMonth && styles.calendarCellMuted,
                           dayShifts.length && styles.calendarCellActive,
                           isToday && styles.calendarCellToday,
+                          isFocusedDay && styles.calendarCellFocused,
                         ]}
                       >
                         <View style={styles.calendarCellHeader}>
@@ -316,11 +321,14 @@ export default function MyShiftsScreen() {
                             {day.getDate()}
                           </Text>
                         </View>
-                        {dayShifts.length ? (
-                          <View style={styles.calendarShiftMarker}>
-                            <Ionicons name="calendar-outline" size={12} color="#1d4ed8" />
-                          </View>
-                        ) : null}
+                    {dayShifts.length ? (
+                      <View style={styles.calendarShiftMarker}>
+                        <Ionicons name="calendar-outline" size={12} color="#1d4ed8" />
+                      </View>
+                    ) : null}
+                    {isFocusedDay && (
+                      <View style={[styles.calendarFocusIndicator, styles.calendarFocusIndicatorActive]} />
+                    )}
                       </View>
                     );
                   })}
@@ -466,6 +474,10 @@ const styles = StyleSheet.create({
     borderColor: '#e6e9f4',
     padding: 4,
     backgroundColor: '#f9fbff',
+    position: 'relative',
+  },
+  calendarCellFocused: {
+    borderColor: '#2563eb',
   },
   calendarCellMuted: {
     backgroundColor: '#f1f3f8',
@@ -510,6 +522,19 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.18,
     shadowRadius: 3,
     elevation: 2,
+  },
+  calendarFocusIndicator: {
+    position: 'absolute',
+    left: 2,
+    top: 2,
+    bottom: 2,
+    width: 4,
+    borderRadius: 999,
+    backgroundColor: '#93c5fd',
+    opacity: 0,
+  },
+  calendarFocusIndicatorActive: {
+    opacity: 1,
   },
   listEmptyState: {
     alignItems: 'center',
