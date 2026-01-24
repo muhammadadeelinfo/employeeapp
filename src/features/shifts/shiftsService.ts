@@ -309,7 +309,11 @@ export const getShiftById = async (shiftId: string): Promise<Shift | undefined> 
   }
 
   try {
-    const { data, error } = await supabase.from('shifts').select('*').eq('id', shiftId).maybeSingle();
+    const { data, error } = await supabase
+      .from('shifts')
+      .select('*, object:objectId (title, address)')
+      .eq('id', shiftId)
+      .maybeSingle();
 
     if (error) {
       throw error;

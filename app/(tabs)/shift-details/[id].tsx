@@ -1,12 +1,85 @@
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useQuery } from '@tanstack/react-query';
+import {
+  ActivityIndicator,
+  Linking,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { getShiftById } from '@features/shifts/shiftsService';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
+import type { Shift } from '@features/shifts/shiftsService';
+import { useAuth } from '@hooks/useSupabaseAuth';
+import { LinearGradient } from 'expo-linear-gradient';
+
+const statusStyles: Record<
+  Shift['status'],
+  { border: string; dot: string; text: string; description: string }
+> = {
+  scheduled: {
+    border: '#c7d2fe',
+    dot: '#93c5fd',
+    text: '#1d4ed8',
+    description: 'This shift is confirmed and ready for you to accept.',
+  },
+  'in-progress': {
+    border: '#4ade80',
+    dot: '#22c55e',
+    text: '#059669',
+    description: 'You are currently on the clock—wrap up the essentials and keep the momentum.',
+  },
+  completed: {
+    border: '#d1d5db',
+    dot: '#6b7280',
+    text: '#4b5563',
+    description: 'Nice work! This shift is marked as completed.',
+  },
+  blocked: {
+    border: '#fca5a5',
+    dot: '#dc2626',
+    text: '#b91c1c',
+    description: 'This assignment needs attention before you can start.',
+  },
+};
+
+const formatDate = (value: string) => {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return 'TBD';
+  return parsed.toLocaleDateString([], {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  });
+};
+
+const formatTime = (value: string) => {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return '—';
+  return parsed.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+};
+
+const formatDuration = (start: string, end: string) => {
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+    return '—';
+  }
+  const minutes = Math.round(Math.abs(endDate.getTime() - startDate.getTime()) / 60000);
+  const hours = Math.floor(minutes / 60);
+  const remainder = minutes % 60;
+  const hoursText = hours ? `${hours}h ` : '';
+  const minutesText = remainder ? `${remainder}m` : '';
+  return `${hoursText}${minutesText}`.trim() || '—';
+};
 
 export default function ShiftDetailsScreen() {
   const { id } = useLocalSearchParams();
   const shiftId = Array.isArray(id) ? id[0] : id;
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const userId = user?.id;
 
   const { data: shift, isLoading, refetch } = useQuery({
     queryKey: ['shift', shiftId],
@@ -23,7 +96,14 @@ export default function ShiftDetailsScreen() {
     );
   }
 
-  if (isLoading) {
+  const cachedShift = shiftId
+    ? queryClient
+        .getQueryData<Shift[]>(['shifts', userId])
+        ?.find((item) => item.id === shiftId)
+    : undefined;
+  const shiftToShow = shift ?? cachedShift;
+
+  if (isLoading && !shiftToShow) {
     return (
       <View style={styles.center}>
         <ActivityIndicator />
@@ -31,7 +111,7 @@ export default function ShiftDetailsScreen() {
     );
   }
 
-  if (!shift) {
+  if (!shiftToShow) {
     return (
       <View style={styles.center}>
         <Text style={styles.error}>Shift not found. Pull to retry.</Text>
@@ -40,15 +120,167 @@ export default function ShiftDetailsScreen() {
     );
   }
 
+  const status = statusStyles[shiftToShow.status] ?? statusStyles.scheduled;
+  const locationLabel = shiftToShow.objectName ?? shiftToShow.location ?? 'TBD';
+  const locationSubtext = shiftToShow.objectAddress ?? shiftToShow.location;
+  const duration = formatDuration(shiftToShow.start, shiftToShow.end);
+  const startLabel = formatTime(shiftToShow.start);
+  const endLabel = formatTime(shiftToShow.end);
+  const dateLabel = formatDate(shiftToShow.start);
+  const description = shiftToShow.description?.trim();
+  const now = new Date();
+  const shiftStart = new Date(shiftToShow.start);
+  const minutesUntilStart = Math.max(
+    0,
+    Math.round((shiftStart.getTime() - now.getTime()) / 60000)
+  );
+  const countdownLabel =
+    minutesUntilStart <= 0
+      ? 'Shift in progress'
+      : `${minutesUntilStart}m until start`;
+  const opsContact = shiftToShow.objectName ?? 'Operations team';
+  const contactEmail = 'ops@company.com';
+  const contactPhone = '+1 (415) 555-0101';
+  const handleOpenMaps = () => {
+    if (!locationSubtext) return;
+    const query = encodeURIComponent(locationSubtext);
+    Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${query}`);
+  };
+
+  const shiftTempo =
+    minutesUntilStart <= 0 ? 'Live now' : minutesUntilStart <= 30 ? 'Starting soon' : 'Upcoming';
+  const checklist = ['Arrive 10 minutes early', 'Wear badge and mask', 'Review guest list'];
+  const prepValue = minutesUntilStart <= 30 ? 'Head to location' : 'Prep gear';
+  const heroStats = [
+    { label: 'Start', value: startLabel },
+    { label: 'End', value: endLabel },
+    { label: 'Duration', value: duration },
+  ];
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>{shift.title}</Text>
-      <Text style={styles.meta}>{shift.location}</Text>
-      <Text style={styles.meta}>
-        {new Date(shift.start).toLocaleString()} — {new Date(shift.end).toLocaleString()}
-      </Text>
-      {shift.description ? <Text style={styles.description}>{shift.description}</Text> : null}
-      <PrimaryButton title="Clock in with QR" onPress={() => router.push('/qr-clock-in')} style={styles.cta} />
+      <Text style={styles.tabLabel}>Shift overview</Text>
+      <LinearGradient
+        colors={['#eef2ff', '#f8fafc']}
+        style={[styles.hero, { borderColor: status.border }]}
+      >
+        <View style={styles.heroTop}>
+          <View style={[styles.statusBadge, { borderColor: status.border }]}>
+            <View style={[styles.statusDot, { backgroundColor: status.dot }]} />
+            <Text style={[styles.statusText, { color: status.text }]}>
+              {shiftToShow.status.toUpperCase()}
+            </Text>
+          </View>
+          <View>
+            <Text style={styles.heroTempoLabel}>{shiftTempo}</Text>
+            <Text style={styles.heroTempoValue}>{countdownLabel}</Text>
+          </View>
+        </View>
+        <Text style={styles.title}>{shiftToShow.title}</Text>
+        <Text style={styles.subtitle}>{locationLabel}</Text>
+        <Text style={styles.statusDescription}>{status.description}</Text>
+
+        <View style={styles.heroStats}>
+          {heroStats.map((stat, index) => (
+            <View
+              key={stat.label}
+              style={[
+                styles.heroStatCard,
+                index === heroStats.length - 1 ? styles.heroStatCardLast : undefined,
+              ]}
+            >
+              <Text style={styles.heroStatLabel}>{stat.label}</Text>
+              <Text style={styles.heroStatValue}>{stat.value}</Text>
+            </View>
+          ))}
+        </View>
+        <View style={styles.heroChips}>
+          <View style={styles.heroChip}>
+            <Text style={styles.heroChipLabel}>Stage</Text>
+            <Text style={styles.heroChipValue}>{shiftTempo}</Text>
+          </View>
+          <View style={[styles.heroChip, styles.heroChipLast]}>
+            <Text style={styles.heroChipLabel}>Countdown</Text>
+            <Text style={styles.heroChipValue}>{countdownLabel}</Text>
+          </View>
+        </View>
+      </LinearGradient>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionHeading}>Timing snapshot</Text>
+        <View style={styles.gridRow}>
+          <View style={styles.gridItem}>
+            <Text style={styles.gridLabel}>Day</Text>
+            <Text style={styles.gridValue}>{dateLabel}</Text>
+          </View>
+          <View style={styles.gridItem}>
+            <Text style={styles.gridLabel}>Stage</Text>
+            <Text style={styles.gridValue}>{shiftTempo}</Text>
+          </View>
+        </View>
+        <View style={styles.nextStepsRow}>
+          <View style={styles.nextStep}>
+            <Text style={styles.nextStepLabel}>Countdown</Text>
+            <Text style={styles.nextStepValue}>{countdownLabel}</Text>
+          </View>
+          <View style={[styles.nextStep, styles.nextStepLast]}>
+            <Text style={styles.nextStepLabel}>Prep</Text>
+            <Text style={styles.nextStepValue}>{prepValue}</Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionHeading}>Focus points</Text>
+        <View style={styles.splitRow}>
+          {checklist.map((point) => (
+            <View key={point} style={styles.bulletRow}>
+              <View style={styles.bulletDot} />
+              <Text style={styles.bulletText}>{point}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionHeading}>Where you'll be</Text>
+        <Text style={styles.sectionTitle}>{locationLabel}</Text>
+        {locationSubtext ? <Text style={styles.sectionSubtitle}>{locationSubtext}</Text> : null}
+        {locationSubtext ? (
+          <Text style={styles.mapLink} onPress={handleOpenMaps}>
+            Open in maps
+          </Text>
+        ) : null}
+      </View>
+
+      {description ? (
+        <View style={styles.section}>
+          <Text style={styles.sectionHeading}>What you’ll do</Text>
+          <Text style={styles.sectionBody}>{description}</Text>
+        </View>
+      ) : null}
+
+      {!description && (
+        <View style={styles.section}>
+          <Text style={styles.sectionHeading}>What you’ll do</Text>
+          <Text style={styles.sectionBody}>
+            No description was provided. Touch base with operations if you need the rundown.
+          </Text>
+        </View>
+      )}
+
+      <View style={styles.section}>
+        <Text style={styles.sectionHeading}>Need a hand?</Text>
+        <Text style={styles.sectionBody}>
+          Reach out to {opsContact} if anything changes or if you need a quick refresher before clocking in.
+        </Text>
+        <Text style={styles.sectionBody}>Call: {contactPhone}</Text>
+        <Text style={styles.sectionBody}>Email: {contactEmail}</Text>
+      </View>
+
+      <View style={styles.cta}>
+        <PrimaryButton title="Clock in with QR" onPress={() => router.push('/qr-clock-in')} />
+      </View>
     </ScrollView>
   );
 }
@@ -59,21 +291,228 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: '#f8fafc',
   },
+  hero: {
+    borderWidth: 1,
+    borderRadius: 22,
+    marginBottom: 24,
+    padding: 20,
+    backgroundColor: '#fff',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 10 },
+    shadowRadius: 20,
+    elevation: 6,
+  },
+  hero: {
+    borderRadius: 22,
+    marginBottom: 24,
+    padding: 20,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 10 },
+    shadowRadius: 20,
+    elevation: 6,
+  },
+  heroTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  heroTempoLabel: {
+    fontSize: 12,
+    color: '#64748b',
+  },
+  heroTempoValue: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#0f172a',
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    backgroundColor: '#fff',
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 8,
+  },
+  statusText: {
+    fontWeight: '600',
+    fontSize: 12,
+  },
   title: {
     fontSize: 24,
     fontWeight: '700',
+    color: '#0f172a',
     marginBottom: 4,
   },
-  meta: {
-    color: '#374151',
+  subtitle: {
+    color: '#475569',
     fontSize: 16,
+    marginBottom: 6,
+  },
+  statusDescription: {
+    color: '#64748b',
+    fontSize: 14,
+    marginBottom: 16,
+  },
+  heroStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  heroStatCard: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    paddingVertical: 10,
+    marginRight: 10,
+    alignItems: 'center',
+  },
+  heroStatCardLast: {
+    marginRight: 0,
+  },
+  heroStatLabel: {
+    fontSize: 12,
+    color: '#94a3b8',
+  },
+  heroStatValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#0f172a',
+  },
+  heroChips: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  heroChip: {
+    flex: 1,
+    backgroundColor: '#edf2ff',
+    borderRadius: 999,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginRight: 10,
+    alignItems: 'center',
+  },
+  heroChipLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#475569',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  heroChipValue: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#0f172a',
+  },
+  heroChipLast: {
+    marginRight: 0,
+  },
+  section: {
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 3,
+  },
+  sectionHeading: {
+    color: '#475569',
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 8,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#0f172a',
     marginBottom: 2,
   },
-  description: {
-    marginTop: 16,
+  sectionSubtitle: {
+    color: '#475569',
+    fontSize: 14,
+  },
+  sectionBody: {
+    color: '#475569',
     fontSize: 14,
     lineHeight: 22,
-    color: '#475569',
+  },
+  splitRow: {
+    marginTop: 8,
+  },
+  bulletRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  bulletDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#2563eb',
+    marginRight: 8,
+  },
+  bulletText: {
+    fontSize: 14,
+    color: '#0f172a',
+  },
+  gridRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  gridItem: {
+    flex: 1,
+    paddingVertical: 6,
+  },
+  gridLabel: {
+    fontSize: 12,
+    color: '#94a3b8',
+    marginBottom: 4,
+  },
+  gridValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#0f172a',
+  },
+  nextStepsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 12,
+  },
+  nextStep: {
+    flex: 1,
+    padding: 12,
+    backgroundColor: '#f1f5f9',
+    borderRadius: 12,
+    marginRight: 8,
+  },
+  nextStepLabel: {
+    fontSize: 12,
+    color: '#94a3b8',
+    marginBottom: 2,
+  },
+  nextStepValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0f172a',
+  },
+  nextStepLast: {
+    marginRight: 0,
   },
   center: {
     flex: 1,
@@ -88,5 +527,18 @@ const styles = StyleSheet.create({
   },
   cta: {
     marginTop: 24,
+  },
+  mapLink: {
+    color: '#0ea5e9',
+    fontSize: 14,
+    marginTop: 8,
+    textDecorationLine: 'underline',
+  },
+  tabLabel: {
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    fontSize: 12,
+    color: '#475569',
+    marginBottom: 8,
   },
 });
