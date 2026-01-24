@@ -11,30 +11,6 @@ const statusColors: Record<string, string> = {
   completed: '#6b7280',
   blocked: '#dc2626',
 };
-const phaseMeta: Record<
-  ShiftPhase,
-  { label: string; icon: keyof typeof Ionicons.glyphMap; color: string; background: string }
-> = {
-  past: {
-    label: 'Past shift',
-    icon: 'time-outline',
-    color: '#6b7280',
-    background: '#f1f5f9',
-  },
-  live: {
-    label: 'Live now',
-    icon: 'play-circle-outline',
-    color: '#059669',
-    background: '#ecfdf5',
-  },
-  upcoming: {
-    label: 'Upcoming',
-    icon: 'calendar-outline',
-    color: '#2563eb',
-    background: '#eff6ff',
-  },
-};
-
 type ShiftPhase = 'past' | 'live' | 'upcoming';
 
 const getShiftPhase = (startIso: string, endIso: string): ShiftPhase => {
