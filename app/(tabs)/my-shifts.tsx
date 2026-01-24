@@ -1,5 +1,6 @@
 import {
   Animated,
+  PanResponder,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -8,7 +9,7 @@ import {
   View,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useEffect, useMemo, useState, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   getShifts,
@@ -128,7 +129,7 @@ export default function MyShiftsScreen() {
     return map;
   }, [filteredShifts]);
 
-  const handleMonthChange = (offset: number) => {
+  const handleMonthChange = useCallback((offset: number) => {
     Animated.timing(calendarFlip, {
       toValue: 90,
       duration: 180,
@@ -143,7 +144,29 @@ export default function MyShiftsScreen() {
         useNativeDriver: true,
       }).start();
     });
-  };
+  }, [calendarFlip]);
+
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => viewMode === 'calendar',
+        onMoveShouldSetPanResponder: (_, gestureState) =>
+          viewMode === 'calendar' &&
+          Math.abs(gestureState.dx) > Math.abs(gestureState.dy) &&
+          Math.abs(gestureState.dx) > 20,
+        onPanResponderRelease: (_, gestureState) => {
+          if (Math.abs(gestureState.dx) < 35) {
+            return;
+          }
+          if (gestureState.dx < 0) {
+            handleMonthChange(1);
+          } else {
+            handleMonthChange(-1);
+          }
+        },
+      }),
+    [viewMode, handleMonthChange]
+  );
 
   useEffect(() => {
     if (!userId) return;
@@ -240,6 +263,7 @@ export default function MyShiftsScreen() {
       ) : (
         !error && (
           <Animated.View
+            {...panResponder.panHandlers}
             style={[
               styles.calendarWrapper,
               {
@@ -307,10 +331,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8fafc',
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 4,
+    paddingBottom: 16,
   },
   header: {
-    marginBottom: 12,
+    marginBottom: 6,
   },
   label: {
     fontSize: 20,
@@ -350,7 +376,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 4,
   },
   monthButton: {
     borderRadius: 999,
@@ -372,7 +398,7 @@ const styles = StyleSheet.create({
   },
   viewSwitcher: {
     flexDirection: 'row',
-    marginBottom: 12,
+    marginBottom: 4,
     justifyContent: 'center',
   },
   viewButton: {
@@ -397,9 +423,9 @@ const styles = StyleSheet.create({
   calendarWrapper: {
     backgroundColor: '#fff',
     borderRadius: 28,
-    paddingVertical: 16,
-    paddingHorizontal: 12,
-    marginTop: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    marginTop: 0,
     shadowColor: '#94a3ff',
     shadowOpacity: 0.25,
     shadowOffset: { width: 0, height: 8 },
