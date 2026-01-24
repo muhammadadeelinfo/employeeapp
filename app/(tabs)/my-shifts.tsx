@@ -1,13 +1,14 @@
 import {
+  Animated,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  Pressable,
 } from 'react-native';
-import { useEffect, useMemo, useState } from 'react';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   getShifts,
@@ -52,6 +53,8 @@ const getCalendarWeeks = (date: Date) => {
   return weeks;
 };
 
+const dayKey = (date: Date) => date.toISOString().split('T')[0];
+
 export default function MyShiftsScreen() {
   const { user } = useAuth();
   const userId = user?.id;
@@ -67,6 +70,8 @@ export default function MyShiftsScreen() {
   const shiftList = shifts ?? [];
   const [visibleMonth, setVisibleMonth] = useState(() => startOfMonth(new Date()));
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
+  const calendarFade = useRef(new Animated.Value(1)).current;
+  const todayKey = useMemo(() => dayKey(new Date()), []);
 
   const filteredShifts = useMemo(() => {
     const monthStart = visibleMonth;
@@ -79,6 +84,29 @@ export default function MyShiftsScreen() {
       return shiftDate >= monthStart && shiftDate < nextMonth;
     });
   }, [shiftList, visibleMonth]);
+
+  const showSkeletons = isLoading && !filteredShifts.length && !error;
+
+  const renderSkeletons = () => (
+    <View style={styles.skeletonContainer}>
+      {Array.from({ length: 3 }).map((_, index) => (
+        <View key={`skeleton-${index}`} style={styles.skeletonCard}>
+          <View style={styles.skeletonLine} />
+          <View style={styles.skeletonLineShort} />
+        </View>
+      ))}
+    </View>
+  );
+
+  const renderListEmptyState = () => (
+    <View style={styles.listEmptyState}>
+      <Text style={styles.emptyTitle}>No shifts scheduled for {getMonthLabel(visibleMonth)}.</Text>
+      <Text style={styles.emptySubtitle}>
+        Check back soon or refresh to see new assignments that match your availability.
+      </Text>
+      <PrimaryButton title="Refresh shifts" onPress={() => refetch()} style={styles.emptyAction} />
+    </View>
+  );
 
   const calendarWeeks = useMemo(() => getCalendarWeeks(visibleMonth), [visibleMonth]);
 
@@ -97,9 +125,20 @@ export default function MyShiftsScreen() {
   }, [filteredShifts]);
 
   const handleMonthChange = (offset: number) => {
-    setVisibleMonth((prev) => {
-      const next = new Date(prev.getFullYear(), prev.getMonth() + offset, 1);
-      return next;
+    Animated.timing(calendarFade, {
+      toValue: 0.4,
+      duration: 140,
+      useNativeDriver: true,
+    }).start(() => {
+      setVisibleMonth((prev) => {
+        const next = new Date(prev.getFullYear(), prev.getMonth() + offset, 1);
+        return next;
+      });
+      Animated.timing(calendarFade, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
     });
   };
 
@@ -182,6 +221,7 @@ export default function MyShiftsScreen() {
           contentContainerStyle={styles.list}
           refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => refetch()} />}
         >
+          {showSkeletons && renderSkeletons()}
           {!error &&
             filteredShifts.map((shift) => (
               <ShiftCard
@@ -192,13 +232,11 @@ export default function MyShiftsScreen() {
                 confirmLoading={shift.assignmentId ? confirmingId === shift.assignmentId : false}
               />
             ))}
-          {!filteredShifts.length && !isLoading && !error ? (
-            <Text style={styles.empty}>No shifts scheduled for {getMonthLabel(visibleMonth)}.</Text>
-          ) : null}
+          {(!filteredShifts.length && !isLoading && !error) && renderListEmptyState()}
         </ScrollView>
       ) : (
         !error && (
-          <View style={styles.calendarWrapper}>
+          <Animated.View style={[styles.calendarWrapper, { opacity: calendarFade }]}>
             <View style={styles.calendarHeader}>
               {WEEKDAY_LABELS.map((label) => (
                 <Text key={label} style={styles.calendarHeaderLabel}>
@@ -213,6 +251,7 @@ export default function MyShiftsScreen() {
                     const key = day.toISOString().split('T')[0];
                     const dayShifts = shiftsByDay.get(key) ?? [];
                     const isCurrentMonth = day.getMonth() === visibleMonth.getMonth();
+                    const isToday = key === todayKey;
                     return (
                       <View
                         key={key}
@@ -220,51 +259,33 @@ export default function MyShiftsScreen() {
                           styles.calendarCell,
                           !isCurrentMonth && styles.calendarCellMuted,
                           dayShifts.length && styles.calendarCellActive,
+                          isToday && styles.calendarCellToday,
                         ]}
                       >
-                        <Text
-                          style={[
-                            styles.calendarCellNumber,
-                            !isCurrentMonth && styles.calendarCellNumberMuted,
-                          ]}
-                        >
-                          {day.getDate()}
-                        </Text>
+                        <View style={styles.calendarCellHeader}>
+                          <Text
+                            style={[
+                              styles.calendarCellNumber,
+                              !isCurrentMonth && styles.calendarCellNumberMuted,
+                            ]}
+                          >
+                            {day.getDate()}
+                          </Text>
+                        </View>
                         {dayShifts.length ? (
-                          <>
-                            {dayShifts.slice(0, 2).map((shift) => (
-                              <Pressable
-                                key={shift.id}
-                                style={styles.calendarShiftRow}
-                                onPress={() => router.push(`/shift-details/${shift.id}`)}
-                              >
-                                <Text style={styles.calendarShiftTime}>
-                                  {getTimeLabel(shift.start)} – {getTimeLabel(shift.end)}
-                                </Text>
-                                <Text style={styles.calendarShiftTitle}>{shift.title}</Text>
-                              </Pressable>
-                            ))}
-                            {dayShifts.length > 2 && (
-                              <Text style={styles.calendarShiftMore}>
-                                +{dayShifts.length - 2} more
-                              </Text>
-                            )}
-                          </>
-                        ) : (
-                          <Text style={styles.calendarEmptyText}>No shifts</Text>
-                        )}
+                          <View style={styles.calendarShiftMarker}>
+                            <Ionicons name="calendar-outline" size={12} color="#1d4ed8" />
+                          </View>
+                        ) : null}
                       </View>
                     );
                   })}
                 </View>
               ))}
             </View>
-          </View>
+          </Animated.View>
         )
       )}
-      {viewMode === 'calendar' && !filteredShifts.length && !isLoading && !error ? (
-        <Text style={styles.empty}>No shifts scheduled for {getMonthLabel(visibleMonth)}.</Text>
-      ) : null}
     </View>
   );
 }
@@ -276,7 +297,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   header: {
-    marginBottom: 6,
+    marginBottom: 12,
   },
   label: {
     fontSize: 20,
@@ -288,11 +309,6 @@ const styles = StyleSheet.create({
   },
   list: {
     paddingBottom: 24,
-  },
-  empty: {
-    textAlign: 'center',
-    marginTop: 24,
-    color: '#9ca3af',
   },
   errorCard: {
     backgroundColor: '#fee2e2',
@@ -321,7 +337,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 12,
   },
   monthButton: {
     borderRadius: 999,
@@ -343,7 +359,7 @@ const styles = StyleSheet.create({
   },
   viewSwitcher: {
     flexDirection: 'row',
-    marginBottom: 8,
+    marginBottom: 12,
     justifyContent: 'center',
   },
   viewButton: {
@@ -367,15 +383,20 @@ const styles = StyleSheet.create({
   },
   calendarWrapper: {
     backgroundColor: '#fff',
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    padding: 12,
+    borderRadius: 28,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
     marginTop: 8,
+    shadowColor: '#94a3ff',
+    shadowOpacity: 0.25,
+    shadowOffset: { width: 0, height: 8 },
+    shadowRadius: 20,
+    elevation: 6,
   },
   calendarHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginBottom: 6,
   },
   calendarHeaderLabel: {
     flex: 1,
@@ -385,62 +406,106 @@ const styles = StyleSheet.create({
     color: '#475569',
   },
   calendarWeeks: {
-    marginTop: 8,
+    marginTop: 4,
   },
   calendarWeekRow: {
     flexDirection: 'row',
   },
   calendarCell: {
     flex: 1,
-    minHeight: 110,
-    margin: 2,
-    borderRadius: 12,
+    minHeight: 54,
+    margin: 0.6,
+    borderRadius: 11,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    padding: 6,
+    borderColor: '#e6e9f4',
+    padding: 4,
+    backgroundColor: '#f9fbff',
   },
   calendarCellMuted: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#f1f3f8',
   },
   calendarCellActive: {
-    borderColor: '#2563eb',
-    shadowColor: '#2563eb',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 2,
+    borderColor: '#3b82f6',
+    backgroundColor: '#ebf2ff',
+    shadowColor: '#7c9cff',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  calendarCellHeader: {
+    alignItems: 'flex-start',
   },
   calendarCellNumber: {
     fontSize: 12,
-    fontWeight: '700',
-    color: '#0f172a',
-    marginBottom: 4,
+    fontWeight: '600',
+    color: '#1f2937',
   },
   calendarCellNumberMuted: {
-    color: '#94a3b8',
+    color: '#a1a5b0',
   },
-  calendarShiftRow: {
+  calendarCellToday: {
+    borderColor: '#2563eb',
+    shadowColor: '#93c5fd',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+  },
+  calendarShiftMarker: {
+    marginTop: 6,
+    width: 22,
+    height: 22,
+    borderRadius: 7,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#1d4ed8',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.18,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  listEmptyState: {
+    alignItems: 'center',
+    paddingVertical: 24,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 6,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginBottom: 12,
+    textAlign: 'center',
+    maxWidth: 260,
+  },
+  emptyAction: {
+    minWidth: 180,
+  },
+  skeletonContainer: {
+    marginBottom: 12,
+  },
+  skeletonCard: {
+    height: 120,
+    borderRadius: 20,
     backgroundColor: '#eef2ff',
-    borderRadius: 10,
-    padding: 6,
-    marginBottom: 4,
+    marginBottom: 12,
+    padding: 16,
+    justifyContent: 'center',
   },
-  calendarShiftTime: {
-    fontSize: 11,
-    color: '#475569',
+  skeletonLine: {
+    height: 16,
+    backgroundColor: '#dbeafe',
+    borderRadius: 8,
+    marginBottom: 8,
   },
-  calendarShiftTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#0f172a',
-  },
-  calendarShiftMore: {
-    fontSize: 11,
-    color: '#2563eb',
-    fontWeight: '600',
-  },
-  calendarEmptyText: {
-    fontSize: 11,
-    color: '#94a3b8',
+  skeletonLineShort: {
+    height: 12,
+    width: '60%',
+    backgroundColor: '#dbeafe',
+    borderRadius: 6,
   },
 });
