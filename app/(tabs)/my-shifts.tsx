@@ -427,7 +427,7 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   header: {
-    marginBottom: 4,
+    marginBottom: 2,
   },
   label: {
     fontSize: 20,
@@ -484,7 +484,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   viewControlsContainer: {
-    marginTop: 4,
+    marginTop: 2,
     marginBottom: 6,
     gap: 8,
   },

@@ -47,8 +47,7 @@ export const TopBar = ({ variant = 'regular' }: Props) => {
       style={[
         styles.safe,
         {
-          paddingTop:
-            insets.top + (isFloating ? 2 : isCompact ? 4 : 0),
+          paddingTop: insets.top,
         },
       ]}
     >
@@ -59,13 +58,13 @@ export const TopBar = ({ variant = 'regular' }: Props) => {
             isFloating ? styles.barFloating : isCompact ? styles.barCompact : styles.barRegular,
           ]}
         >
-        <View
-          style={[
-            styles.leftGroup,
-            isCompact && styles.leftGroupCompact,
-            isFloating && styles.leftGroupFloating,
-          ]}
-        >
+          <View
+            style={[
+              styles.leftGroup,
+              isCompact && styles.leftGroupCompact,
+              isFloating && styles.leftGroupFloating,
+            ]}
+          >
           <View
             style={[
               styles.logoPill,
