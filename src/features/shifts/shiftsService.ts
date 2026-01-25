@@ -1,5 +1,6 @@
 import { PostgrestError } from '@supabase/supabase-js';
 import { supabase } from '@lib/supabaseClient';
+import { ShiftConfirmationStatus, normalizeShiftConfirmationStatus } from '@lib/shiftConfirmationStatus';
 
 type ShiftStatus = 'scheduled' | 'in-progress' | 'completed' | 'blocked';
 
@@ -21,7 +22,7 @@ export type Shift = {
   status: ShiftStatus;
   description?: string;
   assignmentId?: string;
-  confirmationStatus?: string;
+  confirmationStatus?: ShiftConfirmationStatus;
   confirmedAt?: string;
 };
 
@@ -171,13 +172,13 @@ const mapShiftArray = (
       return {
         ...shift,
         assignmentId: assignment?.assignmentId,
-        confirmationStatus: assignment?.confirmationStatus,
+        confirmationStatus: normalizeShiftConfirmationStatus(assignment?.confirmationStatus),
         confirmedAt: assignment?.confirmedAt,
       };
     })
     .filter((shift): shift is Shift => Boolean(shift));
   const visibleShifts = parsed.filter(
-    (shift) => shift.confirmationStatus?.toLowerCase() !== 'pending'
+    (shift) => shift.confirmationStatus !== 'pending'
   );
   return sortShiftsByStart(visibleShifts);
 };

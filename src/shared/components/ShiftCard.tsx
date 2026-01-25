@@ -12,6 +12,10 @@ import type { Shift } from '@features/shifts/shiftsService';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
 import { ShiftPhase, phaseMeta } from '@shared/utils/shiftPhase';
 import { useLanguage, type TranslationKey } from '@shared/context/LanguageContext';
+import {
+  getShiftConfirmationStatusLabel,
+  normalizeShiftConfirmationStatus,
+} from '@lib/shiftConfirmationStatus';
 
 const statusColors: Record<string, string> = {
   scheduled: '#2563eb',
@@ -101,6 +105,11 @@ export const ShiftCard = ({
   const displayedAddress =
     locationSubtext && showFullAddress ? locationSubtext : truncateText(addressPreview || '', 48);
   const isLive = shiftPhase === 'live';
+  const normalizedConfirmationStatus = normalizeShiftConfirmationStatus(shift.confirmationStatus);
+  const isConfirmed =
+    normalizedConfirmationStatus === 'confirmed' ||
+    normalizedConfirmationStatus === 'confirmed by employee';
+  const confirmationLabel = getShiftConfirmationStatusLabel(normalizedConfirmationStatus);
 
   useEffect(() => {
     let animation: Animated.CompositeAnimation | null = null;
@@ -212,8 +221,8 @@ export const ShiftCard = ({
         {shift.assignmentId && (
           <View style={styles.confirmSection}>
             <Text style={styles.confirmInstruction}>{t('beOnTime')}</Text>
-            {shift.confirmationStatus?.toLowerCase() === 'confirmed' ? (
-              <Text style={styles.confirmedText}>{t('confirmed')}</Text>
+            {isConfirmed ? (
+              <Text style={styles.confirmedText}>{confirmationLabel}</Text>
             ) : (
               onConfirm && (
                 <PrimaryButton
