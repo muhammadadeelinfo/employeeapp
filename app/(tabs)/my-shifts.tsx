@@ -173,6 +173,7 @@ export default function MyShiftsScreen() {
     });
   }, [calendarFlip]);
 
+  const [listScrollEnabled, setListScrollEnabled] = useState(true);
   const calendarPanResponder = useMemo(
     () =>
       PanResponder.create({
@@ -207,7 +208,9 @@ export default function MyShiftsScreen() {
           Math.abs(gestureState.dx) > Math.abs(gestureState.dy) &&
           Math.abs(gestureState.dx) > 20,
         onStartShouldSetPanResponderCapture: () => viewMode === 'list',
+        onPanResponderGrant: () => setListScrollEnabled(false),
         onPanResponderRelease: (_, gestureState) => {
+          setListScrollEnabled(true);
           if (Math.abs(gestureState.dx) < 35) return;
           if (gestureState.dx < 0) {
             handleMonthChange(1);
@@ -215,6 +218,8 @@ export default function MyShiftsScreen() {
             handleMonthChange(-1);
           }
         },
+        onPanResponderTerminate: () => setListScrollEnabled(true),
+        onPanResponderTerminationRequest: () => true,
       }),
     [viewMode, handleMonthChange]
   );
@@ -334,6 +339,7 @@ export default function MyShiftsScreen() {
           ref={listScrollRef}
           contentContainerStyle={styles.list}
           refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => refetch()} />}
+          scrollEnabled={listScrollEnabled}
           {...listSwipeResponder.panHandlers}
         >
           {showSkeletons && renderSkeletons()}
