@@ -1,6 +1,8 @@
 import {
   Animated,
   LayoutChangeEvent,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   PanResponder,
   RefreshControl,
   ScrollView,
@@ -85,29 +87,36 @@ export default function MyShiftsScreen() {
   const lastAutoScrolledShiftId = useRef<string | null>(null);
   const [layoutTick, setLayoutTick] = useState(0);
 
-  const filteredShifts = useMemo(() => {
+  const orderedShifts = useMemo(() => {
+    return [...shiftList]
+      .map((shift) => shift)
+      .filter((shift) => {
+        const shiftDate = new Date(shift.start);
+        return !Number.isNaN(shiftDate.getTime());
+      })
+      .sort((a, b) => Number(new Date(a.start)) - Number(new Date(b.start)));
+  }, [shiftList]);
+
+  const monthShifts = useMemo(() => {
     const monthStart = visibleMonth;
     const nextMonth = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 1);
-    return shiftList.filter((shift) => {
+    return orderedShifts.filter((shift) => {
       const shiftDate = new Date(shift.start);
-      if (Number.isNaN(shiftDate.getTime())) {
-        return false;
-      }
       return shiftDate >= monthStart && shiftDate < nextMonth;
     });
-  }, [shiftList, visibleMonth]);
+  }, [orderedShifts, visibleMonth]);
 
-  const showSkeletons = isLoading && !filteredShifts.length && !error;
+  const showSkeletons = isLoading && !orderedShifts.length && !error;
   const now = new Date();
-  const liveShift = filteredShifts.find((shift) => getShiftPhase(shift.start, shift.end, now) === 'live');
-  const nextShift = filteredShifts.find((shift) => new Date(shift.start) > now);
+  const liveShift = orderedShifts.find((shift) => getShiftPhase(shift.start, shift.end, now) === 'live');
+  const nextShift = orderedShifts.find((shift) => new Date(shift.start) > now);
   const focusedShiftId = liveShift?.id ?? nextShift?.id;
-  const focusedDayKey = filteredShifts
+  const focusedDayKey = orderedShifts
     .find((shift) => shift.id === focusedShiftId)
     ?.start.split('T')[0];
   const dayPhaseMap = useMemo(() => {
     const map = new Map<string, ShiftPhase>();
-    filteredShifts.forEach((shift) => {
+    monthShifts.forEach((shift) => {
       const key = shift.start.split('T')[0];
       const phase = getShiftPhase(shift.start, shift.end, now);
       const existing = map.get(key);
@@ -116,7 +125,7 @@ export default function MyShiftsScreen() {
       }
     });
     return map;
-  }, [filteredShifts, now]);
+  }, [monthShifts, now]);
 
   const renderSkeletons = () => (
     <View style={styles.skeletonContainer}>
@@ -131,7 +140,7 @@ export default function MyShiftsScreen() {
 
   const renderListEmptyState = () => (
     <View style={styles.listEmptyState}>
-      <Text style={styles.emptyTitle}>No shifts scheduled for {getMonthLabel(visibleMonth)}.</Text>
+      <Text style={styles.emptyTitle}>No shifts scheduled yet.</Text>
       <Text style={styles.emptySubtitle}>
         Check back soon or refresh to see new assignments that match your availability.
       </Text>
@@ -143,7 +152,7 @@ export default function MyShiftsScreen() {
 
   const shiftsByDay = useMemo(() => {
     const map = new Map<string, Shift[]>();
-    filteredShifts.forEach((shift) => {
+    monthShifts.forEach((shift) => {
       const shiftDate = new Date(shift.start);
       if (Number.isNaN(shiftDate.getTime())) return;
       const key = shiftDate.toISOString().split('T')[0];
@@ -153,7 +162,42 @@ export default function MyShiftsScreen() {
       map.set(key, bucket);
     });
     return map;
-  }, [filteredShifts]);
+  }, [monthShifts]);
+
+  const scrollToMonth = useCallback(
+    (month: Date) => {
+      const targetMonthKey = month.getTime();
+      const nextShift = orderedShifts.find(
+        (shift) => startOfMonth(new Date(shift.start)).getTime() === targetMonthKey
+      );
+      if (!nextShift) return;
+      const offset = shiftLayouts.current.get(nextShift.id);
+      if (offset !== undefined) {
+        listScrollRef.current?.scrollTo({ y: offset, animated: true });
+      }
+    },
+    [orderedShifts]
+  );
+
+  const handleListScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const offset = event.nativeEvent.contentOffset.y;
+      let candidateMonth: Date | null = null;
+      for (const shift of orderedShifts) {
+        const layout = shiftLayouts.current.get(shift.id);
+        if (layout === undefined) continue;
+        if (layout <= offset + 20) {
+          candidateMonth = startOfMonth(new Date(shift.start));
+        } else {
+          break;
+        }
+      }
+      if (candidateMonth && candidateMonth.getTime() !== visibleMonth.getTime()) {
+        setVisibleMonth(candidateMonth);
+      }
+    },
+    [orderedShifts, visibleMonth]
+  );
 
   const handleMonthChange = useCallback((offset: number) => {
     hasManuallyChangedMonth.current = true;
@@ -162,7 +206,11 @@ export default function MyShiftsScreen() {
       duration: 180,
       useNativeDriver: true,
     }).start(() => {
-      setVisibleMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + offset, 1));
+      setVisibleMonth((prev) => {
+        const nextMonth = new Date(prev.getFullYear(), prev.getMonth() + offset, 1);
+        scrollToMonth(nextMonth);
+        return nextMonth;
+      });
       calendarFlip.setValue(-90);
       Animated.timing(calendarFlip, {
         toValue: 0,
@@ -262,14 +310,15 @@ export default function MyShiftsScreen() {
     if (Number.isNaN(focusDate.getTime())) return;
     const targetMonth = startOfMonth(focusDate);
     if (targetMonth.getTime() === visibleMonth.getTime()) return;
+    scrollToMonth(targetMonth);
     setVisibleMonth(targetMonth);
-  }, [shiftList, visibleMonth]);
+  }, [shiftList, visibleMonth, scrollToMonth]);
 
   useEffect(() => {
     shiftLayouts.current.clear();
     lastAutoScrolledShiftId.current = null;
     setLayoutTick((tick) => tick + 1);
-  }, [filteredShifts.length, viewMode]);
+  }, [orderedShifts.length, viewMode]);
 
   useEffect(() => {
     if (viewMode !== 'list') return;
@@ -349,11 +398,13 @@ export default function MyShiftsScreen() {
           contentContainerStyle={styles.list}
           refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => refetch()} />}
           scrollEnabled={listScrollEnabled}
+          scrollEventThrottle={24}
+          onScroll={handleListScroll}
           {...listSwipeResponder.panHandlers}
         >
           {showSkeletons && renderSkeletons()}
           {!error &&
-            filteredShifts.map((shift) => (
+            orderedShifts.map((shift) => (
               <View key={shift.id} onLayout={handleShiftLayout(shift.id)}>
                 <ShiftCard
                   shift={shift}
@@ -365,7 +416,7 @@ export default function MyShiftsScreen() {
                 />
               </View>
             ))}
-          {(!filteredShifts.length && !isLoading && !error) && renderListEmptyState()}
+          {(!orderedShifts.length && !isLoading && !error) && renderListEmptyState()}
         </ScrollView>
       ) : (
         !error && (
