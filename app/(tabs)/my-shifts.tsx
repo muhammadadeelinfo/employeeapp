@@ -195,6 +195,7 @@ export default function MyShiftsScreen() {
       }),
     [viewMode, handleMonthChange]
   );
+  const swipeHandledRef = useRef(false);
   const listSwipeResponder = useMemo(
     () =>
       PanResponder.create({
@@ -208,15 +209,23 @@ export default function MyShiftsScreen() {
           Math.abs(gestureState.dx) > Math.abs(gestureState.dy) &&
           Math.abs(gestureState.dx) > 20,
         onStartShouldSetPanResponderCapture: () => viewMode === 'list',
-        onPanResponderGrant: () => setListScrollEnabled(false),
-        onPanResponderRelease: (_, gestureState) => {
-          setListScrollEnabled(true);
-          if (Math.abs(gestureState.dx) < 35) return;
+        onPanResponderGrant: () => {
+          setListScrollEnabled(false);
+          swipeHandledRef.current = false;
+        },
+        onPanResponderMove: (_, gestureState) => {
+          if (swipeHandledRef.current) return;
+          const absDx = Math.abs(gestureState.dx);
+          if (absDx < 35 || absDx <= Math.abs(gestureState.dy)) return;
+          swipeHandledRef.current = true;
           if (gestureState.dx < 0) {
             handleMonthChange(1);
           } else {
             handleMonthChange(-1);
           }
+        },
+        onPanResponderRelease: () => {
+          setListScrollEnabled(true);
         },
         onPanResponderTerminate: () => setListScrollEnabled(true),
         onPanResponderTerminationRequest: () => true,
