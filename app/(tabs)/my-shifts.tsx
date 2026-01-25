@@ -202,6 +202,11 @@ export default function MyShiftsScreen() {
           viewMode === 'list' &&
           Math.abs(gestureState.dx) > Math.abs(gestureState.dy) &&
           Math.abs(gestureState.dx) > 20,
+        onMoveShouldSetPanResponderCapture: (_, gestureState) =>
+          viewMode === 'list' &&
+          Math.abs(gestureState.dx) > Math.abs(gestureState.dy) &&
+          Math.abs(gestureState.dx) > 20,
+        onStartShouldSetPanResponderCapture: () => viewMode === 'list',
         onPanResponderRelease: (_, gestureState) => {
           if (Math.abs(gestureState.dx) < 35) return;
           if (gestureState.dx < 0) {
