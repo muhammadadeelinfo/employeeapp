@@ -1,5 +1,6 @@
 import {
   Animated,
+  LayoutChangeEvent,
   PanResponder,
   RefreshControl,
   ScrollView,
@@ -73,11 +74,16 @@ export default function MyShiftsScreen() {
   const [visibleMonth, setVisibleMonth] = useState(() => startOfMonth(new Date()));
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   const calendarFlip = useRef(new Animated.Value(0)).current;
+  const hasManuallyChangedMonth = useRef(false);
   const rotateY = calendarFlip.interpolate({
     inputRange: [-90, 0, 90],
     outputRange: ['-90deg', '0deg', '90deg'],
   });
   const todayKey = useMemo(() => dayKey(new Date()), []);
+  const listScrollRef = useRef<ScrollView>(null);
+  const shiftLayouts = useRef(new Map<string, number>());
+  const lastAutoScrolledShiftId = useRef<string | null>(null);
+  const [layoutTick, setLayoutTick] = useState(0);
 
   const filteredShifts = useMemo(() => {
     const monthStart = visibleMonth;
@@ -150,6 +156,7 @@ export default function MyShiftsScreen() {
   }, [filteredShifts]);
 
   const handleMonthChange = useCallback((offset: number) => {
+    hasManuallyChangedMonth.current = true;
     Animated.timing(calendarFlip, {
       toValue: 90,
       duration: 180,
@@ -199,6 +206,50 @@ export default function MyShiftsScreen() {
     const timer = setInterval(() => refetch(), 120000);
     return () => clearInterval(timer);
   }, [userId, refetch]);
+
+  useEffect(() => {
+    if (hasManuallyChangedMonth.current) return;
+    if (!shiftList.length) return;
+    const now = new Date();
+    const liveShift = shiftList.find((shift) => getShiftPhase(shift.start, shift.end, now) === 'live');
+    const upcomingShift = shiftList.find((shift) => {
+      const startDate = new Date(shift.start);
+      if (Number.isNaN(startDate.getTime())) return false;
+      return startDate > now;
+    });
+    const shiftToFocus = liveShift ?? upcomingShift;
+    if (!shiftToFocus) return;
+
+    const focusDate = new Date(shiftToFocus.start);
+    if (Number.isNaN(focusDate.getTime())) return;
+    const targetMonth = startOfMonth(focusDate);
+    if (targetMonth.getTime() === visibleMonth.getTime()) return;
+    setVisibleMonth(targetMonth);
+  }, [shiftList, visibleMonth]);
+
+  useEffect(() => {
+    shiftLayouts.current.clear();
+    lastAutoScrolledShiftId.current = null;
+    setLayoutTick((tick) => tick + 1);
+  }, [filteredShifts.length, viewMode]);
+
+  useEffect(() => {
+    if (viewMode !== 'list') return;
+    if (!focusedShiftId) return;
+    if (lastAutoScrolledShiftId.current === focusedShiftId) return;
+    const targetOffset = shiftLayouts.current.get(focusedShiftId);
+    if (targetOffset === undefined) return;
+    listScrollRef.current?.scrollTo({ y: Math.max(targetOffset - 12, 0), animated: true });
+    lastAutoScrolledShiftId.current = focusedShiftId;
+  }, [focusedShiftId, layoutTick, viewMode]);
+
+  const handleShiftLayout = useCallback(
+    (shiftId: string) => (event: LayoutChangeEvent) => {
+      shiftLayouts.current.set(shiftId, event.nativeEvent.layout.y);
+      setLayoutTick((tick) => tick + 1);
+    },
+    [setLayoutTick]
+  );
 
   const handleConfirm = async (assignmentId: string) => {
     try {
@@ -264,21 +315,23 @@ export default function MyShiftsScreen() {
       {errorView}
       {viewMode === 'list' ? (
         <ScrollView
+          ref={listScrollRef}
           contentContainerStyle={styles.list}
           refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => refetch()} />}
         >
           {showSkeletons && renderSkeletons()}
           {!error &&
             filteredShifts.map((shift) => (
-              <ShiftCard
-                key={shift.id}
-                shift={shift}
-                phase={getShiftPhase(shift.start, shift.end, now)}
-                isPrimary={shift.id === focusedShiftId}
-                onPress={() => router.push(`/shift-details/${shift.id}`)}
-                onConfirm={shift.assignmentId ? () => handleConfirm(shift.assignmentId) : undefined}
-                confirmLoading={shift.assignmentId ? confirmingId === shift.assignmentId : false}
-              />
+              <View key={shift.id} onLayout={handleShiftLayout(shift.id)}>
+                <ShiftCard
+                  shift={shift}
+                  phase={getShiftPhase(shift.start, shift.end, now)}
+                  isPrimary={shift.id === focusedShiftId}
+                  onPress={() => router.push(`/shift-details/${shift.id}`)}
+                  onConfirm={shift.assignmentId ? () => handleConfirm(shift.assignmentId) : undefined}
+                  confirmLoading={shift.assignmentId ? confirmingId === shift.assignmentId : false}
+                />
+              </View>
             ))}
           {(!filteredShifts.length && !isLoading && !error) && renderListEmptyState()}
         </ScrollView>
