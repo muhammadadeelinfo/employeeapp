@@ -283,34 +283,36 @@ export default function MyShiftsScreen() {
             : 'Enable location to see nearby shifts'}
         </Text>
       </View>
-      <View style={styles.monthSwitcher}>
-        <TouchableOpacity style={styles.monthButton} onPress={() => handleMonthChange(-1)}>
-          <Text style={styles.monthButtonText}>← Previous</Text>
-        </TouchableOpacity>
-        <Text style={styles.monthLabel}>{getMonthLabel(visibleMonth)}</Text>
-        <TouchableOpacity style={styles.monthButton} onPress={() => handleMonthChange(1)}>
-          <Text style={styles.monthButtonText}>Next →</Text>
-        </TouchableOpacity>
-      </View>
-      <View style={styles.viewSwitcher}>
-        <TouchableOpacity
-          style={[styles.viewButton, viewMode === 'list' && styles.viewButtonActive]}
-          onPress={() => setViewMode('list')}
-        >
-          <Text style={[styles.viewButtonText, viewMode === 'list' && styles.viewButtonTextActive]}>
-            List view
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.viewButton, viewMode === 'calendar' && styles.viewButtonActive]}
-          onPress={() => setViewMode('calendar')}
-        >
-          <Text
-            style={[styles.viewButtonText, viewMode === 'calendar' && styles.viewButtonTextActive]}
+      <View style={styles.viewControlsContainer}>
+        <View style={styles.monthSwitcherCard}>
+          <TouchableOpacity style={styles.monthNavButton} onPress={() => handleMonthChange(-1)}>
+            <Ionicons name="chevron-back-outline" size={18} color="#1f2937" />
+          </TouchableOpacity>
+          <Text style={styles.monthLabel}>{getMonthLabel(visibleMonth)}</Text>
+          <TouchableOpacity style={styles.monthNavButton} onPress={() => handleMonthChange(1)}>
+            <Ionicons name="chevron-forward-outline" size={18} color="#1f2937" />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.viewSwitcherContainer}>
+          <TouchableOpacity
+            style={[styles.viewToggle, viewMode === 'list' && styles.viewToggleActive]}
+            onPress={() => setViewMode('list')}
           >
-            Calendar view
-          </Text>
-        </TouchableOpacity>
+            <Text style={[styles.viewToggleText, viewMode === 'list' && styles.viewToggleTextActive]}>
+              List view
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.viewToggle, viewMode === 'calendar' && styles.viewToggleActive]}
+            onPress={() => setViewMode('calendar')}
+          >
+            <Text
+              style={[styles.viewToggleText, viewMode === 'calendar' && styles.viewToggleTextActive]}
+            >
+              Calendar view
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
       {errorView}
       {viewMode === 'list' ? (
@@ -337,18 +339,16 @@ export default function MyShiftsScreen() {
         </ScrollView>
       ) : (
         !error && (
-          <Animated.View
-            {...panResponder.panHandlers}
-            style={[
-              styles.calendarWrapper,
-              {
-                transform: [
-                  { perspective: 1000 },
-                  { rotateY: rotateY },
-                ],
-              },
-            ]}
-          >
+          <View style={styles.calendarShell}>
+            <Animated.View
+              {...panResponder.panHandlers}
+              style={[
+                styles.calendarWrapper,
+                {
+                  transform: [{ perspective: 1000 }, { rotateY: rotateY }],
+                },
+              ]}
+            >
             <View style={styles.calendarHeader}>
               {WEEKDAY_LABELS.map((label) => (
                 <Text key={label} style={styles.calendarHeaderLabel}>
@@ -411,6 +411,7 @@ export default function MyShiftsScreen() {
               ))}
             </View>
           </Animated.View>
+          </View>
         )
       )}
     </View>
@@ -464,12 +465,6 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     paddingHorizontal: 18,
   },
-  monthSwitcher: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
   monthButton: {
     borderRadius: 999,
     paddingVertical: 6,
@@ -488,28 +483,58 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     flex: 1,
   },
-  viewSwitcher: {
+  viewControlsContainer: {
+    marginVertical: 6,
+    gap: 8,
+  },
+  monthSwitcherCard: {
     flexDirection: 'row',
-    marginBottom: 4,
-    justifyContent: 'center',
-  },
-  viewButton: {
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    paddingHorizontal: 14,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#fff',
+    borderRadius: 18,
     paddingVertical: 6,
-    marginHorizontal: 4,
+    paddingHorizontal: 12,
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
   },
-  viewButtonActive: {
+  monthNavButton: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 999,
+    backgroundColor: '#f1f5f9',
+  },
+  viewSwitcherContainer: {
+    flexDirection: 'row',
+    alignSelf: 'center',
+    backgroundColor: '#eef2ff',
+    borderRadius: 999,
+    padding: 4,
+    gap: 4,
+  },
+  viewToggle: {
+    flex: 1,
+    borderRadius: 999,
+    paddingVertical: 8,
+    paddingHorizontal: 18,
+    alignItems: 'center',
+  },
+  viewToggleActive: {
     backgroundColor: '#2563eb',
-    borderColor: '#2563eb',
   },
-  viewButtonText: {
-    color: '#1f2937',
+  viewToggleText: {
+    fontSize: 13,
     fontWeight: '600',
+    color: '#1f2937',
   },
-  viewButtonTextActive: {
+  viewToggleTextActive: {
     color: '#fff',
   },
   calendarWrapper: {
@@ -523,6 +548,18 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
     shadowRadius: 20,
     elevation: 6,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  calendarShell: {
+    borderRadius: 30,
+    padding: 8,
+    backgroundColor: '#f8fafc',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.05,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 3,
   },
   calendarHeader: {
     flexDirection: 'row',
