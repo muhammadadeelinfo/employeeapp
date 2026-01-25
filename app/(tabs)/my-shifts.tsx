@@ -440,11 +440,11 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   viewSwitcherRow: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
   list: {
     paddingBottom: 24,
-    paddingTop: 4,
+    paddingTop: 2,
     flexGrow: 1,
   },
   errorCard: {

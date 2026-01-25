@@ -44,7 +44,7 @@ export default function TabsLayout() {
             tabBarStyle: {
               backgroundColor: '#fff',
               borderTopColor: '#e5e7eb',
-              paddingVertical: 4,
+              paddingVertical: 2,
             },
             tabBarIcon: ({ color, size, focused }) => (
               <Ionicons name={(focused ? icon.active : icon.inactive) as any} color={color} size={size} />

@@ -11,6 +11,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Shift } from '@features/shifts/shiftsService';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
 import { ShiftPhase, phaseMeta } from '@shared/utils/shiftPhase';
+import { useLanguage, type TranslationKey } from '@shared/context/LanguageContext';
 
 const statusColors: Record<string, string> = {
   scheduled: '#2563eb',
@@ -65,6 +66,12 @@ const simplifyAddress = (value: string) => {
   return `${segments.slice(0, 2).join(', ')}…`;
 };
 
+const phaseTranslationKey: Record<ShiftPhase, TranslationKey> = {
+  past: 'phasePast',
+  live: 'phaseLive',
+  upcoming: 'phaseUpcoming',
+};
+
 type Props = {
   shift: Shift;
   onPress?: () => void;
@@ -85,6 +92,8 @@ export const ShiftCard = ({
   const [showFullAddress, setShowFullAddress] = useState(false);
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const phaseConfig = phaseMeta[shiftPhase];
+  const { t } = useLanguage();
+  const phaseLabel = t(phaseTranslationKey[shiftPhase]);
   const statusColor = statusColors[shift.status] ?? '#1d4ed8';
   const locationLabel = shift.objectName ?? shift.location ?? 'TBD';
   const locationSubtext = shift.objectAddress ?? shift.location;
@@ -152,13 +161,13 @@ export const ShiftCard = ({
               />
               <Text style={[styles.statusText, { color: statusColor }]}>{shift.status.toUpperCase()}</Text>
             </View>
-            <Text style={styles.phaseInline}>{phaseConfig.label}</Text>
+            <Text style={styles.phaseInline}>{phaseLabel}</Text>
           </View>
         </View>
 
         <View style={styles.timeRow}>
           <View>
-            <Text style={styles.timeLabel}>Shift window</Text>
+            <Text style={styles.timeLabel}>{t('shiftWindowLabel')}</Text>
             <Text style={styles.timeValue}>
               {formatTime(shift.start)} – {formatTime(shift.end)}
             </Text>
@@ -166,13 +175,15 @@ export const ShiftCard = ({
           <Text style={styles.duration}>{formatDuration(shift.start, shift.end)}</Text>
         </View>
 
+        <View style={styles.sectionDivider} />
+
         <Pressable
           style={styles.locationRow}
           onPress={() => locationSubtext && setShowFullAddress((prev) => !prev)}
           disabled={!locationSubtext}
         >
           <View style={styles.locationIcon}>
-            <Ionicons name="location-outline" size={18} color="#2563eb" />
+            <Ionicons name="location-outline" size={20} color="#2563eb" />
           </View>
           <View style={styles.locationText}>
             <Text style={styles.locationLabel}>{locationLabel}</Text>
@@ -184,7 +195,7 @@ export const ShiftCard = ({
                 {displayedAddress}
               </Text>
             ) : (
-              <Text style={styles.locationDetails}>Location TBD</Text>
+              <Text style={styles.locationDetails}>{t('locationTbd')}</Text>
             )}
           </View>
           {locationSubtext ? (
@@ -200,13 +211,13 @@ export const ShiftCard = ({
 
         {shift.assignmentId && (
           <View style={styles.confirmSection}>
-            <Text style={styles.confirmInstruction}>Be On Time</Text>
+            <Text style={styles.confirmInstruction}>{t('beOnTime')}</Text>
             {shift.confirmationStatus?.toLowerCase() === 'confirmed' ? (
-              <Text style={styles.confirmedText}>Confirmed</Text>
+              <Text style={styles.confirmedText}>{t('confirmed')}</Text>
             ) : (
               onConfirm && (
                 <PrimaryButton
-                  title="Confirm shift"
+                  title={t('confirmShift')}
                   onPress={onConfirm}
                   loading={confirmLoading}
                   style={styles.confirmButton}
@@ -322,7 +333,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 12,
+    marginTop: 8,
+  },
+  sectionDivider: {
+    height: 1,
+    backgroundColor: '#e5e7ef',
+    marginTop: 8,
   },
   timeLabel: {
     fontSize: 11,
@@ -343,17 +359,21 @@ const styles = StyleSheet.create({
   },
   locationRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginTop: 12,
-    padding: 10,
+    alignItems: 'center',
+    marginTop: 8,
+    padding: 12,
     borderRadius: 16,
-    backgroundColor: '#f3f4ff',
+    backgroundColor: '#f7f8ff',
+    borderWidth: 1,
+    borderColor: '#e5e7ef',
   },
   locationIcon: {
-    width: 28,
+    width: 30,
+    height: 30,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
+    marginTop: 0,
   },
   locationText: {
     flex: 1,
@@ -372,7 +392,7 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   description: {
-    marginTop: 10,
+    marginTop: 8,
     fontSize: 13,
     color: '#4b5563',
   },
