@@ -42,45 +42,28 @@ export default function ProfileScreen() {
       style={[styles.container, { backgroundColor: theme.background }]}
       contentContainerStyle={styles.content}
     >
-      <View style={styles.headerBlock}>
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>{provider.toUpperCase()} ACCESS</Text>
-          <Text style={styles.badgeDate}>Member since {formatDate(user?.created_at)}</Text>
-        </View>
-        <Text style={[styles.header, { color: theme.textPrimary }]}>Hello, {profileName(user)}!</Text>
-        <Text style={[styles.subHeader, { color: theme.textSecondary }]}>
-          Profile settings are synced across web and Expo.
-        </Text>
-      </View>
-
-      <View
-        style={[
-          styles.card,
-          {
-            backgroundColor: theme.surface,
-            borderColor: theme.border,
-            shadowColor: theme.shadowBlue,
-          },
-        ]}
-      >
-        <Text style={[styles.title, { color: theme.textPrimary }]}>Contact</Text>
-        <Text style={styles.detailLabel}>Email</Text>
-        <Text style={[styles.detailValue, { color: theme.textSecondary }]}>
-          {user?.email ?? 'Not signed in'}
-        </Text>
-        <View style={[styles.divider, { backgroundColor: theme.borderSoft }]} />
-        <View style={styles.statusRow}>
-          <View>
-            <Text style={styles.miniLabel}>Role</Text>
-            <Text style={[styles.miniValue, { color: theme.textSecondary }]}>
-              {user ? 'Employee' : 'Guest'}
-            </Text>
+      <View style={styles.statsGrid}>
+        {[
+          { label: 'Provider', value: provider.toUpperCase() },
+          { label: 'Email verified', value: user?.email_confirmed_at ? 'Yes' : 'Pending' },
+          { label: 'Member since', value: formatDate(user?.created_at) },
+        ].map((stat, index, list) => (
+          <View
+            key={stat.label}
+            style={[
+              styles.statCard,
+              {
+                backgroundColor: theme.surface,
+                shadowColor: theme.shadowBlue,
+                borderColor: theme.border,
+              },
+              index !== list.length - 1 && { marginRight: 12 },
+            ]}
+          >
+            <Text style={[styles.statValue, { color: theme.textPrimary }]}>{stat.value}</Text>
+            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{stat.label}</Text>
           </View>
-          <View>
-            <Text style={styles.miniLabel}>Status</Text>
-            <Text style={[styles.miniValue, { color: theme.textSecondary }]}>{status}</Text>
-          </View>
-        </View>
+        ))}
       </View>
 
       <View
@@ -158,26 +141,57 @@ const styles = StyleSheet.create({
   content: {
     paddingBottom: 40,
   },
-  headerBlock: {
-    marginBottom: 24,
+  hero: {
+    borderRadius: 24,
+    padding: 20,
+    marginBottom: 16,
+    backgroundColor: '#eef2ff',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.06,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 6,
   },
-  badge: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#e0f2fe',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+  heroRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 18,
+    backgroundColor: '#1d4ed8',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#1d4ed8',
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 3,
+  },
+  avatarInitial: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 20,
+  },
+  tagRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 20,
+  },
+  tag: {
+    flex: 1,
     borderRadius: 12,
-    marginBottom: 10,
+    borderWidth: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
   },
-  badgeText: {
-    color: '#0284c7',
-    fontSize: 10,
-    letterSpacing: 1,
+  tagLabel: {
+    fontSize: 12,
+    fontWeight: '600',
     textTransform: 'uppercase',
-  },
-  badgeDate: {
-    color: '#64748b',
-    fontSize: 11,
+    letterSpacing: 0.5,
   },
   header: {
     fontSize: 32,
@@ -221,6 +235,30 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     marginVertical: 16,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    marginBottom: 12,
+  },
+  statCard: {
+    flex: 1,
+    borderRadius: 20,
+    padding: 18,
+    borderWidth: 1,
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 5,
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  statLabel: {
+    fontSize: 10,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    marginTop: 6,
   },
   statusRow: {
     flexDirection: 'row',
@@ -270,3 +308,24 @@ const styles = StyleSheet.create({
     color: '#2563eb',
   },
 });
+      <View style={[styles.hero, { backgroundColor: theme.surface }]}>
+        <View style={styles.heroRow}>
+          <View>
+            <Text style={[styles.title, { color: theme.textPrimary }]}>Hello, {profileName(user)}!</Text>
+            <Text style={[styles.subHeader, { color: theme.textSecondary }]}>
+              Profile settings are synced across web and Expo.
+            </Text>
+          </View>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarInitial}>{profileName(user).charAt(0)}</Text>
+          </View>
+        </View>
+        <View style={styles.tagRow}>
+          <View style={[styles.tag, { borderColor: theme.primary }]}>
+            <Text style={[styles.tagLabel, { color: theme.primary }]}>Member since {formatDate(user?.created_at)}</Text>
+          </View>
+          <View style={[styles.tag, { backgroundColor: theme.primary, borderColor: theme.primary }]}>
+            <Text style={[styles.tagLabel, { color: '#fff' }]}>{status}</Text>
+          </View>
+        </View>
+      </View>
