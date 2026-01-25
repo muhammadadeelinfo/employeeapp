@@ -4,7 +4,6 @@ import Constants from 'expo-constants';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNotifications } from '@shared/context/NotificationContext';
 import { useAuth } from '@hooks/useSupabaseAuth';
-import { useAuth } from '@hooks/useSupabaseAuth';
 
 const stageColorMap: Record<string, string> = {
   production: '#22c55e',
