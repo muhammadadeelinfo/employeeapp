@@ -173,7 +173,7 @@ export default function MyShiftsScreen() {
     });
   }, [calendarFlip]);
 
-  const panResponder = useMemo(
+  const calendarPanResponder = useMemo(
     () =>
       PanResponder.create({
         onStartShouldSetPanResponder: () => viewMode === 'calendar',
@@ -185,6 +185,25 @@ export default function MyShiftsScreen() {
           if (Math.abs(gestureState.dx) < 35) {
             return;
           }
+          if (gestureState.dx < 0) {
+            handleMonthChange(1);
+          } else {
+            handleMonthChange(-1);
+          }
+        },
+      }),
+    [viewMode, handleMonthChange]
+  );
+  const listSwipeResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => false,
+        onMoveShouldSetPanResponder: (_, gestureState) =>
+          viewMode === 'list' &&
+          Math.abs(gestureState.dx) > Math.abs(gestureState.dy) &&
+          Math.abs(gestureState.dx) > 20,
+        onPanResponderRelease: (_, gestureState) => {
+          if (Math.abs(gestureState.dx) < 35) return;
           if (gestureState.dx < 0) {
             handleMonthChange(1);
           } else {
@@ -275,24 +294,14 @@ export default function MyShiftsScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.label}>Upcoming Shifts</Text>
-        <Text style={styles.subLabel}>
-          {status === 'granted'
-            ? `Location: ${location?.coords.latitude.toFixed(2)}, ${location?.coords.longitude.toFixed(2)}`
-            : 'Enable location to see nearby shifts'}
-        </Text>
-      </View>
-      <View style={styles.viewControlsContainer}>
-        <View style={styles.monthSwitcherCard}>
-          <TouchableOpacity style={styles.monthNavButton} onPress={() => handleMonthChange(-1)}>
-            <Ionicons name="chevron-back-outline" size={18} color="#1f2937" />
-          </TouchableOpacity>
-          <Text style={styles.monthLabel}>{getMonthLabel(visibleMonth)}</Text>
-          <TouchableOpacity style={styles.monthNavButton} onPress={() => handleMonthChange(1)}>
-            <Ionicons name="chevron-forward-outline" size={18} color="#1f2937" />
-          </TouchableOpacity>
+      <View style={styles.headerWrapper}>
+        <View>
+          <Text style={styles.headerTitle}>
+            Upcoming Shifts · {getMonthLabel(visibleMonth)}
+          </Text>
         </View>
+      </View>
+      <View style={styles.viewSwitcherRow}>
         <View style={styles.viewSwitcherContainer}>
           <TouchableOpacity
             style={[styles.viewToggle, viewMode === 'list' && styles.viewToggleActive]}
@@ -320,6 +329,7 @@ export default function MyShiftsScreen() {
           ref={listScrollRef}
           contentContainerStyle={styles.list}
           refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => refetch()} />}
+          {...listSwipeResponder.panHandlers}
         >
           {showSkeletons && renderSkeletons()}
           {!error &&
@@ -341,7 +351,7 @@ export default function MyShiftsScreen() {
         !error && (
           <View style={styles.calendarShell}>
             <Animated.View
-              {...panResponder.panHandlers}
+              {...calendarPanResponder.panHandlers}
               style={[
                 styles.calendarWrapper,
                 {
@@ -349,68 +359,68 @@ export default function MyShiftsScreen() {
                 },
               ]}
             >
-            <View style={styles.calendarHeader}>
-              {WEEKDAY_LABELS.map((label) => (
-                <Text key={label} style={styles.calendarHeaderLabel}>
-                  {label}
-                </Text>
-              ))}
-            </View>
-            <View style={styles.calendarWeeks}>
-              {calendarWeeks.map((week, weekIndex) => (
-                <View key={`week-${weekIndex}`} style={styles.calendarWeekRow}>
-                  {week.map((day) => {
-                    const key = day.toISOString().split('T')[0];
-                    const dayShifts = shiftsByDay.get(key) ?? [];
-                    const isCurrentMonth = day.getMonth() === visibleMonth.getMonth();
-                    const isToday = key === todayKey;
-                    const isFocusedDay = focusedDayKey === key;
-                    const dayPhase = dayPhaseMap.get(key);
-                    return (
-                      <View
-                        key={key}
-                        style={[
-                          styles.calendarCell,
-                          !isCurrentMonth && styles.calendarCellMuted,
-                          dayShifts.length && styles.calendarCellActive,
-                          isToday && styles.calendarCellToday,
-                          isFocusedDay && styles.calendarCellFocused,
-                        ]}
-                      >
-                        <View style={styles.calendarCellHeader}>
-                          <Text
-                            style={[
-                              styles.calendarCellNumber,
-                              !isCurrentMonth && styles.calendarCellNumberMuted,
-                            ]}
-                          >
-                            {day.getDate()}
-                          </Text>
+              <View style={styles.calendarHeader}>
+                {WEEKDAY_LABELS.map((label) => (
+                  <Text key={label} style={styles.calendarHeaderLabel}>
+                    {label}
+                  </Text>
+                ))}
+              </View>
+              <View style={styles.calendarWeeks}>
+                {calendarWeeks.map((week, weekIndex) => (
+                  <View key={`week-${weekIndex}`} style={styles.calendarWeekRow}>
+                    {week.map((day) => {
+                      const key = day.toISOString().split('T')[0];
+                      const dayShifts = shiftsByDay.get(key) ?? [];
+                      const isCurrentMonth = day.getMonth() === visibleMonth.getMonth();
+                      const isToday = key === todayKey;
+                      const isFocusedDay = focusedDayKey === key;
+                      const dayPhase = dayPhaseMap.get(key);
+                      return (
+                        <View
+                          key={key}
+                          style={[
+                            styles.calendarCell,
+                            !isCurrentMonth && styles.calendarCellMuted,
+                            dayShifts.length && styles.calendarCellActive,
+                            isToday && styles.calendarCellToday,
+                            isFocusedDay && styles.calendarCellFocused,
+                          ]}
+                        >
+                          <View style={styles.calendarCellHeader}>
+                            <Text
+                              style={[
+                                styles.calendarCellNumber,
+                                !isCurrentMonth && styles.calendarCellNumberMuted,
+                              ]}
+                            >
+                              {day.getDate()}
+                            </Text>
+                          </View>
+                          {dayShifts.length ? (
+                            <View
+                              style={[
+                                styles.calendarShiftMarker,
+                                dayPhase ? { backgroundColor: phaseMeta[dayPhase].background } : undefined,
+                              ]}
+                            >
+                              <Ionicons
+                                name="calendar-outline"
+                                size={12}
+                                color={dayPhase ? phaseMeta[dayPhase].color : '#1d4ed8'}
+                              />
+                            </View>
+                          ) : null}
+                          {isFocusedDay && (
+                            <View style={[styles.calendarFocusIndicator, styles.calendarFocusIndicatorActive]} />
+                          )}
                         </View>
-                    {dayShifts.length ? (
-                      <View
-                        style={[
-                          styles.calendarShiftMarker,
-                          dayPhase ? { backgroundColor: phaseMeta[dayPhase].background } : undefined,
-                        ]}
-                      >
-                        <Ionicons
-                          name="calendar-outline"
-                          size={12}
-                          color={dayPhase ? phaseMeta[dayPhase].color : '#1d4ed8'}
-                        />
-                      </View>
-                    ) : null}
-                    {isFocusedDay && (
-                      <View style={[styles.calendarFocusIndicator, styles.calendarFocusIndicatorActive]} />
-                    )}
-                      </View>
-                    );
-                  })}
-                </View>
-              ))}
-            </View>
-          </Animated.View>
+                      );
+                    })}
+                  </View>
+                ))}
+              </View>
+            </Animated.View>
           </View>
         )
       )}
@@ -426,16 +436,11 @@ const styles = StyleSheet.create({
     paddingTop: 0,
     paddingBottom: 16,
   },
-  header: {
+  headerWrapper: {
     marginBottom: 2,
   },
-  label: {
-    fontSize: 20,
-    fontWeight: '700',
-  },
-  subLabel: {
-    color: '#6b7280',
-    marginTop: 4,
+  viewSwitcherRow: {
+    marginBottom: 16,
   },
   list: {
     paddingBottom: 24,
@@ -465,53 +470,14 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     paddingHorizontal: 18,
   },
-  monthButton: {
-    borderRadius: 999,
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderWidth: 1,
-    borderColor: '#cbd5f5',
-    marginHorizontal: 4,
-  },
-  monthButtonText: {
-    color: '#1e40af',
-    fontWeight: '600',
-  },
-  monthLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'center',
-    flex: 1,
-  },
   viewControlsContainer: {
     marginTop: 2,
     marginBottom: 6,
     gap: 8,
   },
-  monthSwitcherCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#fff',
-    borderRadius: 18,
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    shadowColor: '#0f172a',
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    marginBottom: 6,
-  },
-  monthNavButton: {
-    width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 999,
-    backgroundColor: '#f1f5f9',
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
   },
   viewSwitcherContainer: {
     flexDirection: 'row',

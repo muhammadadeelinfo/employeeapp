@@ -1,21 +1,9 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import Constants from 'expo-constants';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNotifications } from '@shared/context/NotificationContext';
-import { useAuth } from '@hooks/useSupabaseAuth';
-
-const stageColorMap: Record<string, string> = {
-  production: '#22c55e',
-  staging: '#f97316',
-  development: '#38bdf8',
-};
-
-const stageLabelMap: Record<string, string> = {
-  production: 'Live',
-  staging: 'Preview',
-  development: 'Dev',
-};
+import { languageDefinitions, useLanguage } from '@shared/context/LanguageContext';
 
 export type TopBarVariant = 'regular' | 'compact' | 'floating';
 
@@ -23,131 +11,55 @@ type Props = {
   variant?: TopBarVariant;
 };
 
-const STAGE_TRANSFORM: Record<TopBarVariant, 'uppercase' | 'none'> = {
-  regular: 'uppercase',
-  compact: 'none',
-  floating: 'uppercase',
-};
-
 export const TopBar = ({ variant = 'regular' }: Props) => {
   const insets = useSafeAreaInsets();
   const { toggle } = useNotifications();
-  const { user } = useAuth();
-  const stage = Constants.expoConfig?.extra?.expoStage ?? 'development';
-  const stageColor = stageColorMap[stage] ?? '#38bdf8';
-  const stageLabel = stageLabelMap[stage] ?? 'Dev';
-  const isCompact = variant === 'compact';
-  const isFloating = variant === 'floating';
+  const { language, setLanguage } = useLanguage();
+  const unreadNotifications = 3;
 
-  const displayName =
-    user?.user_metadata?.full_name ?? user?.email?.split('@')[0] ?? 'Employee';
+  const variantStyle =
+    variant === 'floating'
+      ? styles.barFloating
+      : variant === 'compact'
+      ? styles.barCompact
+      : styles.barRegular;
 
   return (
-    <SafeAreaView
-      style={[
-        styles.safe,
-        {
-          paddingTop: insets.top,
-        },
-      ]}
-    >
-      <View style={styles.barWrapper}>
-        <View
-          style={[
-            styles.bar,
-            isFloating ? styles.barFloating : isCompact ? styles.barCompact : styles.barRegular,
-          ]}
-        >
-          <View
-            style={[
-              styles.leftGroup,
-              isCompact && styles.leftGroupCompact,
-              isFloating && styles.leftGroupFloating,
-            ]}
-          >
-          <View
-            style={[
-              styles.logoPill,
-              isCompact && styles.logoPillCompact,
-              isFloating && styles.logoPillFloating,
-            ]}
-          >
-            <Ionicons
-              name="sparkles"
-              size={isFloating ? 16 : isCompact ? 16 : 18}
-              color="#0f172a"
-            />
-          </View>
-          <View>
-            <Text
-              style={[
-                styles.title,
-                isCompact && styles.titleCompact,
-                isFloating && styles.titleFloating,
-              ]}
-            >
-              Employee Portal
-            </Text>
-            {!isCompact && !isFloating ? (
-              <>
-                <Text style={styles.subtitle}>Shift planning & updates</Text>
-                <Text style={styles.greeting}>Hi, {displayName}</Text>
-              </>
-            ) : (
-              <Text
-                style={[
-                  styles.subtitleCompact,
-                  isFloating && styles.subtitleFloating,
-                ]}
+    <SafeAreaView style={[styles.safe, { paddingTop: insets.top }]}>
+      <View style={[styles.wrapper, variantStyle]}>
+        <View style={styles.languagePill}>
+          {languageDefinitions.map((definition) => {
+            const isActive = language === definition.code;
+            return (
+              <TouchableOpacity
+                key={definition.code}
+                onPress={() => setLanguage(definition.code)}
+                activeOpacity={0.85}
+                style={[styles.languageOption, isActive && styles.languageOptionActive]}
               >
-                Hi, {displayName}
-              </Text>
-            )}
-          </View>
+                <Text style={[styles.languageText, isActive && styles.languageTextActive]}>
+                  {definition.flag} {definition.shortLabel}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
-        <View
-          style={[
-            styles.rightGroup,
-            isCompact && styles.rightGroupCompact,
-            isFloating && styles.rightGroupFloating,
-          ]}
+        <TouchableOpacity
+          style={styles.notificationButton}
+          onPress={toggle}
+          activeOpacity={0.8}
+          accessibilityLabel="Notifications"
         >
-          <View
-            style={[
-              styles.stageChip,
-              isCompact && styles.stageChipCompact,
-              isFloating && styles.stageChipFloating,
-              { borderColor: stageColor },
-            ]}
+          <LinearGradient
+            colors={['#3b82f6', '#2563eb']}
+            start={[0, 0]}
+            end={[1, 1]}
+            style={styles.notificationGradient}
           >
-            <Text
-              style={[
-                styles.stageText,
-                isCompact && styles.stageTextCompact,
-                isFloating && styles.stageTextFloating,
-                { color: stageColor, textTransform: STAGE_TRANSFORM[variant] },
-              ]}
-            >
-              {stageLabel}
-            </Text>
-          </View>
-          <Pressable
-            style={[
-              styles.iconButton,
-              isCompact && styles.iconButtonCompact,
-              isFloating && styles.iconButtonFloating,
-            ]}
-            onPress={toggle}
-          >
-            <Ionicons
-              name="notifications-outline"
-              size={isFloating ? 16 : isCompact ? 18 : 20}
-              color="#fff"
-            />
-            <View style={[styles.notificationDot, styles.redDot]} />
-          </Pressable>
-        </View>
-        </View>
+            <Ionicons name="notifications-outline" size={20} color="#fff" />
+            {unreadNotifications > 0 && <View style={styles.notificationDot} />}
+          </LinearGradient>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
@@ -158,176 +70,84 @@ const styles = StyleSheet.create({
     width: '100%',
     backgroundColor: '#f8fafc',
   },
-  bar: {
+  wrapper: {
     width: '100%',
     paddingHorizontal: 16,
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#ffffff',
-    maxWidth: 900,
-    alignSelf: 'center',
+    flexDirection: 'row',
+    backgroundColor: '#eef2ff',
+    borderRadius: 32,
+    marginHorizontal: 8,
   },
   barRegular: {
-    paddingVertical: 12,
-    borderRadius: 20,
+    paddingVertical: 8,
+    marginTop: 10,
     shadowColor: '#0f172a',
-    shadowOpacity: 0.08,
-    shadowRadius: 18,
+    shadowOpacity: 0.1,
+    shadowRadius: 15,
     shadowOffset: { width: 0, height: 8 },
     elevation: 6,
   },
   barCompact: {
-    paddingVertical: 8,
-    borderRadius: 14,
-    marginHorizontal: 12,
-    marginBottom: 0,
+    paddingVertical: 6,
+    marginTop: 8,
+    marginBottom: 4,
     shadowColor: '#0f172a',
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
     shadowOffset: { width: 0, height: 6 },
     elevation: 4,
   },
   barFloating: {
-    paddingVertical: 6,
-    borderRadius: 16,
-    marginHorizontal: 12,
+    paddingVertical: 4,
+    marginTop: 0,
     marginBottom: 0,
-    shadowColor: '#0f172a',
-    shadowOpacity: 0.04,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 3,
     backgroundColor: '#ffffff',
-  },
-  leftGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  leftGroupCompact: {
-    gap: 8,
-  },
-  leftGroupFloating: {
-    gap: 6,
-  },
-  logoPill: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: '#eef2ff',
-    alignItems: 'center',
-    justifyContent: 'center',
     shadowColor: '#0f172a',
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 6,
-  },
-  logoPillCompact: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    shadowOpacity: 0.06,
-  },
-  logoPillFloating: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
     shadowOpacity: 0.05,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
   },
-  title: {
-    color: '#0f172a',
-    fontSize: 20,
-    fontWeight: '700',
-    letterSpacing: 0.1,
-  },
-  titleCompact: {
-    fontSize: 16,
-  },
-  titleFloating: {
-    fontSize: 14,
-  },
-  subtitle: {
-    color: '#64748b',
-    fontSize: 13,
-    marginTop: 2,
-  },
-  subtitleCompact: {
-    color: '#475569',
-    fontSize: 12,
-  },
-  subtitleFloating: {
-    color: '#475569',
-    fontSize: 11,
-  },
-  greeting: {
-    color: '#475569',
-    fontSize: 12,
-    marginTop: 2,
-  },
-  rightGroup: {
+  languagePill: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  rightGroupCompact: {
-    gap: 6,
-  },
-  rightGroupFloating: {
-    gap: 4,
-  },
-  stageChip: {
+    backgroundColor: '#fff',
     borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 5,
-    backgroundColor: '#e0f2fe',
-    borderWidth: 0.5,
+    paddingVertical: 4,
+    paddingHorizontal: 6,
   },
-  stageChipCompact: {
+  languageOption: {
+    paddingVertical: 6,
     paddingHorizontal: 10,
-    paddingVertical: 3,
+    borderRadius: 999,
+    marginHorizontal: 4,
   },
-  stageChipFloating: {
-    paddingHorizontal: 10,
-    paddingVertical: 2,
+  languageOptionActive: {
+    backgroundColor: '#1d4ed8',
+    shadowColor: '#1d4ed8',
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
   },
-  stageText: {
-    fontSize: 11,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
+  languageText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#1f2937',
   },
-  stageTextCompact: {
-    fontSize: 10,
-    letterSpacing: 0.4,
+  languageTextActive: {
+    color: '#fff',
   },
-  stageTextFloating: {
-    fontSize: 10,
-    letterSpacing: 0.6,
+  notificationButton: {
+    borderRadius: 999,
+    overflow: 'hidden',
   },
-  iconButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 16,
-    backgroundColor: '#000',
+  notificationGradient: {
+    width: 46,
+    height: 46,
+    borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#0f172a',
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 5,
-  },
-  iconButtonCompact: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-  },
-  iconButtonFloating: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
   },
   notificationDot: {
     position: 'absolute',
@@ -336,14 +156,8 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    borderWidth: 2,
+    backgroundColor: '#fee2e2',
+    borderWidth: 1.5,
     borderColor: '#fff',
-  },
-  redDot: {
-    backgroundColor: '#ef4444',
-  },
-  barWrapper: {
-    width: '100%',
-    alignItems: 'center',
   },
 });
