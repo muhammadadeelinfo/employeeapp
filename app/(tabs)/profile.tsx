@@ -42,6 +42,28 @@ export default function ProfileScreen() {
       style={[styles.container, { backgroundColor: theme.background }]}
       contentContainerStyle={styles.content}
     >
+      <View style={[styles.hero, { backgroundColor: theme.surface }]}>
+        <View style={styles.heroRow}>
+          <View>
+            <Text style={[styles.title, { color: theme.textPrimary }]}>Hello, {profileName(user)}!</Text>
+            <Text style={[styles.subHeader, { color: theme.textSecondary }]}>
+              Profile settings are synced across web and Expo.
+            </Text>
+          </View>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarInitial}>{profileName(user).charAt(0)}</Text>
+          </View>
+        </View>
+        <View style={styles.tagRow}>
+          <View style={[styles.tag, { borderColor: theme.primary }]}>
+            <Text style={[styles.tagLabel, { color: theme.primary }]}>Member since {formatDate(user?.created_at)}</Text>
+          </View>
+          <View style={[styles.tag, { backgroundColor: theme.primary, borderColor: theme.primary }]}>
+            <Text style={[styles.tagLabel, { color: '#fff' }]}>{status}</Text>
+          </View>
+        </View>
+      </View>
+
       <View style={styles.statsGrid}>
         {[
           { label: 'Provider', value: provider.toUpperCase() },
@@ -308,24 +330,3 @@ const styles = StyleSheet.create({
     color: '#2563eb',
   },
 });
-      <View style={[styles.hero, { backgroundColor: theme.surface }]}>
-        <View style={styles.heroRow}>
-          <View>
-            <Text style={[styles.title, { color: theme.textPrimary }]}>Hello, {profileName(user)}!</Text>
-            <Text style={[styles.subHeader, { color: theme.textSecondary }]}>
-              Profile settings are synced across web and Expo.
-            </Text>
-          </View>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarInitial}>{profileName(user).charAt(0)}</Text>
-          </View>
-        </View>
-        <View style={styles.tagRow}>
-          <View style={[styles.tag, { borderColor: theme.primary }]}>
-            <Text style={[styles.tagLabel, { color: theme.primary }]}>Member since {formatDate(user?.created_at)}</Text>
-          </View>
-          <View style={[styles.tag, { backgroundColor: theme.primary, borderColor: theme.primary }]}>
-            <Text style={[styles.tagLabel, { color: '#fff' }]}>{status}</Text>
-          </View>
-        </View>
-      </View>
