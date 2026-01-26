@@ -319,7 +319,6 @@ export default function CalendarScreen() {
                               ))}
                             </View>
                           ) : null}
-                          {isToday && <View style={styles.dayTodayDot} />}
                           {isFocusedDay && (
                             <View style={[styles.dayHalo, styles.dayHaloActive]}>
                               <View style={styles.dayHaloIndicator} />
@@ -479,14 +478,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 6,
     elevation: 3,
-  },
-  dayTodayDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#2563eb',
-    position: 'absolute',
-    bottom: 8,
   },
   dayHalo: {
     position: 'absolute',
