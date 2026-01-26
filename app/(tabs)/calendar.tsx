@@ -226,15 +226,15 @@ export default function CalendarScreen() {
           <View style={styles.headerActions}>
             <Pressable
               onPress={() => handleMonthChange(-1)}
-              style={({ pressed }) => [styles.navButton, pressed && styles.navButtonPressed]}
+              style={({ pressed }) => [styles.navButton, styles.navButtonLeft, pressed && styles.navButtonPressed]}
             >
-              <Ionicons name="chevron-back-outline" size={20} color="#2563eb" />
+              <Ionicons name="chevron-back" size={16} color="#2563eb" />
             </Pressable>
             <Pressable
               onPress={() => handleMonthChange(1)}
-              style={({ pressed }) => [styles.navButton, styles.navButtonSpacing, pressed && styles.navButtonPressed]}
+              style={({ pressed }) => [styles.navButton, styles.navButtonRight, pressed && styles.navButtonPressed]}
             >
-              <Ionicons name="chevron-forward-outline" size={20} color="#2563eb" />
+              <Ionicons name="chevron-forward" size={16} color="#2563eb" />
             </Pressable>
           </View>
         </View>
@@ -451,6 +451,14 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     shadowRadius: 10,
     elevation: 3,
+  },
+  navButtonLeft: {
+    borderTopRightRadius: 14,
+    borderBottomRightRadius: 14,
+  },
+  navButtonRight: {
+    borderTopLeftRadius: 14,
+    borderBottomLeftRadius: 14,
   },
   navButtonSpacing: {
     marginLeft: 10,
