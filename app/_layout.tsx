@@ -3,7 +3,7 @@ import { Slot, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { QueryClientProvider } from '@tanstack/react-query';
 import Constants from 'expo-constants';
-import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
 import { View, StyleSheet } from 'react-native';
 import { AuthProvider } from '@hooks/useSupabaseAuth';
 import { queryClient } from '@lib/queryClient';
@@ -60,7 +60,7 @@ function LayoutContent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <View style={[styles.root, { backgroundColor: statusBarBgColor }]}>
+      <SafeAreaView style={[styles.root, { backgroundColor: statusBarBgColor }]} edges={['top', 'bottom']}>
         <StatusBar
           translucent
           hidden={false}
@@ -75,7 +75,7 @@ function LayoutContent() {
         <View style={styles.content}>
           <Slot />
         </View>
-      </View>
+      </SafeAreaView>
     </QueryClientProvider>
   );
 }

@@ -94,147 +94,89 @@ export const ShiftCard = ({
   isPrimary,
 }: Props) => {
   const [showFullAddress, setShowFullAddress] = useState(false);
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  const phaseConfig = phaseMeta[shiftPhase];
   const { t } = useLanguage();
-  const phaseLabel = t(phaseTranslationKey[shiftPhase]);
+  const phaseConfig = phaseMeta[shiftPhase];
   const statusColor = statusColors[shift.status] ?? '#1d4ed8';
   const locationLabel = shift.objectName ?? shift.location ?? 'TBD';
   const locationSubtext = shift.objectAddress ?? shift.location;
-  const addressPreview = simplifyAddress(locationSubtext ?? '');
-  const displayedAddress =
-    locationSubtext && showFullAddress ? locationSubtext : truncateText(addressPreview || '', 48);
-  const isLive = shiftPhase === 'live';
+  const displayedAddress = locationSubtext
+    ? showFullAddress
+      ? locationSubtext
+      : truncateText(simplifyAddress(locationSubtext), 50)
+    : t('locationTbd');
   const normalizedConfirmationStatus = normalizeShiftConfirmationStatus(shift.confirmationStatus);
   const isConfirmed =
     normalizedConfirmationStatus === 'confirmed' ||
     normalizedConfirmationStatus === 'confirmed by employee';
   const confirmationLabel = getShiftConfirmationStatusLabel(normalizedConfirmationStatus);
 
-  useEffect(() => {
-    let animation: Animated.CompositeAnimation | null = null;
-    if (isLive) {
-      animation = Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue: 1.25,
-            duration: 700,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim, {
-            toValue: 1,
-            duration: 700,
-            useNativeDriver: true,
-          }),
-        ])
-      );
-      animation.start();
-    } else {
-      pulseAnim.setValue(1);
-    }
-    return () => animation?.stop();
-  }, [isLive, pulseAnim]);
-
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.9}>
-      <View style={styles.accentContainer}>
-        <View
-          style={[
-            styles.accent,
-            isPrimary && { backgroundColor: phaseConfig.color },
-            isPrimary && styles.accentActive,
-          ]}
-        />
-        {isPrimary && <View style={[styles.accentDot, { backgroundColor: phaseConfig.color }]} />}
-      </View>
-      <View style={styles.body}>
-        <View style={styles.cardHeader}>
+    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.95}>
+      <View style={styles.decoration} />
+      <View style={styles.content}>
+        <View style={styles.rowBetween}>
           <View>
-            <Text style={styles.title}>{shift.title}</Text>
-            <View style={styles.metaRow}>
-              <Text style={styles.metaText}>{formatDate(shift.start)}</Text>
-              <Text style={styles.metaSeparator}>·</Text>
-              <Text style={styles.metaText}>
-                {formatTime(shift.start)} – {formatTime(shift.end)}
-              </Text>
-            </View>
+            <Text style={styles.cardLabel}>{t('upcomingShiftListTitle')}</Text>
+            <Text style={styles.cardDate}>{formatDate(shift.start)}</Text>
           </View>
-          <View style={styles.statusBlock}>
-            <View style={[styles.statusBadge, { borderColor: statusColor }]}>
-              <Animated.View
-                style={[
-                  styles.statusDot,
-                  { backgroundColor: statusColor },
-                  isLive && { transform: [{ scale: pulseAnim }] },
-                ]}
-              />
-              <Text style={[styles.statusText, { color: statusColor }]}>{shift.status.toUpperCase()}</Text>
-            </View>
-            <Text style={styles.phaseInline}>{phaseLabel}</Text>
+          <View style={[styles.statusPill, { borderColor: statusColor }]}>
+            <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
+            <Text style={[styles.statusText, { color: statusColor }]}>{shift.status.toUpperCase()}</Text>
           </View>
         </View>
 
+        <Text style={styles.timeLabel}>{t('shiftWindowLabel')}</Text>
         <View style={styles.timeRow}>
-          <View>
-            <Text style={styles.timeLabel}>{t('shiftWindowLabel')}</Text>
-            <Text style={styles.timeValue}>
-              {formatTime(shift.start)} – {formatTime(shift.end)}
-            </Text>
-          </View>
+          <Text style={styles.timeValue}>
+            {formatTime(shift.start)} – {formatTime(shift.end)}
+          </Text>
           <Text style={styles.duration}>{formatDuration(shift.start, shift.end)}</Text>
         </View>
 
-        <View style={styles.sectionDivider} />
-
         <Pressable
           style={styles.locationRow}
-          onPress={() => locationSubtext && setShowFullAddress((prev) => !prev)}
+          onPress={() => setShowFullAddress((prev) => !prev)}
           disabled={!locationSubtext}
         >
-          <View style={styles.locationIcon}>
-            <Ionicons name="location-outline" size={20} color="#2563eb" />
-          </View>
+          <Ionicons name="location-outline" size={20} color="#2563eb" style={styles.locationIcon} />
           <View style={styles.locationText}>
             <Text style={styles.locationLabel}>{locationLabel}</Text>
-            {locationSubtext ? (
-              <Text
-                style={[styles.locationDetails, !showFullAddress && styles.locationDetailsClipped]}
-                numberOfLines={showFullAddress ? undefined : 1}
-              >
-                {displayedAddress}
-              </Text>
-            ) : (
-              <Text style={styles.locationDetails}>{t('locationTbd')}</Text>
-            )}
+            <Text
+              style={styles.locationDetails}
+              numberOfLines={showFullAddress ? 2 : 1}
+            >
+              {displayedAddress}
+            </Text>
           </View>
-          {locationSubtext ? (
+          {locationSubtext && (
             <Ionicons
               name={showFullAddress ? 'chevron-up-outline' : 'chevron-down-outline'}
               size={18}
               color="#6b7280"
             />
-          ) : null}
+          )}
         </Pressable>
 
-        {shift.description ? <Text style={styles.description}>{shift.description}</Text> : null}
+        <Text style={styles.description}>{shift.description ?? t('beOnTime')}</Text>
 
-        {shift.assignmentId && (
-          <View style={styles.confirmSection}>
+        <View style={styles.confirmSection}>
+          <View>
             <Text style={styles.confirmInstruction}>{t('beOnTime')}</Text>
-            {isConfirmed ? (
-              <Text style={styles.confirmedText}>{confirmationLabel}</Text>
-            ) : (
-              onConfirm && (
-                <PrimaryButton
-                  title={t('confirmShift')}
-                  onPress={onConfirm}
-                  loading={confirmLoading}
-                  style={styles.confirmButton}
-                />
-              )
-            )}
+            <Text style={styles.confirmSubLabel}>{t('confirmShift')}</Text>
           </View>
-        )}
+          {isConfirmed ? (
+            <Text style={styles.confirmedTextOption}>{confirmationLabel}</Text>
+          ) : (
+            onConfirm && (
+              <PrimaryButton
+                title={t('confirmShift')}
+                onPress={onConfirm}
+                loading={confirmLoading}
+                style={styles.confirmButton}
+              />
+            )
+          )}
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -243,7 +185,7 @@ export const ShiftCard = ({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#ffffff',
-    borderRadius: 24,
+    borderRadius: 26,
     marginBottom: 16,
     shadowColor: '#0f172a',
     shadowOpacity: 0.08,
@@ -251,138 +193,85 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     elevation: 8,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
     flexDirection: 'row',
   },
-  accentContainer: {
-    width: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 6,
-  },
-  accent: {
-    width: 5,
-    flex: 1,
-    borderRadius: 999,
+  decoration: {
+    width: 6,
     backgroundColor: '#dbeafe',
   },
-  accentActive: {
-    shadowColor: '#2563eb',
-    shadowOpacity: 0.4,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  accentDot: {
-    position: 'absolute',
-    bottom: 8,
-    width: 10,
-    height: 10,
-    borderRadius: 999,
-  },
-  body: {
+  content: {
     flex: 1,
-    padding: 16,
+    padding: 18,
   },
-  cardHeader: {
+  rowBetween: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 12,
+    alignItems: 'flex-start',
   },
-  title: {
-    fontSize: 18,
+  cardLabel: {
+    fontSize: 16,
     fontWeight: '700',
     color: '#0f172a',
   },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  cardDate: {
+    fontSize: 13,
+    color: '#475569',
     marginTop: 4,
   },
-  metaText: {
-    fontSize: 13,
-    color: '#6b7280',
-  },
-  metaSeparator: {
-    marginHorizontal: 6,
-    fontSize: 14,
-    color: '#cbd5f5',
-  },
-  statusBlock: {
-    alignItems: 'flex-end',
-    gap: 2,
-  },
-  phaseInline: {
-    fontSize: 10,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-    color: '#94a3b8',
-  },
-  statusBadge: {
+  statusPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 999,
+    borderRadius: 16,
     borderWidth: 1,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    alignSelf: 'flex-start',
+    gap: 4,
   },
   statusDot: {
     width: 8,
     height: 8,
     borderRadius: 999,
-    marginRight: 6,
   },
   statusText: {
     fontSize: 11,
     fontWeight: '600',
+    letterSpacing: 0.5,
+  },
+  timeLabel: {
+    fontSize: 10,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    color: '#94a3b8',
+    marginTop: 12,
   },
   timeRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  sectionDivider: {
-    height: 1,
-    backgroundColor: '#e5e7ef',
-    marginTop: 8,
-  },
-  timeLabel: {
-    fontSize: 11,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    color: '#94a3b8',
+    marginTop: 4,
   },
   timeValue: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '700',
     color: '#0f172a',
-    marginTop: 2,
   },
   duration: {
     fontSize: 13,
     fontWeight: '600',
     color: '#475569',
+    alignSelf: 'center',
   },
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
-    padding: 12,
-    borderRadius: 16,
+    marginTop: 16,
+    padding: 14,
+    borderRadius: 18,
     backgroundColor: '#f7f8ff',
     borderWidth: 1,
     borderColor: '#e5e7ef',
   },
   locationIcon: {
-    width: 30,
-    height: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
     marginRight: 10,
-    marginTop: 0,
   },
   locationText: {
     flex: 1,
@@ -390,26 +279,24 @@ const styles = StyleSheet.create({
   locationLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1f2937',
+    color: '#0f172a',
   },
   locationDetails: {
     fontSize: 12,
     color: '#475569',
     marginTop: 2,
   },
-  locationDetailsClipped: {
-    opacity: 0.8,
-  },
   description: {
-    marginTop: 8,
+    marginTop: 12,
     fontSize: 13,
     color: '#4b5563',
+    minHeight: 30,
   },
   confirmSection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 16,
+    marginTop: 18,
   },
   confirmInstruction: {
     textTransform: 'uppercase',
@@ -418,12 +305,18 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 0.4,
   },
-  confirmedText: {
-    color: '#059669',
+  confirmSubLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#1f2937',
+  },
+  confirmedTextOption: {
     fontSize: 14,
     fontWeight: '700',
+    color: '#059669',
   },
   confirmButton: {
-    paddingHorizontal: 18,
+    paddingHorizontal: 20,
+    borderRadius: 18,
   },
 });
