@@ -223,18 +223,28 @@ export default function CalendarScreen() {
           <View>
             <Text style={styles.headerTitle}>{monthLabel}</Text>
           </View>
-          <View style={styles.headerActions}>
+          <View style={styles.switcherPill}>
             <Pressable
               onPress={() => handleMonthChange(-1)}
-              style={({ pressed }) => [styles.navButton, styles.navButtonLeft, pressed && styles.navButtonPressed]}
+              style={({ pressed }) => [
+                styles.switcherButton,
+                pressed && styles.switcherButtonPressed,
+              ]}
             >
-              <Ionicons name="chevron-back" size={16} color="#2563eb" />
+              <Ionicons name="chevron-back" size={14} color="#2563eb" />
             </Pressable>
+            <View style={styles.switcherLabelWrapper}>
+              <Text style={styles.switcherLabel}>{t('calendarSwitcherLabel')}</Text>
+              <Text style={styles.switcherSubLabel}>{t('calendarSwitcherHint')}</Text>
+            </View>
             <Pressable
               onPress={() => handleMonthChange(1)}
-              style={({ pressed }) => [styles.navButton, styles.navButtonRight, pressed && styles.navButtonPressed]}
+              style={({ pressed }) => [
+                styles.switcherButton,
+                pressed && styles.switcherButtonPressed,
+              ]}
             >
-              <Ionicons name="chevron-forward" size={16} color="#2563eb" />
+              <Ionicons name="chevron-forward" size={14} color="#2563eb" />
             </Pressable>
           </View>
         </View>
@@ -437,34 +447,43 @@ const styles = StyleSheet.create({
   headerActions: {
     flexDirection: 'row',
   },
-  navButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#e0e7ff',
-    backgroundColor: '#fff',
+  switcherPill: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    borderRadius: 999,
+    backgroundColor: '#fff',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
     shadowColor: '#0f172a',
     shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 3 },
-    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 12,
     elevation: 3,
   },
-  navButtonLeft: {
-    borderTopRightRadius: 14,
-    borderBottomRightRadius: 14,
+  switcherLabelWrapper: {
+    alignItems: 'center',
+    marginHorizontal: 6,
   },
-  navButtonRight: {
-    borderTopLeftRadius: 14,
-    borderBottomLeftRadius: 14,
+  switcherLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#0f172a',
   },
-  navButtonSpacing: {
-    marginLeft: 10,
+  switcherSubLabel: {
+    fontSize: 10,
+    color: '#94a3b8',
   },
-  navButtonPressed: {
-    opacity: 0.7,
+  switcherButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e0e7ff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  switcherButtonPressed: {
+    backgroundColor: '#eef2ff',
   },
   calendarShell: {
     borderRadius: 32,
