@@ -302,7 +302,10 @@ export default function CalendarScreen() {
                           disabled={!dayShifts.length}
                           onPress={() => {
                             if (!dayShifts.length) return;
-                            router.push(`/shift-details/${dayShifts[0].id}`);
+                            router.push({
+                              pathname: `/shift-details/${dayShifts[0].id}`,
+                              params: { from: 'calendar' },
+                            });
                           }}
                         >
                           <Text

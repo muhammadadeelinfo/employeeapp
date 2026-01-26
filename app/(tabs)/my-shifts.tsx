@@ -125,7 +125,12 @@ export default function MyShiftsScreen() {
               <ShiftCard
                 shift={shift}
                 isPrimary={shift.id === focusedShiftId}
-                onPress={() => router.push(`/shift-details/${shift.id}`)}
+                onPress={() =>
+                  router.push({
+                    pathname: `/shift-details/${shift.id}`,
+                    params: { from: 'shifts' },
+                  })
+                }
                 onConfirm={shift.assignmentId ? () => handleConfirm(shift.assignmentId) : undefined}
                 confirmLoading={shift.assignmentId ? confirmingId === shift.assignmentId : false}
               />

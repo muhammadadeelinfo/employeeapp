@@ -100,8 +100,9 @@ const formatCountdownLabel = (minutes: number) => {
 };
 
 export default function ShiftDetailsScreen() {
-  const { id } = useLocalSearchParams();
+  const { id, from } = useLocalSearchParams();
   const shiftId = Array.isArray(id) ? id[0] : id;
+  const fromParam = Array.isArray(from) ? from[0] : from;
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const userId = user?.id;
@@ -192,13 +193,25 @@ export default function ShiftDetailsScreen() {
 
   const contentStyle = [styles.container, { paddingBottom: 40 + insets.bottom }];
 
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+    if (fromParam === 'calendar') {
+      router.replace('/calendar');
+      return;
+    }
+    router.replace('/my-shifts');
+  };
+
   return (
     <ScrollView contentContainerStyle={contentStyle}>
       <View style={styles.headerContainer}>
         <Pressable
           style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]}
-          onPress={() => router.back()}
-          accessibilityLabel="Back"
+          onPress={handleBack}
+          accessibilityLabel={t('back')}
         >
           <Ionicons name="chevron-back" size={24} color="#1f2937" />
         </Pressable>

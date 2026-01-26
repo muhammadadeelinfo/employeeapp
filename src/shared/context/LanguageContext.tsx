@@ -126,6 +126,8 @@ const translations = {
     qrDetectedMessage: 'Last scanned code: {code}',
     shiftNotFound: 'Shift not found. Pull to retry.',
     retry: 'Retry',
+    back: 'Zurück',
+    back: 'Back',
   },
   de: {
     languageLabel: 'Sprache',
