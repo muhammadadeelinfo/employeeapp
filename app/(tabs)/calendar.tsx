@@ -15,6 +15,7 @@ import { useShiftFeed } from '@features/shifts/useShiftFeed';
 import { getShiftPhase, phaseMeta, type ShiftPhase } from '@shared/utils/shiftPhase';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -34,6 +35,19 @@ const getCalendarWeeks = (date: Date) => {
     }
     weeks.push(week);
   } while (cursor.getMonth() === monthStart.getMonth());
+
+  while (weeks.length < 6) {
+    const lastWeek = weeks[weeks.length - 1];
+    const nextWeekStart = new Date(lastWeek[lastWeek.length - 1]);
+    nextWeekStart.setDate(nextWeekStart.getDate() + 1);
+    const extraWeek: Date[] = [];
+    const cursorExtra = new Date(nextWeekStart);
+    for (let i = 0; i < 7; i += 1) {
+      extraWeek.push(new Date(cursorExtra));
+      cursorExtra.setDate(cursorExtra.getDate() + 1);
+    }
+    weeks.push(extraWeek);
+  }
 
   return weeks;
 };
@@ -180,24 +194,35 @@ export default function CalendarScreen() {
   );
 
   const containerStyle = [styles.container, { paddingTop: 12 + insets.top }];
-  const scrollContentStyle = [styles.scrollContent, { paddingBottom: 32 + insets.bottom }];
+  const scrollContentStyle = [styles.scrollContent, { paddingBottom: 12 + insets.bottom }];
 
   return (
     <SafeAreaView style={containerStyle} edges={['top']}>
+      <LinearGradient colors={['#eef3ff', '#f4f6ff']} style={styles.background} />
       <ScrollView
         contentContainerStyle={scrollContentStyle}
         refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => refetch()} />}
       >
-        <View style={styles.headerCard}>
-            <View>
-              <Text style={styles.headerTitle}>{monthLabel}</Text>
-            </View>
+        <View style={styles.monthCard}>
+          <LinearGradient
+            colors={['#fdfdfe', '#eef2ff']}
+            style={styles.monthCardGradient}
+          />
+          <View style={styles.monthNavRow}>
+            <Pressable onPress={() => handleMonthChange(-1)} style={styles.monthNavButton}>
+              <Ionicons name="chevron-back" size={20} color="#94a3b8" />
+            </Pressable>
+            <Text style={styles.monthLabel}>{monthLabel}</Text>
+            <Pressable onPress={() => handleMonthChange(1)} style={styles.monthNavButton}>
+              <Ionicons name="chevron-forward" size={20} color="#94a3b8" />
+            </Pressable>
           </View>
+        </View>
         {errorView}
         {showSkeletons && renderSkeletons()}
         {emptyState}
         {!error && (
-          <View style={styles.calendarShell}>
+          <View style={styles.calendarCard}>
             <Animated.View
               {...calendarPanResponder.panHandlers}
               style={[
@@ -214,7 +239,7 @@ export default function CalendarScreen() {
                   </Text>
                 ))}
               </View>
-              <View style={styles.calendarWeeks}>
+              <View style={styles.calendarGrid}>
                 {calendarWeeks.map((week, weekIndex) => (
                   <View key={`week-${weekIndex}`} style={styles.calendarWeekRow}>
                     {week.map((day) => {
@@ -228,16 +253,16 @@ export default function CalendarScreen() {
                         <View
                           key={key}
                           style={[
-                            styles.calendarCell,
-                            !isCurrentMonth && styles.calendarCellMuted,
-                            dayShifts.length && styles.calendarCellActive,
-                            isFocusedDay && styles.calendarCellFocused,
+                            styles.dayChip,
+                            !isCurrentMonth && styles.dayChipMuted,
+                            isFocusedDay && styles.dayChipFocused,
+                            dayShifts.length && styles.dayChipActive,
                           ]}
                         >
                           <Text
                             style={[
-                              styles.calendarCellNumber,
-                              !isCurrentMonth && styles.calendarCellNumberMuted,
+                              styles.dayChipLabel,
+                              !isCurrentMonth && styles.dayChipLabelMuted,
                             ]}
                           >
                             {day.getDate()}
@@ -245,7 +270,7 @@ export default function CalendarScreen() {
                           {dayShifts.length ? (
                             <View
                               style={[
-                                styles.calendarShiftMarker,
+                                styles.dayStatus,
                                 dayPhase ? { backgroundColor: phaseMeta[dayPhase].background } : undefined,
                               ]}
                             >
@@ -256,10 +281,10 @@ export default function CalendarScreen() {
                               />
                             </View>
                           ) : null}
-                          {isToday && <View style={styles.calendarTodayDot} />}
+                          {isToday && <View style={styles.dayTodayDot} />}
                           {isFocusedDay && (
-                            <View style={[styles.calendarFocusHalo, styles.calendarFocusHaloActive]}>
-                              <View style={styles.calendarFocusIndicator} />
+                            <View style={[styles.dayHalo, styles.dayHaloActive]}>
+                              <View style={styles.dayHaloIndicator} />
                             </View>
                           )}
                         </View>
@@ -280,112 +305,115 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#eef1ff',
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
   },
-  scrollContent: {
-    paddingBottom: 32,
-  },
-  headerCard: {
+  monthCard: {
     backgroundColor: '#fff',
-    borderRadius: 26,
-    padding: 18,
-    marginBottom: 16,
+    borderRadius: 36,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    marginBottom: 12,
     shadowColor: '#0f172a',
     shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 8 },
-    shadowRadius: 20,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 10 },
+    shadowRadius: 22,
+    elevation: 10,
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  monthCardGradient: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0.65,
+  },
+  monthNavRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
+  monthLabel: {
+    fontSize: 22,
+    fontWeight: '800',
     color: '#0f172a',
+    flex: 1,
+    textAlign: 'center',
   },
-  headerActions: {
-    flexDirection: 'row',
-  },
-  calendarShell: {
-    borderRadius: 32,
-    padding: 12,
-    backgroundColor: '#f1f3ff',
+  monthNavButton: {
+    padding: 6,
+    borderRadius: 999,
+    backgroundColor: '#eef1ff',
+    marginHorizontal: 8,
     shadowColor: '#0f172a',
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.1,
     shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 18,
+    shadowRadius: 10,
     elevation: 4,
   },
-  calendarWrapper: {
+  calendarCard: {
+    borderRadius: 36,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     backgroundColor: '#fff',
-    borderRadius: 32,
-    paddingVertical: 16,
-    paddingHorizontal: 14,
-    shadowColor: '#7c9cff',
-    shadowOpacity: 0.2,
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.08,
     shadowOffset: { width: 0, height: 10 },
-    shadowRadius: 24,
+    shadowRadius: 20,
     elevation: 10,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
+  },
+  calendarWrapper: {
+    borderRadius: 32,
+    backgroundColor: '#f4f5ff',
+    padding: 8,
   },
   calendarHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
   },
   calendarHeaderLabel: {
     flex: 1,
     textAlign: 'center',
     fontSize: 12,
     fontWeight: '600',
-    color: '#475569',
+    color: '#94a3b8',
   },
-  calendarWeeks: {
-    marginTop: 4,
+  scrollContent: {
+    paddingBottom: 20,
+  },
+  calendarGrid: {
+    marginTop: 18,
   },
   calendarWeekRow: {
     flexDirection: 'row',
   },
-  calendarCell: {
+  dayChip: {
     flex: 1,
-    minHeight: 66,
     margin: 3,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: 'transparent',
-    padding: 6,
-    backgroundColor: '#f8fafc',
+    minHeight: 70,
+    borderRadius: 22,
+    backgroundColor: '#eef1ff',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#0f172a',
-    shadowOpacity: 0.04,
-    shadowOffset: { width: 0, height: 6 },
-    shadowRadius: 12,
-    elevation: 2,
+    position: 'relative',
   },
-  calendarCellFocused: {
+  dayChipFocused: {
+    backgroundColor: '#fff',
+    borderWidth: 2,
     borderColor: '#2563eb',
-    backgroundColor: '#eef2ff',
   },
-  calendarCellMuted: {
-    opacity: 0.4,
+  dayChipMuted: {
+    opacity: 0.45,
   },
-  calendarCellActive: {
-    borderColor: '#e0e7ff',
-    backgroundColor: '#eef2ff',
+  dayChipActive: {
+    borderColor: '#dbeafe',
   },
-  calendarCellNumber: {
-    fontSize: 12,
+  dayChipLabel: {
+    fontSize: 14,
     fontWeight: '600',
     color: '#0f172a',
   },
-  calendarCellNumberMuted: {
-    color: '#9ca3af',
+  dayChipLabelMuted: {
+    color: '#94a3b8',
   },
-  calendarShiftMarker: {
-    marginTop: 8,
+  dayStatus: {
+    marginTop: 6,
     width: 28,
     height: 28,
     borderRadius: 14,
@@ -393,37 +421,41 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#dbeafe',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  calendarFocusIndicator: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
+  dayTodayDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: '#2563eb',
-    opacity: 0,
-  },
-  calendarFocusHalo: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
-    borderRadius: 18,
-    borderWidth: 2,
-    borderColor: 'rgba(37,99,235,0.15)',
-    opacity: 0,
-  },
-  calendarFocusHaloActive: {
-    opacity: 1,
-  },
-  calendarTodayDot: {
     position: 'absolute',
     bottom: 8,
+  },
+  dayHalo: {
+    position: 'absolute',
+    width: '90%',
+    height: '90%',
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  dayHaloActive: {
+    borderColor: '#2563eb',
+  },
+  dayHaloIndicator: {
+    position: 'absolute',
     width: 8,
     height: 8,
     borderRadius: 4,
     backgroundColor: '#2563eb',
+    bottom: 6,
+  },
+  background: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: -1,
   },
   errorCard: {
     backgroundColor: '#fee2e2',

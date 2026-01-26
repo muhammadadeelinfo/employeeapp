@@ -66,7 +66,10 @@ export default function ProfileScreen() {
             style={[styles.languageOption, isActive && styles.languageOptionActive]}
           >
             <Text style={[styles.languageText, isActive && styles.languageTextActive]}>
-              {definition.flag} {definition.shortLabel}
+              {definition.flag}
+            </Text>
+            <Text style={[styles.languageLabel, isActive && styles.languageTextActive]}>
+              {definition.shortLabel}
             </Text>
           </TouchableOpacity>
         );
@@ -155,224 +158,120 @@ export default function ProfileScreen() {
         contentContainerStyle={contentContainerStyle}
       >
         <LinearGradient colors={heroGradientColors} style={styles.heroGradient}>
-        <View style={styles.heroRow}>
-          <View>
-            <Text style={styles.heroTitle}>{t('profileGreeting', { name: profileName(user) })}</Text>
-            <Text style={styles.heroSubtitle}>{t('profileSettingsSync')}</Text>
+          <View style={styles.heroRow}>
+            <View>
+              <Text style={styles.heroTitle}>{t('profileGreeting', { name: profileName(user) })}</Text>
+              <Text style={styles.heroSubtitle}>{t('profileSettingsSync')}</Text>
+            </View>
+            <View style={[styles.avatar, { shadowColor: '#1f2937', shadowOpacity: 0.4 }]}>
+              <Text style={styles.avatarInitial}>{profileName(user).charAt(0)}</Text>
+            </View>
           </View>
-          <View style={[styles.avatar, { shadowColor: '#1f2937', shadowOpacity: 0.4 }]}>
-            <Text style={styles.avatarInitial}>{profileName(user).charAt(0)}</Text>
+          <View style={styles.heroTagRow}>
+            <View style={styles.heroTag}>
+              <Text style={styles.heroTagLabel}>{t('memberSince', { date: formatDate(user?.created_at) })}</Text>
+            </View>
+            <View style={[styles.heroTag, styles.heroTagActive]}>
+              <Text style={[styles.heroTagLabel, styles.heroTagActiveText]}>{translatedStatus}</Text>
+            </View>
           </View>
-        </View>
-        <View style={styles.heroTagRow}>
-          <View style={styles.heroTag}>
-            <Text style={styles.heroTagLabel}>{t('memberSince', { date: formatDate(user?.created_at) })}</Text>
-          </View>
-          <View style={[styles.heroTag, { backgroundColor: '#0f172a' }]}>
-            <Text style={[styles.heroTagLabel, { color: '#f8fafc' }]}>{translatedStatus}</Text>
-          </View>
-        </View>
-      </LinearGradient>
+          <TouchableOpacity style={styles.memberBadge}>
+            <Text style={styles.memberBadgeText}>{t('memberSinceLabel')}</Text>
+            <Text style={styles.memberBadgeDetail}>{formatDate(user?.created_at)}</Text>
+          </TouchableOpacity>
+        </LinearGradient>
 
-      {renderLanguageToggle}
+        <View style={styles.languageWrapper}>{renderLanguageToggle}</View>
 
-      <View style={styles.statsGrid}>
-        {[
-          { label: t('providerLabel'), value: provider.toUpperCase() },
-          {
-            label: t('emailVerifiedLabel'),
-            value: user?.email_confirmed_at ? t('yes') : t('pending'),
-          },
-          { label: t('memberSinceLabel'), value: formatDate(user?.created_at) },
-        ].map((stat, index, list) => (
-          <View
-            key={stat.label}
-            style={[
-              styles.statCard,
-              {
-                backgroundColor: theme.surface,
-                shadowColor: theme.shadowBlue,
-              },
-              index !== list.length - 1 && { marginRight: 12 },
-            ]}
-          >
-            <Text style={[styles.statValue, { color: theme.textPrimary }]}>{stat.value}</Text>
-            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{stat.label}</Text>
-          </View>
-        ))}
-      </View>
-
-      <View
-        style={[
-          styles.card,
-          {
-            backgroundColor: theme.surface,
-            borderColor: theme.border,
-            shadowColor: theme.shadowBlue,
-          },
-        ]}
-      >
-        <Text style={[styles.title, { color: theme.textPrimary }]}>{t('quickActionsTitle')}</Text>
-        <View style={styles.actionRow}>
-          {quickActions.map((action, index) => (
-            <TouchableOpacity
-              key={action.id}
-              style={[
-                styles.actionButton,
-                { borderColor: theme.border },
-                index === quickActions.length - 1 && { marginRight: 0 },
-              ]}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.actionTitle}>{action.label}</Text>
-              <Text style={styles.actionSubtitle}>{action.subtitle}</Text>
-            </TouchableOpacity>
+        <View style={styles.infoGrid}>
+          {[
+            { label: t('providerLabel'), value: provider.toUpperCase() },
+            {
+              label: t('emailVerifiedLabel'),
+              value: user?.email_confirmed_at ? t('yes') : t('pending'),
+            },
+            { label: t('statusActive'), value: translatedStatus },
+          ].map((stat) => (
+            <View key={stat.label} style={[styles.infoCard, { backgroundColor: theme.surface }]}>
+              <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>{stat.label}</Text>
+              <Text style={[styles.infoValue, { color: theme.textPrimary }]}>{stat.value}</Text>
+            </View>
           ))}
         </View>
-      </View>
 
-      <View
-        style={[
-          styles.card,
-          {
-            backgroundColor: theme.surface,
-            borderColor: theme.border,
-            shadowColor: theme.shadowBlue,
-          },
-        ]}
-      >
-        <Text style={[styles.title, { color: theme.textPrimary }]}>{t('shiftSnapshot')}</Text>
-        <View style={styles.snapshotRow}>
-          <View style={styles.snapshotMetric}>
-            <Text style={[styles.snapshotValue, { color: theme.textPrimary }]}>
-              {upcomingShifts.length}
-            </Text>
-            <Text style={[styles.snapshotLabel, { color: theme.textSecondary }]}>
-              {t('upcomingShifts')}
-            </Text>
-          </View>
-          <View style={styles.snapshotMetric}>
-            <Text style={[styles.snapshotValue, { color: theme.textPrimary }]}>
-              {upcomingHoursLabel}
-            </Text>
-            <Text style={[styles.snapshotLabel, { color: theme.textSecondary }]}>
-              {t('shiftHoursLabel')}
-            </Text>
+        <View style={[styles.quickActions, { backgroundColor: theme.surface }]}>
+          <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>{t('quickActionsTitle')}</Text>
+          <View style={styles.actionGrid}>
+            {quickActions.map((action) => (
+              <TouchableOpacity
+                key={action.id}
+                style={[styles.actionCard, { borderColor: theme.border }]}
+              >
+                <Text style={[styles.actionTitle, { color: theme.textPrimary }]}>{action.label}</Text>
+                <Text style={[styles.actionSubtitle, { color: theme.textSecondary }]}>{action.subtitle}</Text>
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
-        <View style={styles.detailBlock}>
-          <Text style={styles.detailLabel}>{t('nextShift')}</Text>
-          <Text style={[styles.detailValue, { color: theme.textSecondary }]}>{nextShiftLabel}</Text>
+
+        <View style={[styles.summaryCard, { backgroundColor: theme.surface }]}>
+          <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>{t('shiftSnapshot')}</Text>
+          <View style={styles.summaryRow}>
+            <View>
+              <Text style={[styles.summaryValue, { color: theme.textPrimary }]}>{upcomingShifts.length}</Text>
+              <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>{t('upcomingShifts')}</Text>
+            </View>
+            <View>
+              <Text style={[styles.summaryValue, { color: theme.textPrimary }]}>{upcomingHoursLabel}</Text>
+              <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>{t('shiftHoursLabel')}</Text>
+            </View>
+          </View>
+          <TouchableOpacity style={styles.viewScheduleButton} onPress={handleViewSchedule}>
+            <Text style={styles.viewScheduleText}>{t('viewSchedule')}</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={[styles.detailCard, { backgroundColor: theme.surface }]}>
+          <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>{t('nextShift')}</Text>
+          <Text style={[styles.detailValue, { color: theme.textPrimary }]}>{nextShiftLabel}</Text>
           {nextShiftLocation ? (
-            <Text style={[styles.miniValue, { color: theme.textSecondary }]}>
-              {nextShiftLocation}
-            </Text>
+            <Text style={[styles.detailSubtitle, { color: theme.textSecondary }]}>{nextShiftLocation}</Text>
           ) : null}
         </View>
-        <PrimaryButton title={t('viewSchedule')} onPress={handleViewSchedule} style={styles.button} />
-      </View>
 
-      <View
-        style={[
-          styles.card,
-          {
-            backgroundColor: theme.surface,
-            borderColor: theme.border,
-            shadowColor: theme.shadowBlue,
-          },
-        ]}
-      >
-        <Text style={[styles.title, { color: theme.textPrimary }]}>{t('upcomingShiftListTitle')}</Text>
-        <View style={styles.upcomingList}>
-          {upcomingPreview.length ? (
-            upcomingPreview.map((shift) => (
-              <View key={shift.id} style={styles.upcomingItem}>
-                <View>
-                  <Text style={[styles.upcomingDay, { color: theme.textPrimary }]}>
-                    {formatDay(shift.start)}
+        <View style={[styles.securityCard, { backgroundColor: theme.surface }]}>
+          <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>{t('security')}</Text>
+          <View style={styles.securityRow}>
+            <Text style={[styles.detailLabel, { color: theme.textSecondary }]}>{t('appearance')}</Text>
+            <View style={styles.toggleRow}>
+              {(['light', 'dark'] as const).map((option) => (
+                <TouchableOpacity
+                  key={option}
+                  style={[
+                    styles.toggleButton,
+                    mode === option && styles.toggleButtonActive,
+                    mode === option && { borderColor: theme.primary },
+                  ]}
+                  onPress={() => setMode(option)}
+                >
+                  <Text
+                    style={[
+                      styles.toggleLabel,
+                      mode === option && styles.toggleLabelActive,
+                      mode === option && { color: theme.primary },
+                    ]}
+                  >
+                    {option === 'light' ? t('lightMode') : t('darkMode')}
                   </Text>
-                  <Text style={[styles.upcomingTime, { color: theme.textSecondary }]}>
-                    {formatTimeRange(shift.start, shift.end)}
-                  </Text>
-                </View>
-                {shift.objectName ?? shift.location ? (
-                  <Text style={[styles.upcomingLocation, { color: theme.textSecondary }]}>
-                    {shift.objectName ?? shift.location}
-                  </Text>
-                ) : null}
-              </View>
-            ))
-          ) : (
-            <Text style={[styles.miniValue, { color: theme.textSecondary }]}>
-              {t('noUpcomingShifts')}
-            </Text>
-          )}
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+          <PrimaryButton title={t('signOut')} onPress={handleSignOut} style={styles.button} />
+          <TouchableOpacity onPress={handleSignOut}>
+            <Text style={[styles.link, { color: theme.primary }]}>{t('switchAccount')}</Text>
+          </TouchableOpacity>
         </View>
-      </View>
-
-      <View
-        style={[
-          styles.card,
-          {
-            backgroundColor: theme.surface,
-            borderColor: theme.border,
-            shadowColor: theme.shadowBlue,
-          },
-        ]}
-      >
-        <Text style={[styles.title, { color: theme.textPrimary }]}>{t('security')}</Text>
-        <View style={styles.detailBlock}>
-          <Text style={styles.detailLabel}>{t('providerLabel')}</Text>
-          <Text style={[styles.detailValue, { color: theme.textSecondary }]}>{provider}</Text>
-        </View>
-        <View style={styles.detailBlock}>
-          <Text style={styles.detailLabel}>{t('emailVerifiedLabel')}</Text>
-          <Text style={[styles.detailValue, { color: theme.textSecondary }]}>
-            {user?.email_confirmed_at ? t('yes') : t('no')}
-          </Text>
-        </View>
-      </View>
-
-      <View
-        style={[
-          styles.card,
-          {
-            backgroundColor: theme.surface,
-            borderColor: theme.border,
-            shadowColor: theme.shadowBlue,
-          },
-        ]}
-      >
-        <Text style={[styles.title, { color: theme.textPrimary }]}>{t('appearance')}</Text>
-        <View style={styles.toggleRow}>
-          {(['light', 'dark'] as const).map((option) => (
-            <TouchableOpacity
-              key={option}
-              style={[
-                styles.toggleButton,
-                mode === option && styles.toggleButtonActive,
-                mode === option && { borderColor: theme.primary },
-              ]}
-              onPress={() => setMode(option)}
-            >
-              <Text
-                style={[
-                  styles.toggleLabel,
-                  mode === option && styles.toggleLabelActive,
-                  mode === option && { color: theme.primary },
-                ]}
-              >
-                {option === 'light' ? t('lightMode') : t('darkMode')}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-
-      <PrimaryButton title={t('signOut')} onPress={handleSignOut} style={styles.button} />
-      <TouchableOpacity onPress={handleSignOut}>
-        <Text style={[styles.link, { color: theme.primary }]}>{t('switchAccount')}</Text>
-      </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
@@ -381,7 +280,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
+    paddingHorizontal: 16,
   },
   content: {
     paddingBottom: 40,
@@ -390,14 +289,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   heroGradient: {
-    borderRadius: 26,
+    borderRadius: 28,
     padding: 24,
     marginBottom: 16,
     shadowColor: '#0f172a',
-    shadowOpacity: 0.3,
-    shadowRadius: 30,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 10,
+    shadowOpacity: 0.35,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 18,
   },
   heroRow: {
     flexDirection: 'row',
@@ -406,17 +305,17 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     color: '#fff',
-    fontSize: 22,
+    fontSize: 26,
     fontWeight: '700',
   },
   heroSubtitle: {
-    color: 'rgba(255,255,255,0.8)',
+    color: 'rgba(255,255,255,0.9)',
     fontSize: 14,
     marginTop: 6,
   },
   heroTagRow: {
     flexDirection: 'row',
-    marginTop: 18,
+    marginTop: 16,
   },
   heroTag: {
     borderRadius: 999,
@@ -429,41 +328,69 @@ const styles = StyleSheet.create({
   heroTagLabel: {
     fontSize: 12,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    color: '#e0e7ff',
+    letterSpacing: 0.6,
+    color: '#f8fafc',
+  },
+  heroTagActive: {
+    backgroundColor: '#111827',
+    borderColor: 'transparent',
+  },
+  heroTagActiveText: {
+    color: '#f8fafc',
   },
   avatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 24,
-    backgroundColor: '#ffffff',
+    width: 56,
+    height: 56,
+    borderRadius: 999,
+    backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
+    shadowColor: '#1f2937',
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
     shadowOffset: { width: 0, height: 8 },
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: 'rgba(255,255,255,0.6)',
   },
   avatarInitial: {
     color: '#1d4ed8',
     fontWeight: '700',
-    fontSize: 22,
+    fontSize: 26,
+  },
+  memberBadge: {
+    marginTop: 18,
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 18,
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+  },
+  memberBadgeText: {
+    fontSize: 10,
+    letterSpacing: 0.4,
+    color: 'rgba(255,255,255,0.8)',
+  },
+  memberBadgeDetail: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  languageWrapper: {
+    marginBottom: 12,
   },
   languagePill: {
     flexDirection: 'row',
     borderRadius: 999,
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    marginBottom: 20,
-    alignSelf: 'stretch',
+    paddingVertical: 8,
+    paddingHorizontal: 10,
     justifyContent: 'center',
+    alignSelf: 'center',
+    minWidth: 180,
     shadowColor: '#0f172a',
     shadowOpacity: 0.08,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 6 },
-    elevation: 5,
+    elevation: 6,
   },
   languageOption: {
     paddingVertical: 6,
@@ -471,198 +398,182 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     marginHorizontal: 4,
     backgroundColor: 'rgba(37,99,235,0.08)',
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   languageOptionActive: {
     backgroundColor: '#2563eb',
   },
   languageText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
+  },
+  languageLabel: {
+    fontSize: 11,
+    letterSpacing: 0.4,
+    color: '#94a3b8',
+    marginLeft: 4,
   },
   languageTextActive: {
     color: '#fff',
   },
-  statsGrid: {
+  infoGrid: {
     flexDirection: 'row',
-    marginBottom: 12,
+    justifyContent: 'space-between',
+    marginBottom: 14,
   },
-  statCard: {
+  infoCard: {
     flex: 1,
-    borderRadius: 18,
-    paddingVertical: 18,
-    paddingHorizontal: 14,
-    borderWidth: 0,
+    borderRadius: 20,
+    padding: 16,
+    marginHorizontal: 4,
     alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#1d4ed8',
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 8,
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
   },
-  statValue: {
-    fontSize: 20,
-    fontWeight: '700',
-  },
-  statLabel: {
-    fontSize: 10,
+  infoLabel: {
+    fontSize: 11,
     letterSpacing: 0.5,
     textTransform: 'uppercase',
-    marginTop: 4,
-    color: '#94a3b8',
+    marginBottom: 6,
   },
-  actionRow: {
+  infoValue: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  quickActions: {
+    borderRadius: 24,
+    padding: 18,
+    marginBottom: 16,
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 12,
+  },
+  actionGrid: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     justifyContent: 'space-between',
-    marginTop: 12,
   },
-  actionButton: {
+  actionCard: {
     flex: 1,
-    minWidth: 110,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
     paddingVertical: 14,
     paddingHorizontal: 12,
-    marginBottom: 10,
-    marginRight: 10,
-    backgroundColor: '#fff',
+    marginHorizontal: 4,
   },
   actionTitle: {
     fontSize: 14,
     fontWeight: '700',
-    marginBottom: 4,
-    color: '#111827',
+    marginBottom: 6,
   },
   actionSubtitle: {
     fontSize: 12,
-    color: '#6b7280',
   },
-  card: {
+  summaryCard: {
     borderRadius: 24,
-    padding: 20,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    shadowOpacity: 0.08,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 4,
+    padding: 18,
+    marginBottom: 14,
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
   },
-  title: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 16,
-    letterSpacing: 0.5,
-  },
-  detailLabel: {
-    fontSize: 10,
-    color: '#94a3b8',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
-  detailValue: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  detailBlock: {
-    marginTop: 16,
-  },
-  divider: {
-    height: 1,
-    marginVertical: 16,
-  },
-  snapshotRow: {
+  summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 12,
   },
-  snapshotMetric: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 12,
-  },
-  snapshotValue: {
-    fontSize: 22,
+  summaryValue: {
+    fontSize: 28,
     fontWeight: '700',
   },
-  snapshotLabel: {
-    fontSize: 10,
-    letterSpacing: 0.5,
+  summaryLabel: {
+    fontSize: 12,
+    letterSpacing: 0.4,
     textTransform: 'uppercase',
+  },
+  viewScheduleButton: {
+    alignSelf: 'flex-start',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  viewScheduleText: {
+    fontWeight: '600',
+  },
+  detailCard: {
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 14,
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  detailValue: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  detailSubtitle: {
+    fontSize: 14,
     marginTop: 4,
   },
-  statusRow: {
+  securityCard: {
+    borderRadius: 20,
+    padding: 18,
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+    marginBottom: 20,
+  },
+  securityRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-  },
-  miniLabel: {
-    fontSize: 10,
-    color: '#94a3b8',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
-  miniValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginTop: 4,
-  },
-  button: {
-    marginTop: 18,
-  },
-  link: {
-    marginTop: 18,
-    textAlign: 'center',
-    fontSize: 14,
+    alignItems: 'center',
+    marginBottom: 12,
   },
   toggleRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
   },
   toggleButton: {
-    flex: 1,
-    borderRadius: 12,
     borderWidth: 1,
+    borderRadius: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 18,
+    marginRight: 8,
     borderColor: '#d1d5db',
-    paddingVertical: 10,
-    alignItems: 'center',
   },
   toggleButtonActive: {
-    backgroundColor: '#eef2ff',
+    backgroundColor: '#2563eb',
   },
   toggleLabel: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
     color: '#475569',
   },
   toggleLabelActive: {
-    color: '#2563eb',
+    color: '#fff',
   },
-  upcomingList: {
-    marginTop: 8,
+  button: {
+    marginTop: 12,
   },
-  upcomingItem: {
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    padding: 12,
-    marginBottom: 10,
-  },
-  upcomingDay: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  upcomingTime: {
-    fontSize: 12,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
-  upcomingLocation: {
-    fontSize: 13,
-    marginTop: 6,
+  link: {
+    marginTop: 10,
+    textAlign: 'center',
   },
 });
