@@ -221,8 +221,7 @@ export default function CalendarScreen() {
       >
         <View style={styles.headerCard}>
           <View>
-            <Text style={styles.headerTitle}>{t('calendarView')}</Text>
-            <Text style={styles.headerSubtitle}>{monthLabel}</Text>
+            <Text style={styles.headerTitle}>{monthLabel}</Text>
           </View>
           <View style={styles.headerActions}>
             <Pressable
@@ -434,10 +433,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     color: '#0f172a',
-  },
-  headerSubtitle: {
-    color: '#475569',
-    marginTop: 4,
   },
   headerActions: {
     flexDirection: 'row',
