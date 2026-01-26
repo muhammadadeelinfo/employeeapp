@@ -186,30 +186,6 @@ export default function CalendarScreen() {
           <View style={styles.headerCard}>
             <View>
               <Text style={styles.headerTitle}>{monthLabel}</Text>
-              <Text style={styles.headerSubTitle}>{t('calendarSwitcherHint')}</Text>
-            </View>
-            <View style={styles.switcherPill}>
-              <Pressable
-                onPress={() => handleMonthChange(-1)}
-                style={({ pressed }) => [
-                  styles.switcherButton,
-                  pressed && styles.switcherButtonPressed,
-                ]}
-              >
-                <Ionicons name="chevron-back" size={16} color="#2563eb" />
-              </Pressable>
-              <View style={styles.switcherLabelWrapper}>
-                <Text style={styles.switcherLabel}>{t('calendarSwitcherLabel')}</Text>
-              </View>
-              <Pressable
-                onPress={() => handleMonthChange(1)}
-                style={({ pressed }) => [
-                  styles.switcherButton,
-                  pressed && styles.switcherButtonPressed,
-                ]}
-              >
-                <Ionicons name="chevron-forward" size={16} color="#2563eb" />
-              </Pressable>
             </View>
           </View>
         {errorView}
@@ -326,46 +302,6 @@ const styles = StyleSheet.create({
   },
   headerActions: {
     flexDirection: 'row',
-  },
-  headerSubTitle: {
-    fontSize: 13,
-    color: '#475569',
-    marginTop: 4,
-  },
-  switcherPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 999,
-    backgroundColor: '#fff',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    shadowColor: '#0f172a',
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 6 },
-    shadowRadius: 16,
-    elevation: 5,
-  },
-  switcherLabelWrapper: {
-    alignItems: 'center',
-    marginHorizontal: 10,
-  },
-  switcherLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#0f172a',
-  },
-  switcherButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e0e7ff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff',
-  },
-  switcherButtonPressed: {
-    backgroundColor: '#eef2ff',
   },
   calendarShell: {
     borderRadius: 32,
