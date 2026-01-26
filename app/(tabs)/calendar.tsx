@@ -1,5 +1,6 @@
 import {
   Animated,
+  Modal,
   PanResponder,
   Pressable,
   RefreshControl,
@@ -16,6 +17,7 @@ import { getShiftPhase, phaseMeta, type ShiftPhase } from '@shared/utils/shiftPh
 import { useLanguage } from '@shared/context/LanguageContext';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useNotifications } from '@shared/context/NotificationContext';
 
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -55,6 +57,14 @@ const getCalendarWeeks = (date: Date) => {
 const dayKey = (date: Date) => date.toISOString().split('T')[0];
 const getMonthLabel = (date: Date) => date.toLocaleDateString([], { month: 'long', year: 'numeric' });
 
+const shiftTypeIconMap = {
+  morning: { name: 'sunny', color: '#facc15' },
+  evening: { name: 'partly-sunny', color: '#fb923c' },
+  night: { name: 'moon', color: '#7c3aed' },
+} as const;
+
+type ShiftType = keyof typeof shiftTypeIconMap;
+
 const renderSkeletons = () => (
   <View style={styles.skeletonContainer}>
     {Array.from({ length: 3 }).map((_, index) => (
@@ -92,6 +102,23 @@ export default function CalendarScreen() {
       return shiftDate >= visibleMonth && shiftDate < nextMonth;
     });
   }, [orderedShifts, visibleMonth]);
+
+  const shiftTypesByDay = useMemo(() => {
+    const map = new Map<string, Set<ShiftType>>();
+    const categorize = (shiftStart: string): ShiftType => {
+      const hour = new Date(shiftStart).getHours();
+      if (hour >= 6 && hour < 14) return 'morning';
+      if (hour >= 14 && hour < 22) return 'evening';
+      return 'night';
+    };
+    monthShifts.forEach((shift) => {
+      const key = shift.start.split('T')[0];
+      const set = map.get(key) ?? new Set<ShiftType>();
+      set.add(categorize(shift.start));
+      map.set(key, set);
+    });
+    return map;
+  }, [monthShifts]);
 
   const shiftsByDay = useMemo(() => {
     const map = new Map<string, typeof orderedShifts[number]>();
@@ -185,13 +212,25 @@ export default function CalendarScreen() {
     </View>
   ) : null;
 
-  const emptyState = !orderedShifts.length && !isLoading && !error && (
-    <View style={styles.listEmptyState}>
-      <Text style={styles.emptyTitle}>{t('noUpcomingShifts')}</Text>
-      <Text style={styles.emptySubtitle}>{t('listEmptySubtitle')}</Text>
-      <PrimaryButton title={t('refreshShifts')} onPress={() => refetch()} style={styles.emptyAction} />
-    </View>
-  );
+  const { addNotification } = useNotifications();
+  const [showEmptyModal, setShowEmptyModal] = useState(false);
+  const emptyNotifiedRef = useRef(false);
+
+  useEffect(() => {
+    if (!error && !isLoading && !orderedShifts.length) {
+      if (!emptyNotifiedRef.current) {
+        addNotification({
+          title: t('noUpcomingShifts'),
+          detail: t('listEmptySubtitle'),
+        });
+        emptyNotifiedRef.current = true;
+      }
+      setShowEmptyModal(true);
+    } else {
+      emptyNotifiedRef.current = false;
+      setShowEmptyModal(false);
+    }
+  }, [addNotification, error, isLoading, orderedShifts.length, t]);
 
   const containerStyle = [styles.container, { paddingTop: 12 + insets.top }];
   const scrollContentStyle = [styles.scrollContent, { paddingBottom: 12 + insets.bottom }];
@@ -220,7 +259,6 @@ export default function CalendarScreen() {
         </View>
         {errorView}
         {showSkeletons && renderSkeletons()}
-        {emptyState}
         {!error && (
           <View style={styles.calendarCard}>
             <Animated.View
@@ -249,6 +287,7 @@ export default function CalendarScreen() {
                       const isToday = key === todayKey;
                       const isFocusedDay = focusedDayKey === key;
                       const dayPhase = dayPhaseMap.get(key);
+                      const shiftTypes = shiftTypesByDay.get(key);
                       return (
                         <View
                           key={key}
@@ -267,18 +306,17 @@ export default function CalendarScreen() {
                           >
                             {day.getDate()}
                           </Text>
-                          {dayShifts.length ? (
-                            <View
-                              style={[
-                                styles.dayStatus,
-                                dayPhase ? { backgroundColor: phaseMeta[dayPhase].background } : undefined,
-                              ]}
-                            >
-                              <Ionicons
-                                name="calendar-outline"
-                                size={12}
-                                color={dayPhase ? phaseMeta[dayPhase].color : '#1d4ed8'}
-                              />
+                          {shiftTypes && shiftTypes.size ? (
+                            <View style={styles.shiftIconRow}>
+                              {Array.from(shiftTypes).map((type) => (
+                                <View key={type} style={styles.shiftIcon}>
+                                  <Ionicons
+                                    name={shiftTypeIconMap[type].name}
+                                    size={12}
+                                    color={shiftTypeIconMap[type].color}
+                                  />
+                                </View>
+                              ))}
                             </View>
                           ) : null}
                           {isToday && <View style={styles.dayTodayDot} />}
@@ -297,6 +335,18 @@ export default function CalendarScreen() {
           </View>
         )}
       </ScrollView>
+      <Modal transparent visible={showEmptyModal} animationType="fade">
+        <View style={styles.emptyModalBackdrop}>
+          <View style={styles.emptyModalCard}>
+            <Text style={styles.emptyModalTitle}>{t('noUpcomingShifts')}</Text>
+            <Text style={styles.emptyModalSubtitle}>{t('listEmptySubtitle')}</Text>
+            <PrimaryButton title={t('refreshShifts')} onPress={() => {
+              setShowEmptyModal(false);
+              refetch();
+            }} />
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -412,19 +462,23 @@ const styles = StyleSheet.create({
   dayChipLabelMuted: {
     color: '#94a3b8',
   },
-  dayStatus: {
+  shiftIconRow: {
+    flexDirection: 'row',
     marginTop: 6,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    gap: 4,
+  },
+  shiftIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#dbeafe',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 3,
   },
   dayTodayDot: {
     width: 6,
@@ -522,5 +576,34 @@ const styles = StyleSheet.create({
     width: '60%',
     backgroundColor: '#dbeafe',
     borderRadius: 6,
+  },
+  emptyModalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(15,23,42,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyModalCard: {
+    width: '80%',
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 20,
+    alignItems: 'center',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.25,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 10,
+  },
+  emptyModalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  emptyModalSubtitle: {
+    fontSize: 14,
+    color: '#6b7280',
+    textAlign: 'center',
+    marginBottom: 16,
   },
 });

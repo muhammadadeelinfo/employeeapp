@@ -167,6 +167,22 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     await loadNotifications();
   }, [loadNotifications]);
 
+  const addNotification = useCallback(
+    (entry: Omit<NotificationItem, 'id' | 'createdAt'>) => {
+      setNotifications((prev) => [
+        {
+          id: `system-${Date.now()}`,
+          title: entry.title,
+          detail: entry.detail,
+          createdAt: new Date().toISOString(),
+          read: entry.read ?? false,
+        },
+        ...prev,
+      ]);
+    },
+    []
+  );
+
   const markAllAsRead = useCallback(async () => {
     const unreadIds = notifications.filter((item) => !item.read).map((item) => item.id);
     if (!unreadIds.length) return;
@@ -235,8 +251,9 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
       unreadCount,
       markAllAsRead,
       refresh,
+      addNotification,
     }),
-    [open, toggle, close, notifications, unreadCount, markAllAsRead, refresh]
+    [open, toggle, close, notifications, unreadCount, markAllAsRead, refresh, addNotification]
   );
 
   return (
