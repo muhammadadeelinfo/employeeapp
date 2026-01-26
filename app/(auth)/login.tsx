@@ -1,5 +1,5 @@
 import { Alert, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
 import { supabase } from '@lib/supabaseClient';
@@ -17,6 +17,7 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [isSigningUp, setIsSigningUp] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
+  const passwordInputRef = useRef<TextInput>(null);
 
   useEffect(() => {
     (async () => {
@@ -94,6 +95,8 @@ export default function LoginScreen() {
         value={email}
         onChangeText={setEmail}
         textContentType="emailAddress"
+        returnKeyType="next"
+        onSubmitEditing={() => passwordInputRef.current?.focus()}
       />
       <TextInput
         style={styles.input}
@@ -103,6 +106,9 @@ export default function LoginScreen() {
         value={password}
         onChangeText={setPassword}
         textContentType="password"
+        ref={passwordInputRef}
+        returnKeyType="done"
+        onSubmitEditing={handleAuthenticate}
       />
       <View style={styles.rememberRow}>
         <Text style={styles.rememberLabel}>{t('keepSignedIn')}</Text>

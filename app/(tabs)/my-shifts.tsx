@@ -102,13 +102,12 @@ export default function MyShiftsScreen() {
     styles.container,
     {
       paddingTop: 12 + insets.top,
-      paddingBottom: 16 + insets.bottom,
     },
   ];
-  const listContentStyle = [styles.list, { paddingBottom: 24 + insets.bottom }];
+  const listContentStyle = styles.list;
 
   return (
-    <SafeAreaView style={containerStyle} edges={['top', 'bottom']}>
+    <SafeAreaView style={containerStyle} edges={['top']}>
       <View style={styles.headerWrapper}>
         <Text style={styles.headerTitle}>{`${t('upcomingShifts')} · ${monthLabel}`}</Text>
       </View>
@@ -116,6 +115,7 @@ export default function MyShiftsScreen() {
       <ScrollView
         ref={listScrollRef}
         contentContainerStyle={listContentStyle}
+        style={styles.scrollView}
         refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => refetch()} />}
       >
         {showSkeletons && renderSkeletons()}
@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc',
     paddingHorizontal: 16,
     paddingTop: 0,
-    paddingBottom: 16,
+    paddingBottom: 0,
   },
   headerWrapper: {
     marginBottom: 12,
@@ -156,6 +156,9 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     paddingTop: 2,
     flexGrow: 1,
+  },
+  scrollView: {
+    backgroundColor: '#f8fafc',
   },
   errorCard: {
     backgroundColor: '#fee2e2',
