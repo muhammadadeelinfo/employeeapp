@@ -18,6 +18,7 @@ import { useLanguage } from '@shared/context/LanguageContext';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNotifications } from '@shared/context/NotificationContext';
+import { useRouter } from 'expo-router';
 
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -77,6 +78,7 @@ const renderSkeletons = () => (
 );
 
 export default function CalendarScreen() {
+  const router = useRouter();
   const { t } = useLanguage();
   const insets = useSafeAreaInsets();
   const { orderedShifts, isLoading, error, refetch } = useShiftFeed();
@@ -92,7 +94,6 @@ export default function CalendarScreen() {
   const nextShift = orderedShifts.find((shift) => new Date(shift.start) > now);
   const focusedShiftId = liveShift?.id ?? nextShift?.id;
   const focusedDayKey = orderedShifts.find((shift) => shift.id === focusedShiftId)?.start.split('T')[0];
-  const todayKey = useMemo(() => dayKey(new Date()), []);
   const monthLabel = getMonthLabel(visibleMonth);
 
   const monthShifts = useMemo(() => {
@@ -284,19 +285,25 @@ export default function CalendarScreen() {
                       const key = day.toISOString().split('T')[0];
                       const dayShifts = shiftsByDay.get(key) ?? [];
                       const isCurrentMonth = day.getMonth() === visibleMonth.getMonth();
-                      const isToday = key === todayKey;
                       const isFocusedDay = focusedDayKey === key;
                       const dayPhase = dayPhaseMap.get(key);
                       const shiftTypes = shiftTypesByDay.get(key);
                       return (
-                        <View
+                        <Pressable
                           key={key}
-                          style={[
+                          style={({ pressed }) => [
                             styles.dayChip,
                             !isCurrentMonth && styles.dayChipMuted,
                             isFocusedDay && styles.dayChipFocused,
                             dayShifts.length && styles.dayChipActive,
+                            pressed && dayShifts.length ? styles.dayChipPressed : undefined,
                           ]}
+                          accessibilityRole={dayShifts.length ? 'button' : undefined}
+                          disabled={!dayShifts.length}
+                          onPress={() => {
+                            if (!dayShifts.length) return;
+                            router.push(`/shift-details/${dayShifts[0].id}`);
+                          }}
                         >
                           <Text
                             style={[
@@ -322,7 +329,7 @@ export default function CalendarScreen() {
                           {isFocusedDay && (
                             <View style={[styles.dayHalo, styles.dayHaloActive]} />
                           )}
-                        </View>
+                        </Pressable>
                       );
                     })}
                   </View>
@@ -450,6 +457,9 @@ const styles = StyleSheet.create({
   },
   dayChipActive: {
     borderColor: '#dbeafe',
+  },
+  dayChipPressed: {
+    opacity: 0.75,
   },
   dayChipLabel: {
     fontSize: 14,
