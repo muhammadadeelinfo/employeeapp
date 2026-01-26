@@ -1,13 +1,34 @@
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
+import { getShifts } from '@features/shifts/shiftsService';
 import { useTheme } from '@shared/themeContext';
 import { useAuth } from '@hooks/useSupabaseAuth';
+import { useLanguage } from '@shared/context/LanguageContext';
 
 const formatDate = (iso?: string) => {
   if (!iso) return '—';
   const parsed = new Date(iso);
   if (Number.isNaN(parsed.getTime())) return '—';
   return parsed.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
+const formatDay = (iso: string) => {
+  const parsed = new Date(iso);
+  if (Number.isNaN(parsed.getTime())) return '—';
+  return parsed.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+};
+
+const formatTimeRange = (startIso: string, endIso: string) => {
+  const start = new Date(startIso);
+  const end = new Date(endIso);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return '—';
+  const startLabel = start.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  const endLabel = end.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  return `${startLabel} · ${endLabel}`;
 };
 
 const profileName = (user: ReturnType<typeof useAuth>['user'] | null) => {
@@ -31,44 +52,112 @@ const shiftStatus = (metadata?: Record<string, unknown> | null) => {
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();
   const { mode, setMode, theme } = useTheme();
+  const { t } = useLanguage();
+  const router = useRouter();
+  const userId = user?.id;
   const provider = user?.identities?.[0]?.provider ?? 'email';
   const status = shiftStatus(user?.user_metadata);
+  const translatedStatus = status === 'Active' ? t('statusActive') : status;
+  const { data: profileShifts } = useQuery({
+    queryKey: ['profile', 'shifts', userId],
+    queryFn: () => getShifts(userId),
+    enabled: !!userId,
+    staleTime: 30_000,
+  });
+  const now = useMemo(() => new Date(), []);
+  const upcomingShifts = useMemo(() => {
+    if (!profileShifts) return [];
+    return profileShifts.filter((shift) => {
+      const startDate = new Date(shift.start);
+      return !Number.isNaN(startDate.getTime()) && startDate > now;
+    });
+  }, [profileShifts, now]);
+  const upcomingHoursMs = useMemo(
+    () =>
+      upcomingShifts.reduce((total, shift) => {
+        const startDate = new Date(shift.start);
+        const endDate = new Date(shift.end);
+        if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+          return total;
+        }
+        return total + Math.max(0, endDate.getTime() - startDate.getTime());
+      }, 0),
+    [upcomingShifts]
+  );
+  const upcomingHoursLabel = `${Math.round((upcomingHoursMs / 3_600_000) * 10) / 10}h`;
+  const nextShift = upcomingShifts[0];
+  const nextShiftLabel = nextShift
+    ? `${new Date(nextShift.start).toLocaleDateString([], {
+        month: 'short',
+        day: 'numeric',
+      })} · ${new Date(nextShift.start).toLocaleTimeString([], {
+        hour: 'numeric',
+        minute: '2-digit',
+      })}`
+    : t('noUpcomingShifts');
+  const nextShiftLocation = nextShift?.objectName ?? nextShift?.location;
   const handleSignOut = () => {
     signOut();
   };
+  const handleViewSchedule = () => {
+    router.push('/my-shifts');
+  };
+  const upcomingPreview = upcomingShifts.slice(0, 3);
+  const quickActions = [
+    {
+      id: 'clock-in',
+      label: t('quickActionClockIn'),
+      subtitle: t('quickActionClockInSub'),
+    },
+    {
+      id: 'hours',
+      label: t('quickActionHours'),
+      subtitle: t('quickActionHoursSub'),
+    },
+    {
+      id: 'support',
+      label: t('quickActionSupport'),
+      subtitle: t('quickActionSupportSub'),
+    },
+  ];
+  const heroGradientColors =
+    mode === 'dark'
+      ? ['#111827', '#0f172a', theme.primary]
+      : [theme.primary, '#7c3aed', '#2563eb'];
 
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: theme.background }]}
       contentContainerStyle={styles.content}
     >
-      <View style={[styles.hero, { backgroundColor: theme.surface }]}>
+      <LinearGradient colors={heroGradientColors} style={styles.heroGradient}>
         <View style={styles.heroRow}>
           <View>
-            <Text style={[styles.title, { color: theme.textPrimary }]}>Hello, {profileName(user)}!</Text>
-            <Text style={[styles.subHeader, { color: theme.textSecondary }]}>
-              Profile settings are synced across web and Expo.
-            </Text>
+            <Text style={styles.heroTitle}>{t('profileGreeting', { name: profileName(user) })}</Text>
+            <Text style={styles.heroSubtitle}>{t('profileSettingsSync')}</Text>
           </View>
-          <View style={styles.avatar}>
+          <View style={[styles.avatar, { shadowColor: '#1f2937', shadowOpacity: 0.4 }]}>
             <Text style={styles.avatarInitial}>{profileName(user).charAt(0)}</Text>
           </View>
         </View>
-        <View style={styles.tagRow}>
-          <View style={[styles.tag, { borderColor: theme.primary }]}>
-            <Text style={[styles.tagLabel, { color: theme.primary }]}>Member since {formatDate(user?.created_at)}</Text>
+        <View style={styles.heroTagRow}>
+          <View style={styles.heroTag}>
+            <Text style={styles.heroTagLabel}>{t('memberSince', { date: formatDate(user?.created_at) })}</Text>
           </View>
-          <View style={[styles.tag, { backgroundColor: theme.primary, borderColor: theme.primary }]}>
-            <Text style={[styles.tagLabel, { color: '#fff' }]}>{status}</Text>
+          <View style={[styles.heroTag, { backgroundColor: '#0f172a' }]}>
+            <Text style={[styles.heroTagLabel, { color: '#f8fafc' }]}>{translatedStatus}</Text>
           </View>
         </View>
-      </View>
+      </LinearGradient>
 
       <View style={styles.statsGrid}>
         {[
-          { label: 'Provider', value: provider.toUpperCase() },
-          { label: 'Email verified', value: user?.email_confirmed_at ? 'Yes' : 'Pending' },
-          { label: 'Member since', value: formatDate(user?.created_at) },
+          { label: t('providerLabel'), value: provider.toUpperCase() },
+          {
+            label: t('emailVerifiedLabel'),
+            value: user?.email_confirmed_at ? t('yes') : t('pending'),
+          },
+          { label: t('memberSinceLabel'), value: formatDate(user?.created_at) },
         ].map((stat, index, list) => (
           <View
             key={stat.label}
@@ -77,7 +166,6 @@ export default function ProfileScreen() {
               {
                 backgroundColor: theme.surface,
                 shadowColor: theme.shadowBlue,
-                borderColor: theme.border,
               },
               index !== list.length - 1 && { marginRight: 12 },
             ]}
@@ -98,15 +186,123 @@ export default function ProfileScreen() {
           },
         ]}
       >
-        <Text style={[styles.title, { color: theme.textPrimary }]}>Security</Text>
+        <Text style={[styles.title, { color: theme.textPrimary }]}>{t('quickActionsTitle')}</Text>
+        <View style={styles.actionRow}>
+          {quickActions.map((action, index) => (
+            <TouchableOpacity
+              key={action.id}
+              style={[
+                styles.actionButton,
+                { borderColor: theme.border },
+                index === quickActions.length - 1 && { marginRight: 0 },
+              ]}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.actionTitle}>{action.label}</Text>
+              <Text style={styles.actionSubtitle}>{action.subtitle}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      <View
+        style={[
+          styles.card,
+          {
+            backgroundColor: theme.surface,
+            borderColor: theme.border,
+            shadowColor: theme.shadowBlue,
+          },
+        ]}
+      >
+        <Text style={[styles.title, { color: theme.textPrimary }]}>{t('shiftSnapshot')}</Text>
+        <View style={styles.snapshotRow}>
+          <View style={styles.snapshotMetric}>
+            <Text style={[styles.snapshotValue, { color: theme.textPrimary }]}>
+              {upcomingShifts.length}
+            </Text>
+            <Text style={[styles.snapshotLabel, { color: theme.textSecondary }]}>
+              {t('upcomingShifts')}
+            </Text>
+          </View>
+          <View style={styles.snapshotMetric}>
+            <Text style={[styles.snapshotValue, { color: theme.textPrimary }]}>
+              {upcomingHoursLabel}
+            </Text>
+            <Text style={[styles.snapshotLabel, { color: theme.textSecondary }]}>
+              {t('shiftHoursLabel')}
+            </Text>
+          </View>
+        </View>
         <View style={styles.detailBlock}>
-          <Text style={styles.detailLabel}>Provider</Text>
+          <Text style={styles.detailLabel}>{t('nextShift')}</Text>
+          <Text style={[styles.detailValue, { color: theme.textSecondary }]}>{nextShiftLabel}</Text>
+          {nextShiftLocation ? (
+            <Text style={[styles.miniValue, { color: theme.textSecondary }]}>
+              {nextShiftLocation}
+            </Text>
+          ) : null}
+        </View>
+        <PrimaryButton title={t('viewSchedule')} onPress={handleViewSchedule} style={styles.button} />
+      </View>
+
+      <View
+        style={[
+          styles.card,
+          {
+            backgroundColor: theme.surface,
+            borderColor: theme.border,
+            shadowColor: theme.shadowBlue,
+          },
+        ]}
+      >
+        <Text style={[styles.title, { color: theme.textPrimary }]}>{t('upcomingShiftListTitle')}</Text>
+        <View style={styles.upcomingList}>
+          {upcomingPreview.length ? (
+            upcomingPreview.map((shift) => (
+              <View key={shift.id} style={styles.upcomingItem}>
+                <View>
+                  <Text style={[styles.upcomingDay, { color: theme.textPrimary }]}>
+                    {formatDay(shift.start)}
+                  </Text>
+                  <Text style={[styles.upcomingTime, { color: theme.textSecondary }]}>
+                    {formatTimeRange(shift.start, shift.end)}
+                  </Text>
+                </View>
+                {shift.objectName ?? shift.location ? (
+                  <Text style={[styles.upcomingLocation, { color: theme.textSecondary }]}>
+                    {shift.objectName ?? shift.location}
+                  </Text>
+                ) : null}
+              </View>
+            ))
+          ) : (
+            <Text style={[styles.miniValue, { color: theme.textSecondary }]}>
+              {t('noUpcomingShifts')}
+            </Text>
+          )}
+        </View>
+      </View>
+
+      <View
+        style={[
+          styles.card,
+          {
+            backgroundColor: theme.surface,
+            borderColor: theme.border,
+            shadowColor: theme.shadowBlue,
+          },
+        ]}
+      >
+        <Text style={[styles.title, { color: theme.textPrimary }]}>{t('security')}</Text>
+        <View style={styles.detailBlock}>
+          <Text style={styles.detailLabel}>{t('providerLabel')}</Text>
           <Text style={[styles.detailValue, { color: theme.textSecondary }]}>{provider}</Text>
         </View>
         <View style={styles.detailBlock}>
-          <Text style={styles.detailLabel}>Email verified</Text>
+          <Text style={styles.detailLabel}>{t('emailVerifiedLabel')}</Text>
           <Text style={[styles.detailValue, { color: theme.textSecondary }]}>
-            {user?.email_confirmed_at ? 'Yes' : 'No'}
+            {user?.email_confirmed_at ? t('yes') : t('no')}
           </Text>
         </View>
       </View>
@@ -121,7 +317,7 @@ export default function ProfileScreen() {
           },
         ]}
       >
-        <Text style={[styles.title, { color: theme.textPrimary }]}>Appearance</Text>
+        <Text style={[styles.title, { color: theme.textPrimary }]}>{t('appearance')}</Text>
         <View style={styles.toggleRow}>
           {(['light', 'dark'] as const).map((option) => (
             <TouchableOpacity
@@ -140,16 +336,16 @@ export default function ProfileScreen() {
                   mode === option && { color: theme.primary },
                 ]}
               >
-                {option === 'light' ? 'Light mode' : 'Dark mode'}
+                {option === 'light' ? t('lightMode') : t('darkMode')}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
       </View>
 
-      <PrimaryButton title="Sign out" onPress={handleSignOut} style={styles.button} />
+      <PrimaryButton title={t('signOut')} onPress={handleSignOut} style={styles.button} />
       <TouchableOpacity onPress={handleSignOut}>
-        <Text style={[styles.link, { color: theme.primary }]}>Need to switch accounts? Log in again</Text>
+        <Text style={[styles.link, { color: theme.primary }]}>{t('switchAccount')}</Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -163,65 +359,124 @@ const styles = StyleSheet.create({
   content: {
     paddingBottom: 40,
   },
-  hero: {
-    borderRadius: 24,
-    padding: 20,
+  heroGradient: {
+    borderRadius: 26,
+    padding: 24,
     marginBottom: 16,
-    backgroundColor: '#eef2ff',
     shadowColor: '#0f172a',
-    shadowOpacity: 0.06,
-    shadowRadius: 18,
+    shadowOpacity: 0.3,
+    shadowRadius: 30,
     shadowOffset: { width: 0, height: 10 },
-    elevation: 6,
+    elevation: 10,
   },
   heroRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  heroTitle: {
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: '700',
+  },
+  heroSubtitle: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 14,
+    marginTop: 6,
+  },
+  heroTagRow: {
+    flexDirection: 'row',
+    marginTop: 18,
+  },
+  heroTag: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.6)',
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    marginRight: 10,
+  },
+  heroTagLabel: {
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    color: '#e0e7ff',
+  },
   avatar: {
-    width: 48,
-    height: 48,
+    width: 52,
+    height: 52,
+    borderRadius: 24,
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 8 },
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.6)',
+  },
+  avatarInitial: {
+    color: '#1d4ed8',
+    fontWeight: '700',
+    fontSize: 22,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    marginBottom: 12,
+  },
+  statCard: {
+    flex: 1,
     borderRadius: 18,
-    backgroundColor: '#1d4ed8',
+    paddingVertical: 18,
+    paddingHorizontal: 14,
+    borderWidth: 0,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#1d4ed8',
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 3,
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 8,
   },
-  avatarInitial: {
-    color: '#fff',
-    fontWeight: '700',
+  statValue: {
     fontSize: 20,
-  },
-  tagRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 20,
-  },
-  tag: {
-    flex: 1,
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-  },
-  tagLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  header: {
-    fontSize: 32,
     fontWeight: '700',
   },
-  subHeader: {
+  statLabel: {
+    fontSize: 10,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
     marginTop: 4,
+    color: '#94a3b8',
+  },
+  actionRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginTop: 12,
+  },
+  actionButton: {
+    flex: 1,
+    minWidth: 110,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    marginBottom: 10,
+    marginRight: 10,
+    backgroundColor: '#fff',
+  },
+  actionTitle: {
     fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 4,
+    color: '#111827',
+  },
+  actionSubtitle: {
+    fontSize: 12,
+    color: '#6b7280',
   },
   card: {
     borderRadius: 24,
@@ -258,29 +513,25 @@ const styles = StyleSheet.create({
     height: 1,
     marginVertical: 16,
   },
-  statsGrid: {
+  snapshotRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     marginBottom: 12,
   },
-  statCard: {
+  snapshotMetric: {
     flex: 1,
-    borderRadius: 20,
-    padding: 18,
-    borderWidth: 1,
-    shadowOpacity: 0.06,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 5,
+    alignItems: 'center',
+    paddingVertical: 12,
   },
-  statValue: {
-    fontSize: 18,
+  snapshotValue: {
+    fontSize: 22,
     fontWeight: '700',
   },
-  statLabel: {
+  snapshotLabel: {
     fontSize: 10,
     letterSpacing: 0.5,
     textTransform: 'uppercase',
-    marginTop: 6,
+    marginTop: 4,
   },
   statusRow: {
     flexDirection: 'row',
@@ -328,5 +579,29 @@ const styles = StyleSheet.create({
   },
   toggleLabelActive: {
     color: '#2563eb',
+  },
+  upcomingList: {
+    marginTop: 8,
+  },
+  upcomingItem: {
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    padding: 12,
+    marginBottom: 10,
+  },
+  upcomingDay: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  upcomingTime: {
+    fontSize: 12,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  upcomingLocation: {
+    fontSize: 13,
+    marginTop: 6,
   },
 });
