@@ -1,6 +1,7 @@
 import { PostgrestError } from '@supabase/supabase-js';
 import { supabase } from '@lib/supabaseClient';
 import { ShiftConfirmationStatus, normalizeShiftConfirmationStatus } from '@lib/shiftConfirmationStatus';
+import { ensureShiftEndAfterStart } from '@shared/utils/timeUtils';
 
 type ShiftStatus = 'scheduled' | 'in-progress' | 'completed' | 'blocked';
 
@@ -97,17 +98,18 @@ const pickFirstValue = (row: Record<string, unknown>, keys: string[]): unknown =
   return undefined;
 };
 
-const mapShiftRecord = (raw: Record<string, unknown>): Shift => {
+export const mapShiftRecord = (raw: Record<string, unknown>): Shift => {
   const start = normalizeTimestampPair(
     pickFirstValue(raw, ['shiftStartingDate', 'shiftstartingdate', 'start_date', 'start', 'start_at']),
     pickFirstValue(raw, ['shiftStartingTime', 'shiftstartingtime', 'start_time', 'startTime']),
     fallbackShifts[0].start
   );
-  const end = normalizeTimestampPair(
+  let end = normalizeTimestampPair(
     pickFirstValue(raw, ['shiftEndingDate', 'shiftendingdate', 'end_date', 'end', 'end_at']),
     pickFirstValue(raw, ['shiftEndingTime', 'shiftendingtime', 'end_time', 'endTime']),
     fallbackShifts[0].end
   );
+  end = ensureShiftEndAfterStart(start, end);
   const title =
     pickValue(raw, ['title', 'shiftTitle', 'name', 'shift_name', 'ShiftTitle']) ?? 'Shift';
   const objectMeta = raw.object as Record<string, unknown> | undefined;
