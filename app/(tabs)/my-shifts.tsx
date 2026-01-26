@@ -108,8 +108,8 @@ export default function MyShiftsScreen() {
 
   return (
     <SafeAreaView style={containerStyle} edges={['top']}>
-      <View style={styles.headerWrapper}>
-        <Text style={styles.headerTitle}>{`${t('upcomingShifts')} · ${monthLabel}`}</Text>
+  <View style={styles.headerWrapper}>
+        <Text style={styles.headerTitle}>{`${t('shiftsTabTitle')} · ${monthLabel}`}</Text>
       </View>
       {errorView}
       <ScrollView
