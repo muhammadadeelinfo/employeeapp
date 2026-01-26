@@ -3,7 +3,7 @@ import { Slot, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { QueryClientProvider } from '@tanstack/react-query';
 import Constants from 'expo-constants';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { View, StyleSheet } from 'react-native';
 import { AuthProvider } from '@hooks/useSupabaseAuth';
 import { queryClient } from '@lib/queryClient';
@@ -20,6 +20,7 @@ function LayoutContent() {
   const shouldShowNotificationBell = pathname
     ? !hiddenTopBarPaths.some((path) => pathname.startsWith(path))
     : true;
+  const insets = useSafeAreaInsets();
   const statusBarStyle = 'dark';
   const statusBarBgColor = '#f8fafc';
 
@@ -67,7 +68,7 @@ function LayoutContent() {
           style={statusBarStyle}
         />
         {shouldShowNotificationBell && (
-          <View style={styles.notificationOverlay}>
+          <View style={[styles.notificationOverlay, { top: insets.top + 8 }]}>
             <NotificationBell />
           </View>
         )}
