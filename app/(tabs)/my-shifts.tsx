@@ -7,6 +7,7 @@ import { confirmShiftAssignment } from '@features/shifts/shiftsService';
 import { getShiftPhase } from '@shared/utils/shiftPhase';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { useRouter } from 'expo-router';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const getMonthLabel = (date: Date) => date.toLocaleDateString([], { month: 'long', year: 'numeric' });
 
@@ -24,6 +25,7 @@ const renderSkeletons = () => (
 export default function MyShiftsScreen() {
   const router = useRouter();
   const { t } = useLanguage();
+  const insets = useSafeAreaInsets();
   const { orderedShifts, isLoading, error, refetch } = useShiftFeed();
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [layoutTick, setLayoutTick] = useState(0);
@@ -96,15 +98,24 @@ export default function MyShiftsScreen() {
     </View>
   ) : null;
 
+  const containerStyle = [
+    styles.container,
+    {
+      paddingTop: 12 + insets.top,
+      paddingBottom: 16 + insets.bottom,
+    },
+  ];
+  const listContentStyle = [styles.list, { paddingBottom: 24 + insets.bottom }];
+
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={containerStyle} edges={['top', 'bottom']}>
       <View style={styles.headerWrapper}>
         <Text style={styles.headerTitle}>{`${t('upcomingShifts')} · ${monthLabel}`}</Text>
       </View>
       {errorView}
       <ScrollView
         ref={listScrollRef}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={listContentStyle}
         refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => refetch()} />}
       >
         {showSkeletons && renderSkeletons()}
@@ -113,7 +124,6 @@ export default function MyShiftsScreen() {
             <View key={shift.id} onLayout={handleShiftLayout(shift.id)}>
               <ShiftCard
                 shift={shift}
-                phase={getShiftPhase(shift.start, shift.end, now)}
                 isPrimary={shift.id === focusedShiftId}
                 onPress={() => router.push(`/shift-details/${shift.id}`)}
                 onConfirm={shift.assignmentId ? () => handleConfirm(shift.assignmentId) : undefined}
@@ -123,7 +133,7 @@ export default function MyShiftsScreen() {
           ))}
         {!error && !orderedShifts.length && !isLoading && renderListEmptyState()}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 

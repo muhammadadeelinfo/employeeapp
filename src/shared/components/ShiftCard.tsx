@@ -1,16 +1,8 @@
-import {
-  Animated,
-  Pressable,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import type { Shift } from '@features/shifts/shiftsService';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
-import { ShiftPhase, phaseMeta } from '@shared/utils/shiftPhase';
 import { useLanguage, type TranslationKey } from '@shared/context/LanguageContext';
 import {
   getShiftConfirmationStatusLabel,
@@ -22,6 +14,13 @@ const statusColors: Record<string, string> = {
   'in-progress': '#059669',
   completed: '#6b7280',
   blocked: '#dc2626',
+};
+
+const statusLabelTranslationKeys: Record<string, TranslationKey | undefined> = {
+  scheduled: 'statusScheduled',
+  'in-progress': 'statusInProgress',
+  completed: 'statusCompleted',
+  blocked: 'statusBlocked',
 };
 
 const formatTime = (iso: string) => {
@@ -70,18 +69,11 @@ const simplifyAddress = (value: string) => {
   return `${segments.slice(0, 2).join(', ')}…`;
 };
 
-const phaseTranslationKey: Record<ShiftPhase, TranslationKey> = {
-  past: 'phasePast',
-  live: 'phaseLive',
-  upcoming: 'phaseUpcoming',
-};
-
 type Props = {
   shift: Shift;
   onPress?: () => void;
   onConfirm?: () => void;
   confirmLoading?: boolean;
-  phase: ShiftPhase;
   isPrimary?: boolean;
 };
 
@@ -90,13 +82,13 @@ export const ShiftCard = ({
   onPress,
   onConfirm,
   confirmLoading,
-  phase: shiftPhase,
   isPrimary,
 }: Props) => {
   const [showFullAddress, setShowFullAddress] = useState(false);
   const { t } = useLanguage();
-  const phaseConfig = phaseMeta[shiftPhase];
   const statusColor = statusColors[shift.status] ?? '#1d4ed8';
+  const statusTranslationKey = statusLabelTranslationKeys[shift.status];
+  const statusLabel = statusTranslationKey ? t(statusTranslationKey) : shift.status;
   const locationLabel = shift.objectName ?? shift.location ?? 'TBD';
   const locationSubtext = shift.objectAddress ?? shift.location;
   const displayedAddress = locationSubtext
@@ -111,7 +103,13 @@ export const ShiftCard = ({
   const confirmationLabel = getShiftConfirmationStatusLabel(normalizedConfirmationStatus);
 
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.95}>
+    <Pressable
+      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+      onPress={onPress}
+      android_ripple={{ color: '#e0e7ff' }}
+      accessibilityRole="button"
+      accessibilityState={{ selected: isPrimary }}
+    >
       <View style={styles.decoration} />
       <View style={styles.content}>
         <View style={styles.rowBetween}>
@@ -119,9 +117,13 @@ export const ShiftCard = ({
             <Text style={styles.cardLabel}>{t('upcomingShiftListTitle')}</Text>
             <Text style={styles.cardDate}>{formatDate(shift.start)}</Text>
           </View>
-          <View style={[styles.statusPill, { borderColor: statusColor }]}>
+          <View
+            style={[styles.statusPill, { borderColor: statusColor }]}
+            accessibilityRole="text"
+            accessibilityLabel={`Shift status: ${statusLabel}`}
+          >
             <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
-            <Text style={[styles.statusText, { color: statusColor }]}>{shift.status.toUpperCase()}</Text>
+            <Text style={[styles.statusText, { color: statusColor }]}>{statusLabel}</Text>
           </View>
         </View>
 
@@ -137,6 +139,7 @@ export const ShiftCard = ({
           style={styles.locationRow}
           onPress={() => setShowFullAddress((prev) => !prev)}
           disabled={!locationSubtext}
+          accessibilityRole="button"
         >
           <Ionicons name="location-outline" size={20} color="#2563eb" style={styles.locationIcon} />
           <View style={styles.locationText}>
@@ -178,7 +181,7 @@ export const ShiftCard = ({
           )}
         </View>
       </View>
-    </TouchableOpacity>
+    </Pressable>
   );
 };
 
@@ -195,6 +198,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     flexDirection: 'row',
   },
+  cardPressed: {
+    opacity: 0.94,
+  },
   decoration: {
     width: 6,
     backgroundColor: '#dbeafe',
@@ -202,6 +208,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: 18,
+    paddingBottom: 22,
   },
   rowBetween: {
     flexDirection: 'row',
@@ -225,7 +232,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    gap: 4,
   },
   statusDot: {
     width: 8,
@@ -236,6 +242,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     letterSpacing: 0.5,
+    marginLeft: 6,
   },
   timeLabel: {
     fontSize: 10,
@@ -264,7 +271,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 16,
-    padding: 14,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
     borderRadius: 18,
     backgroundColor: '#f7f8ff',
     borderWidth: 1,
@@ -288,6 +296,7 @@ const styles = StyleSheet.create({
   },
   description: {
     marginTop: 12,
+    marginBottom: 8,
     fontSize: 13,
     color: '#4b5563',
     minHeight: 30,
@@ -297,6 +306,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: 18,
+    paddingBottom: 6,
   },
   confirmInstruction: {
     textTransform: 'uppercase',
