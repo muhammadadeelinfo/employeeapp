@@ -2,12 +2,12 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-nati
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from '@expo-linear-gradient';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
 import { getShifts } from '@features/shifts/shiftsService';
 import { useTheme } from '@shared/themeContext';
 import { useAuth } from '@hooks/useSupabaseAuth';
-import { useLanguage } from '@shared/context/LanguageContext';
+import { languageDefinitions, useLanguage } from '@shared/context/LanguageContext';
 
 const formatDate = (iso?: string) => {
   if (!iso) return '—';
@@ -52,7 +52,25 @@ const shiftStatus = (metadata?: Record<string, unknown> | null) => {
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();
   const { mode, setMode, theme } = useTheme();
-  const { t } = useLanguage();
+  const { t, language, setLanguage } = useLanguage();
+  const renderLanguageToggle = (
+    <View style={[styles.languagePill, { backgroundColor: theme.surface }]}>
+      {languageDefinitions.map((definition) => {
+        const isActive = language === definition.code;
+        return (
+          <TouchableOpacity
+            key={definition.code}
+            onPress={() => setLanguage(definition.code)}
+            style={[styles.languageOption, isActive && styles.languageOptionActive]}
+          >
+            <Text style={[styles.languageText, isActive && styles.languageTextActive]}>
+              {definition.flag} {definition.shortLabel}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
   const router = useRouter();
   const userId = user?.id;
   const provider = user?.identities?.[0]?.provider ?? 'email';
@@ -149,6 +167,8 @@ export default function ProfileScreen() {
           </View>
         </View>
       </LinearGradient>
+
+      {renderLanguageToggle}
 
       <View style={styles.statsGrid}>
         {[
@@ -420,6 +440,37 @@ const styles = StyleSheet.create({
     color: '#1d4ed8',
     fontWeight: '700',
     fontSize: 22,
+  },
+  languagePill: {
+    flexDirection: 'row',
+    borderRadius: 999,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    marginBottom: 20,
+    alignSelf: 'stretch',
+    justifyContent: 'center',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 5,
+  },
+  languageOption: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    marginHorizontal: 4,
+    backgroundColor: 'rgba(37,99,235,0.08)',
+  },
+  languageOptionActive: {
+    backgroundColor: '#2563eb',
+  },
+  languageText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  languageTextActive: {
+    color: '#fff',
   },
   statsGrid: {
     flexDirection: 'row',

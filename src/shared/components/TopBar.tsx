@@ -1,9 +1,8 @@
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNotifications } from '@shared/context/NotificationContext';
-import { languageDefinitions, useLanguage } from '@shared/context/LanguageContext';
 
 export type TopBarVariant = 'regular' | 'compact' | 'floating';
 
@@ -14,8 +13,6 @@ type Props = {
 export const TopBar = ({ variant = 'regular' }: Props) => {
   const insets = useSafeAreaInsets();
   const { toggle, unreadCount } = useNotifications();
-  const { language, setLanguage } = useLanguage();
-
   const variantStyle =
     variant === 'floating'
       ? styles.barFloating
@@ -26,23 +23,7 @@ export const TopBar = ({ variant = 'regular' }: Props) => {
   return (
     <SafeAreaView style={[styles.safe, { paddingTop: insets.top }]}>
       <View style={[styles.wrapper, variantStyle]}>
-        <View style={styles.languagePill}>
-          {languageDefinitions.map((definition) => {
-            const isActive = language === definition.code;
-            return (
-              <TouchableOpacity
-                key={definition.code}
-                onPress={() => setLanguage(definition.code)}
-                activeOpacity={0.85}
-                style={[styles.languageOption, isActive && styles.languageOptionActive]}
-              >
-                <Text style={[styles.languageText, isActive && styles.languageTextActive]}>
-                  {definition.flag} {definition.shortLabel}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+        <View />
         <TouchableOpacity
           style={styles.notificationButton}
           onPress={toggle}
