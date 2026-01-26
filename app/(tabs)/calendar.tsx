@@ -13,7 +13,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
 import { useShiftFeed } from '@features/shifts/useShiftFeed';
 import { getShiftPhase, phaseMeta, type ShiftPhase } from '@shared/utils/shiftPhase';
-import { useLanguage } from '@shared/context/LanguageContext';
+import { languageDefinitions, useLanguage } from '@shared/context/LanguageContext';
 
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -52,7 +52,7 @@ const renderSkeletons = () => (
 );
 
 export default function CalendarScreen() {
-  const { t } = useLanguage();
+  const { t, language, setLanguage } = useLanguage();
   const { orderedShifts, isLoading, error, refetch } = useShiftFeed();
   const [visibleMonth, setVisibleMonth] = useState(() => startOfMonth(new Date()));
   const calendarFlip = useRef(new Animated.Value(0)).current;
@@ -177,13 +177,47 @@ export default function CalendarScreen() {
     </View>
   );
 
+  const languageToggle = (
+    <View style={styles.languageRow}>
+      {languageDefinitions.map((definition) => (
+        <Pressable
+          key={definition.code}
+          onPress={() => setLanguage(definition.code)}
+          style={({ pressed }) => [
+            styles.languageChip,
+            language === definition.code && styles.languageChipActive,
+            pressed && styles.languageChipPressed,
+          ]}
+        >
+          <Text
+            style={[
+              styles.languageChipText,
+              language === definition.code && styles.languageChipTextActive,
+            ]}
+          >
+            {definition.flag} {definition.shortLabel}
+          </Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+
   return (
     <View style={styles.container}>
+      <View style={styles.topBar}>
+        {languageToggle}
+        <Pressable style={styles.notificationButton}>
+          <Ionicons name="notifications-outline" size={20} color="#0f172a" />
+          <View style={styles.notificationBadge}>
+            <Text style={styles.notificationBadgeText}>2</Text>
+          </View>
+        </Pressable>
+      </View>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => refetch()} />}
       >
-        <View style={styles.headerRow}>
+        <View style={styles.headerCard}>
           <View>
             <Text style={styles.headerTitle}>{t('calendarView')}</Text>
             <Text style={styles.headerSubtitle}>{monthLabel}</Text>
@@ -294,73 +328,153 @@ export default function CalendarScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#eef1ff',
     paddingHorizontal: 16,
-    paddingTop: 0,
+    paddingTop: 20,
+  },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#fff',
+    borderRadius: 28,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 14,
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.06,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 16,
+    elevation: 6,
+  },
+  languageRow: {
+    flexDirection: 'row',
+  },
+  languageChip: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    backgroundColor: '#eef2ff',
+    marginRight: 6,
+  },
+  languageChipActive: {
+    backgroundColor: '#2563eb',
+  },
+  languageChipPressed: {
+    opacity: 0.7,
+  },
+  languageChipText: {
+    color: '#0f172a',
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  languageChipTextActive: {
+    color: '#fff',
+  },
+  notificationButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 16,
+    backgroundColor: '#2563eb',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  notificationBadge: {
+    position: 'absolute',
+    right: -2,
+    top: -4,
+    backgroundColor: '#f87171',
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  notificationBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#fff',
   },
   scrollContent: {
     paddingBottom: 32,
   },
-  headerRow: {
+  headerCard: {
+    backgroundColor: '#fff',
+    borderRadius: 26,
+    padding: 18,
+    marginBottom: 16,
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 8 },
+    shadowRadius: 20,
+    elevation: 8,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
+    color: '#0f172a',
   },
   headerSubtitle: {
     color: '#475569',
+    marginTop: 4,
   },
   headerActions: {
     flexDirection: 'row',
   },
   navButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 999,
+    width: 40,
+    height: 40,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#dbeafe',
+    borderColor: '#e0e7ff',
+    backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fff',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 10,
+    elevation: 3,
   },
   navButtonSpacing: {
-    marginLeft: 8,
+    marginLeft: 10,
   },
   navButtonPressed: {
-    backgroundColor: '#e0e7ff',
+    opacity: 0.7,
   },
   calendarShell: {
-    borderRadius: 30,
-    padding: 8,
-    backgroundColor: '#f8fafc',
+    borderRadius: 32,
+    padding: 12,
+    backgroundColor: '#f1f3ff',
     shadowColor: '#0f172a',
     shadowOpacity: 0.05,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 18,
+    elevation: 4,
   },
   calendarWrapper: {
     backgroundColor: '#fff',
-    borderRadius: 28,
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    marginTop: 0,
-    shadowColor: '#94a3ff',
-    shadowOpacity: 0.25,
-    shadowOffset: { width: 0, height: 8 },
-    shadowRadius: 20,
-    elevation: 6,
+    borderRadius: 32,
+    paddingVertical: 16,
+    paddingHorizontal: 14,
+    shadowColor: '#7c9cff',
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 10 },
+    shadowRadius: 24,
+    elevation: 10,
     borderWidth: 1,
     borderColor: '#e5e7eb',
   },
   calendarHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 6,
+    marginBottom: 8,
   },
   calendarHeaderLabel: {
     flex: 1,
@@ -377,70 +491,73 @@ const styles = StyleSheet.create({
   },
   calendarCell: {
     flex: 1,
-    minHeight: 54,
-    margin: 0.6,
-    borderRadius: 11,
+    minHeight: 64,
+    margin: 2,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#e6e9f4',
-    padding: 4,
-    backgroundColor: '#f9fbff',
-    position: 'relative',
+    borderColor: 'transparent',
+    padding: 6,
+    backgroundColor: '#f8fafc',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.04,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 12,
+    elevation: 1,
   },
   calendarCellFocused: {
     borderColor: '#2563eb',
+    backgroundColor: '#eef2ff',
   },
   calendarCellMuted: {
-    backgroundColor: '#f1f3f8',
+    backgroundColor: '#f0f1f7',
   },
   calendarCellActive: {
-    borderColor: '#3b82f6',
-    backgroundColor: '#ebf2ff',
-    shadowColor: '#7c9cff',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 3,
+    borderColor: '#e0e7ff',
+    backgroundColor: '#eef2ff',
   },
   calendarCellHeader: {
     alignItems: 'flex-start',
+    width: '100%',
   },
   calendarCellNumber: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#1f2937',
+    color: '#0f172a',
   },
   calendarCellNumberMuted: {
-    color: '#a1a5b0',
+    color: '#9ca3af',
   },
   calendarCellToday: {
-    borderColor: '#2563eb',
-    shadowColor: '#93c5fd',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
+    borderColor: '#7dd3fc',
+    shadowColor: '#7dd3fc',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
   },
   calendarShiftMarker: {
     marginTop: 6,
-    width: 22,
-    height: 22,
-    borderRadius: 7,
+    width: 26,
+    height: 26,
+    borderRadius: 12,
     backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#1d4ed8',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.18,
-    shadowRadius: 3,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 5,
+    elevation: 4,
   },
   calendarFocusIndicator: {
     position: 'absolute',
-    left: 2,
-    top: 2,
-    bottom: 2,
-    width: 4,
-    borderRadius: 999,
-    backgroundColor: '#93c5fd',
+    left: 6,
+    top: 6,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#2563eb',
     opacity: 0,
   },
   calendarFocusIndicatorActive: {
