@@ -205,9 +205,7 @@ export default function CalendarScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.topBar}>
-        <View style={styles.languageWrapper}>
-          {languageToggle}
-        </View>
+        <View style={styles.languageWrapper}>{languageToggle}</View>
         <Pressable style={styles.notificationButton}>
           <Ionicons name="notifications-outline" size={20} color="#0f172a" />
           <View style={styles.notificationBadge}>
@@ -222,29 +220,31 @@ export default function CalendarScreen() {
         <View style={styles.headerCard}>
           <View>
             <Text style={styles.headerTitle}>{monthLabel}</Text>
+            <Text style={styles.headerSubTitle}>{t('calendarSwitcherHint')}</Text>
           </View>
           <View style={styles.switcherPill}>
             <Pressable
               onPress={() => handleMonthChange(-1)}
               style={({ pressed }) => [
                 styles.switcherButton,
+                styles.switcherArrow,
                 pressed && styles.switcherButtonPressed,
               ]}
             >
-              <Ionicons name="chevron-back" size={14} color="#2563eb" />
+              <Ionicons name="chevron-back" size={16} color="#2563eb" />
             </Pressable>
             <View style={styles.switcherLabelWrapper}>
               <Text style={styles.switcherLabel}>{t('calendarSwitcherLabel')}</Text>
-              <Text style={styles.switcherSubLabel}>{t('calendarSwitcherHint')}</Text>
             </View>
             <Pressable
               onPress={() => handleMonthChange(1)}
               style={({ pressed }) => [
                 styles.switcherButton,
+                styles.switcherArrow,
                 pressed && styles.switcherButtonPressed,
               ]}
             >
-              <Ionicons name="chevron-forward" size={14} color="#2563eb" />
+              <Ionicons name="chevron-forward" size={16} color="#2563eb" />
             </Pressable>
           </View>
         </View>
@@ -286,20 +286,17 @@ export default function CalendarScreen() {
                             styles.calendarCell,
                             !isCurrentMonth && styles.calendarCellMuted,
                             dayShifts.length && styles.calendarCellActive,
-                            isToday && styles.calendarCellToday,
                             isFocusedDay && styles.calendarCellFocused,
                           ]}
                         >
-                          <View style={styles.calendarCellHeader}>
-                            <Text
-                              style={[
-                                styles.calendarCellNumber,
-                                !isCurrentMonth && styles.calendarCellNumberMuted,
-                              ]}
-                            >
-                              {day.getDate()}
-                            </Text>
-                          </View>
+                          <Text
+                            style={[
+                              styles.calendarCellNumber,
+                              !isCurrentMonth && styles.calendarCellNumberMuted,
+                            ]}
+                          >
+                            {day.getDate()}
+                          </Text>
                           {dayShifts.length ? (
                             <View
                               style={[
@@ -314,13 +311,11 @@ export default function CalendarScreen() {
                               />
                             </View>
                           ) : null}
+                          {isToday && <View style={styles.calendarTodayDot} />}
                           {isFocusedDay && (
-                            <View
-                              style={[
-                                styles.calendarFocusIndicator,
-                                styles.calendarFocusIndicatorActive,
-                              ]}
-                            />
+                            <View style={[styles.calendarFocusHalo, styles.calendarFocusHaloActive]}>
+                              <View style={styles.calendarFocusIndicator} />
+                            </View>
                           )}
                         </View>
                       );
@@ -447,40 +442,42 @@ const styles = StyleSheet.create({
   headerActions: {
     flexDirection: 'row',
   },
+  headerSubTitle: {
+    fontSize: 13,
+    color: '#475569',
+    marginTop: 4,
+  },
   switcherPill: {
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: 999,
     backgroundColor: '#fff',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     shadowColor: '#0f172a',
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 12,
-    elevation: 3,
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 16,
+    elevation: 5,
   },
   switcherLabelWrapper: {
     alignItems: 'center',
-    marginHorizontal: 6,
+    marginHorizontal: 10,
   },
   switcherLabel: {
     fontSize: 12,
     fontWeight: '600',
     color: '#0f172a',
   },
-  switcherSubLabel: {
-    fontSize: 10,
-    color: '#94a3b8',
-  },
   switcherButton: {
-    width: 32,
-    height: 32,
+    width: 34,
+    height: 34,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#e0e7ff',
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#fff',
   },
   switcherButtonPressed: {
     backgroundColor: '#eef2ff',
@@ -528,35 +525,31 @@ const styles = StyleSheet.create({
   },
   calendarCell: {
     flex: 1,
-    minHeight: 64,
-    margin: 2,
-    borderRadius: 16,
+    minHeight: 66,
+    margin: 3,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: 'transparent',
     padding: 6,
     backgroundColor: '#f8fafc',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     shadowColor: '#0f172a',
     shadowOpacity: 0.04,
     shadowOffset: { width: 0, height: 6 },
     shadowRadius: 12,
-    elevation: 1,
+    elevation: 2,
   },
   calendarCellFocused: {
     borderColor: '#2563eb',
     backgroundColor: '#eef2ff',
   },
   calendarCellMuted: {
-    backgroundColor: '#f0f1f7',
+    opacity: 0.4,
   },
   calendarCellActive: {
     borderColor: '#e0e7ff',
     backgroundColor: '#eef2ff',
-  },
-  calendarCellHeader: {
-    alignItems: 'flex-start',
-    width: '100%',
   },
   calendarCellNumber: {
     fontSize: 12,
@@ -566,39 +559,46 @@ const styles = StyleSheet.create({
   calendarCellNumberMuted: {
     color: '#9ca3af',
   },
-  calendarCellToday: {
-    borderColor: '#7dd3fc',
-    shadowColor: '#7dd3fc',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-  },
   calendarShiftMarker: {
-    marginTop: 6,
-    width: 26,
-    height: 26,
-    borderRadius: 12,
+    marginTop: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#1d4ed8',
+    shadowColor: '#dbeafe',
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.12,
-    shadowRadius: 5,
-    elevation: 4,
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
   },
   calendarFocusIndicator: {
-    position: 'absolute',
-    left: 6,
-    top: 6,
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
     backgroundColor: '#2563eb',
     opacity: 0,
   },
-  calendarFocusIndicatorActive: {
+  calendarFocusHalo: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: 'rgba(37,99,235,0.15)',
+    opacity: 0,
+  },
+  calendarFocusHaloActive: {
     opacity: 1,
+  },
+  calendarTodayDot: {
+    position: 'absolute',
+    bottom: 8,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#2563eb',
   },
   errorCard: {
     backgroundColor: '#fee2e2',
