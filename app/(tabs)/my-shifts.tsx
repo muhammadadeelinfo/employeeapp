@@ -4,11 +4,11 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
   PanResponder,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -365,24 +365,26 @@ export default function MyShiftsScreen() {
     <View style={styles.container}>
       <View style={styles.viewSwitcherRow}>
         <View style={styles.viewSwitcherContainer}>
-          <TouchableOpacity
-            style={[styles.viewToggle, viewMode === 'list' && styles.viewToggleActive]}
-            onPress={() => setViewMode('list')}
-          >
-            <Text style={[styles.viewToggleText, viewMode === 'list' && styles.viewToggleTextActive]}>
-              List view
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.viewToggle, viewMode === 'calendar' && styles.viewToggleActive]}
-            onPress={() => setViewMode('calendar')}
-          >
-            <Text
-              style={[styles.viewToggleText, viewMode === 'calendar' && styles.viewToggleTextActive]}
+          {(['list', 'calendar'] as const).map((mode) => (
+            <Pressable
+              key={mode}
+              style={({ pressed }) => [
+                styles.viewToggle,
+                viewMode === mode && styles.viewToggleActive,
+                pressed && styles.viewTogglePressed,
+              ]}
+              onPress={() => setViewMode(mode)}
             >
-              Calendar view
-            </Text>
-          </TouchableOpacity>
+              <Text
+                style={[
+                  styles.viewToggleText,
+                  viewMode === mode && styles.viewToggleTextActive,
+                ]}
+              >
+                {mode === 'list' ? 'List view' : 'Calendar view'}
+              </Text>
+            </Pressable>
+          ))}
         </View>
       </View>
       <View style={styles.headerWrapper}>
@@ -556,8 +558,14 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     backgroundColor: '#eef2ff',
     borderRadius: 999,
-    padding: 4,
-    gap: 4,
+    padding: 6,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: '#dbeafe',
+    shadowColor: '#1d4ed8',
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
   },
   viewToggle: {
     flex: 1,
@@ -565,9 +573,13 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 18,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'transparent',
+    backgroundColor: '#eef2ff',
   },
   viewToggleActive: {
     backgroundColor: '#2563eb',
+    borderColor: '#2563eb',
   },
   viewToggleText: {
     fontSize: 13,
@@ -576,6 +588,10 @@ const styles = StyleSheet.create({
   },
   viewToggleTextActive: {
     color: '#fff',
+  },
+  viewTogglePressed: {
+    transform: [{ scale: 0.96 }],
+    opacity: 0.85,
   },
   calendarWrapper: {
     backgroundColor: '#fff',
