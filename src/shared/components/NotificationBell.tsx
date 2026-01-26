@@ -5,92 +5,91 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useNotifications } from '@shared/context/NotificationContext';
 
 export const NotificationBell = () => {
-  const { toggle, unreadCount } = useNotifications();
-  const pulse = useRef(new Animated.Value(0)).current;
+  const { toggle, unreadCount, open } = useNotifications();
+  const glow = useRef(new Animated.Value(0)).current;
+  const animationRef = useRef<Animated.CompositeAnimation | null>(null);
 
   useEffect(() => {
-    if (!unreadCount) {
+    animationRef.current?.stop();
+    glow.setValue(0);
+    if (!unreadCount || open) {
       return;
     }
     const animation = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulse, {
+        Animated.timing(glow, {
           toValue: 1,
-          duration: 600,
+          duration: 900,
           useNativeDriver: true,
         }),
-        Animated.timing(pulse, {
+        Animated.timing(glow, {
           toValue: 0,
-          duration: 600,
+          duration: 900,
           useNativeDriver: true,
         }),
       ])
     );
+    animationRef.current = animation;
     animation.start();
     return () => animation.stop();
-  }, [pulse, unreadCount]);
+  }, [glow, unreadCount, open]);
 
-  const pulseStyle = {
-    transform: [
-      {
-        scale: pulse.interpolate({
-          inputRange: [0, 1],
-          outputRange: [1, 1.15],
-        }),
-      },
-    ],
+  const glowStyle = {
+    opacity: glow.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0, 0.5],
+    }),
   };
 
   return (
     <TouchableOpacity
       style={styles.button}
       onPress={toggle}
-      activeOpacity={0.9}
+      activeOpacity={0.85}
       accessibilityLabel="Notifications"
     >
-      <Animated.View style={[styles.outer, pulseStyle]}>
-        <LinearGradient
-          colors={['#3b82f6', '#2563eb']}
-          start={[0, 0]}
-          end={[1, 1]}
-          style={styles.gradient}
-        >
-          <Ionicons name="notifications-outline" size={22} color="#fff" />
-        </LinearGradient>
-        {unreadCount > 0 && (
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
-          </View>
-        )}
-      </Animated.View>
+      <Animated.View style={[styles.glow, glowStyle]} />
+      <LinearGradient
+        colors={['#3b82f6', '#2563eb']}
+        start={[0, 0]}
+        end={[1, 1]}
+        style={styles.gradient}
+      >
+        <Ionicons name="notifications-outline" size={18} color="#fff" />
+      </LinearGradient>
+      {unreadCount > 0 && (
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+        </View>
+      )}
     </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
   button: {
+    width: 44,
+    height: 44,
     borderRadius: 999,
-    overflow: 'hidden',
-  },
-  outer: {
-    shadowColor: '#2563eb',
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
-    borderRadius: 999,
+    overflow: 'visible',
   },
   gradient: {
-    width: 48,
-    height: 48,
+    width: 44,
+    height: 44,
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
+    elevation: 4,
+  },
+  glow: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 999,
+    backgroundColor: '#2563eb',
   },
   badge: {
     position: 'absolute',
-    top: 6,
-    right: 6,
+    top: -4,
+    right: -4,
     minWidth: 18,
     height: 18,
     borderRadius: 9,
