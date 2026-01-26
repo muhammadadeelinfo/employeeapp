@@ -171,10 +171,14 @@ const mapShiftArray = (
       const shift = mapShiftRecord(row);
       if (shift.id === 'unknown') return undefined;
       const assignment = assignmentByShiftId.get(shift.id);
+      const confirmationStatus = normalizeShiftConfirmationStatus(assignment?.confirmationStatus);
+      if (confirmationStatus === 'not published') {
+        return undefined;
+      }
       return {
         ...shift,
         assignmentId: assignment?.assignmentId,
-        confirmationStatus: normalizeShiftConfirmationStatus(assignment?.confirmationStatus),
+        confirmationStatus,
         confirmedAt: assignment?.confirmedAt,
       };
     })
