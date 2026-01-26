@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemeProvider } from '@shared/themeContext';
 
 const iconConfig: Record<string, { active: string; inactive: string; label: string }> = {
@@ -23,14 +24,10 @@ const iconConfig: Record<string, { active: string; inactive: string; label: stri
     inactive: 'person-circle-outline',
     label: 'Profile',
   },
-  'shift-details/[id]': {
-    active: 'information-circle',
-    inactive: 'information-circle-outline',
-    label: 'Details',
-  },
 };
 
 export default function TabsLayout() {
+  const insets = useSafeAreaInsets();
   return (
     <ThemeProvider>
       <Tabs
@@ -49,7 +46,12 @@ export default function TabsLayout() {
             tabBarStyle: {
               backgroundColor: '#fff',
               borderTopColor: '#e5e7eb',
-              paddingVertical: 2,
+              paddingVertical: 6,
+              paddingBottom: Math.max(12, insets.bottom),
+            },
+            tabBarItemStyle: {
+              justifyContent: 'center',
+              paddingTop: 2,
             },
             tabBarIcon: ({ color, size, focused }) => (
               <Ionicons name={(focused ? icon.active : icon.inactive) as any} color={color} size={size} />
@@ -61,13 +63,6 @@ export default function TabsLayout() {
         <Tabs.Screen name="calendar" />
         <Tabs.Screen name="qr-clock-in" />
         <Tabs.Screen name="profile" />
-        <Tabs.Screen
-          name="shift-details/[id]"
-          options={{
-            tabBarButton: () => null,
-            tabBarStyle: { display: 'none' },
-          }}
-        />
       </Tabs>
     </ThemeProvider>
   );
