@@ -15,10 +15,12 @@ import { PrimaryButton } from '@shared/components/PrimaryButton';
 import { useShiftFeed } from '@features/shifts/useShiftFeed';
 import { getShiftPhase, phaseMeta, type ShiftPhase } from '@shared/utils/shiftPhase';
 import { useLanguage } from '@shared/context/LanguageContext';
+import { useCalendarSelection } from '@shared/context/CalendarSelectionContext';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNotifications } from '@shared/context/NotificationContext';
 import { useRouter } from 'expo-router';
+import * as Calendar from 'expo-calendar';
 
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -66,6 +68,11 @@ const shiftTypeIconMap = {
 
 type ShiftType = keyof typeof shiftTypeIconMap;
 
+type ImportedCalendarEvent = {
+  title?: string;
+  calendarId: string;
+};
+
 const renderSkeletons = () => (
   <View style={styles.skeletonContainer}>
     {Array.from({ length: 3 }).map((_, index) => (
@@ -95,6 +102,10 @@ export default function CalendarScreen() {
   const focusedShiftId = liveShift?.id ?? nextShift?.id;
   const focusedDayKey = orderedShifts.find((shift) => shift.id === focusedShiftId)?.start.split('T')[0];
   const monthLabel = getMonthLabel(visibleMonth);
+  const { selectedCalendars } = useCalendarSelection();
+  const [importedEventsByDay, setImportedEventsByDay] = useState<
+    Record<string, ImportedCalendarEvent[]>
+  >({});
 
   const monthShifts = useMemo(() => {
     const nextMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 1);
@@ -151,6 +162,15 @@ export default function CalendarScreen() {
   const calendarWeeks = useMemo(() => getCalendarWeeks(visibleMonth), [visibleMonth]);
   const showSkeletons = isLoading && !orderedShifts.length && !error;
 
+  const importedCalendarColorMap = useMemo(() => {
+    const palette = ['#34d399', '#fb923c', '#38bdf8', '#a855f7', '#f472b6'];
+    const map = new Map<string, string>();
+    selectedCalendars.forEach((calendar, index) => {
+      map.set(calendar.id, palette[index % palette.length]);
+    });
+    return map;
+  }, [selectedCalendars]);
+
   const handleMonthChange = useCallback(
     (offset: number) => {
       hasManuallyChangedMonth.current = true;
@@ -204,6 +224,61 @@ export default function CalendarScreen() {
     if (targetMonth.getTime() === visibleMonth.getTime()) return;
     setVisibleMonth(targetMonth);
   }, [orderedShifts, visibleMonth]);
+
+  useEffect(() => {
+    let isMounted = true;
+    if (!selectedCalendars.length) {
+      setImportedEventsByDay({});
+      return () => {
+        isMounted = false;
+      };
+    }
+
+    const fetchImportedEvents = async () => {
+      try {
+        const { status } = await Calendar.requestCalendarPermissionsAsync();
+        if (status !== 'granted') {
+          if (isMounted) {
+            setImportedEventsByDay({});
+          }
+          return;
+        }
+        const start = startOfMonth(visibleMonth);
+        const end = new Date(start);
+        end.setMonth(end.getMonth() + 1);
+        const events = await Calendar.getEventsAsync(
+          selectedCalendars.map((calendar) => calendar.id),
+          start,
+          end
+        );
+        if (!isMounted) return;
+        const normalized: Record<string, ImportedCalendarEvent[]> = {};
+        events.forEach((event) => {
+          const eventStart = new Date(event.startDate);
+          if (Number.isNaN(eventStart.getTime())) return;
+          const key = dayKey(eventStart);
+          const entry: ImportedCalendarEvent = {
+            title: event.title ?? undefined,
+            calendarId: event.calendarId ?? '',
+          };
+          normalized[key] = normalized[key] ?? [];
+          normalized[key].push(entry);
+        });
+        setImportedEventsByDay(normalized);
+      } catch (error) {
+        console.error('Failed to load imported calendar events', error);
+        if (isMounted) {
+          setImportedEventsByDay({});
+        }
+      }
+    };
+
+    fetchImportedEvents();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedCalendars, visibleMonth]);
 
   const errorView = error ? (
     <View style={styles.errorCard}>
@@ -288,6 +363,10 @@ export default function CalendarScreen() {
                       const isFocusedDay = focusedDayKey === key;
                       const dayPhase = dayPhaseMap.get(key);
                       const shiftTypes = shiftTypesByDay.get(key);
+                      const importedEvents = importedEventsByDay[key] ?? [];
+                      const importedColors = importedEvents.map(
+                        (event) => importedCalendarColorMap.get(event.calendarId) ?? '#fcd34d'
+                      );
                       return (
                         <Pressable
                           key={key}
@@ -329,6 +408,21 @@ export default function CalendarScreen() {
                               ))}
                             </View>
                           ) : null}
+                          {importedEvents.length > 0 && (
+                            <View style={styles.importedEventRow}>
+                              {importedColors.slice(0, 3).map((color, idx) => (
+                                <View
+                                  key={`imported-dot-${key}-${idx}`}
+                                  style={[styles.importedEventDot, { backgroundColor: color }]}
+                                />
+                              ))}
+                              {importedEvents.length > 3 && (
+                                <Text style={styles.importedEventMore}>
+                                  +{importedEvents.length - 3}
+                                </Text>
+                              )}
+                            </View>
+                          )}
                           {isFocusedDay && (
                             <View style={[styles.dayHalo, styles.dayHaloActive]} />
                           )}
@@ -489,6 +583,21 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 6,
     elevation: 3,
+  },
+  importedEventRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+  },
+  importedEventDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 999,
+    marginRight: 4,
+  },
+  importedEventMore: {
+    fontSize: 10,
+    color: '#475569',
   },
   dayHalo: {
     position: 'absolute',

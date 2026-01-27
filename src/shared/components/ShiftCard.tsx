@@ -105,9 +105,11 @@ export const ShiftCard = ({
   const shiftPhase = getShiftPhase(shift.start, shift.end);
   const phaseMetadata = phaseMeta[shiftPhase];
 
+  const statusBackground = `${statusColor}1a`;
+
   return (
     <Pressable
-      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+      style={({ pressed }) => [styles.card, pressed && styles.cardPressed, isPrimary && styles.primaryOutline]}
       onPress={onPress}
       android_ripple={{ color: '#e0e7ff' }}
       accessibilityRole="button"
@@ -115,7 +117,7 @@ export const ShiftCard = ({
     >
       <View style={styles.decoration} />
       <View style={styles.content}>
-        <View style={styles.rowBetween}>
+        <View style={styles.headerRow}>
           <View>
             <Text style={styles.cardLabel}>{t('upcomingShiftListTitle')}</Text>
             <Text style={styles.cardDate}>{formatDate(shift.start)}</Text>
@@ -133,22 +135,28 @@ export const ShiftCard = ({
               </View>
             </View>
           </View>
-          <View
-            style={[styles.statusPill, { borderColor: statusColor }]}
-            accessibilityRole="text"
-            accessibilityLabel={`Shift status: ${statusLabel}`}
-          >
+          <View style={[styles.statusPill, { backgroundColor: statusBackground }]}>
             <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
             <Text style={[styles.statusText, { color: statusColor }]}>{statusLabel}</Text>
           </View>
         </View>
 
-        <Text style={styles.timeLabel}>{t('shiftWindowLabel')}</Text>
-        <View style={styles.timeRow}>
-          <Text style={styles.timeValue}>
-            {formatTime(shift.start)} – {formatTime(shift.end)}
-          </Text>
-          <Text style={styles.duration}>{formatDuration(shift.start, shift.end)}</Text>
+        <View style={styles.sectionSpacer}>
+          <Text style={styles.timeLabel}>{t('shiftWindowLabel')}</Text>
+          <View style={styles.timeRow}>
+            <View style={styles.timePart}>
+              <Text style={styles.timeValue}>{formatTime(shift.start)}</Text>
+              <Text style={styles.timeLabelSmall}>{t('shiftStartLabel')}</Text>
+            </View>
+            <View style={styles.timePart}>
+              <Text style={styles.timeValue}>{formatTime(shift.end)}</Text>
+              <Text style={styles.timeLabelSmall}>{t('shiftEndLabel')}</Text>
+            </View>
+            <View style={[styles.durationContainer, styles.timePartRight]}>
+              <Text style={styles.duration}>{formatDuration(shift.start, shift.end)}</Text>
+              <Text style={styles.timeLabelSmall}>· {t('shiftDuration')}</Text>
+            </View>
+          </View>
         </View>
 
         <Pressable
@@ -215,7 +223,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   cardPressed: {
-    opacity: 0.94,
+    opacity: 0.95,
+  },
+  primaryOutline: {
+    borderWidth: 1,
+    borderColor: '#c7d2fe',
   },
   decoration: {
     width: 6,
@@ -226,7 +238,7 @@ const styles = StyleSheet.create({
     padding: 18,
     paddingBottom: 22,
   },
-  rowBetween: {
+  headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
@@ -244,10 +256,9 @@ const styles = StyleSheet.create({
   statusPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 16,
-    borderWidth: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
   statusDot: {
     width: 8,
@@ -283,12 +294,22 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     textTransform: 'uppercase',
     color: '#94a3b8',
+  },
+  timeLabelSmall: {
+    fontSize: 10,
+    color: '#94a3b8',
+    letterSpacing: 0.2,
+    marginTop: 2,
+  },
+  sectionSpacer: {
     marginTop: 12,
+    marginBottom: 8,
   },
   timeRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 4,
+    alignItems: 'flex-end',
   },
   timeValue: {
     fontSize: 18,
@@ -299,7 +320,15 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: '#475569',
-    alignSelf: 'center',
+  },
+  durationContainer: {
+    alignItems: 'flex-end',
+  },
+  timePart: {
+    flex: 1,
+  },
+  timePartRight: {
+    alignItems: 'flex-end',
   },
   locationRow: {
     flexDirection: 'row',
