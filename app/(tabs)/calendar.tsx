@@ -68,6 +68,15 @@ const shiftTypeIconMap = {
 
 type ShiftType = keyof typeof shiftTypeIconMap;
 
+type LegendEntry = {
+  key: string;
+  label: string;
+  variant: 'dot' | 'multiDot' | 'icon';
+  color?: string;
+  colors?: string[];
+  icon?: React.ComponentProps<typeof Ionicons>['name'];
+};
+
 type ImportedCalendarEvent = {
   title?: string;
   calendarId: string;
@@ -106,6 +115,52 @@ export default function CalendarScreen() {
   const [importedEventsByDay, setImportedEventsByDay] = useState<
     Record<string, ImportedCalendarEvent[]>
   >({});
+  const legendGroups = useMemo(
+    () => [
+      {
+        key: 'shifts',
+        title: t('calendarLegendShiftGroup'),
+        entries: [
+          { key: 'shift', variant: 'dot', color: '#34d399', label: t('calendarLegendShift') },
+          {
+            key: 'imported',
+            variant: 'multiDot',
+            colors: ['#34d399', '#fb923c', '#38bdf8'],
+            label: t('calendarLegendImported'),
+          },
+          { key: 'pink', variant: 'dot', color: '#f472b6', label: t('calendarLegendPink') },
+        ],
+      },
+      {
+        key: 'timeOfDay',
+        title: t('calendarLegendTimeGroup'),
+        entries: [
+          {
+            key: 'morning',
+            variant: 'icon',
+            color: '#facc15',
+            icon: 'sunny-outline',
+            label: t('calendarLegendMorning'),
+          },
+          {
+            key: 'evening',
+            variant: 'icon',
+            color: '#fb923c',
+            icon: 'partly-sunny-outline',
+            label: t('calendarLegendEvening'),
+          },
+          {
+            key: 'night',
+            variant: 'icon',
+            color: '#a855f7',
+            icon: 'moon-outline',
+            label: t('calendarLegendNight'),
+          },
+        ],
+      },
+    ] as const,
+    [t]
+  );
 
   const monthShifts = useMemo(() => {
     const nextMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 1);
@@ -435,6 +490,45 @@ export default function CalendarScreen() {
             </Animated.View>
           </View>
         )}
+        <View style={styles.legendCard}>
+          <Text style={styles.legendTitle}>{t('calendarLegendTitle')}</Text>
+          {legendGroups.map((group) => (
+            <View key={group.key} style={styles.legendGroup}>
+              <Text style={styles.legendGroupTitle}>{group.title}</Text>
+              <View style={styles.legendGrid}>
+                {group.entries.map((entry) => (
+                  <View key={entry.key} style={styles.legendChip}>
+                    {entry.variant === 'dot' && (
+                      <View
+                        style={[
+                          styles.legendChipIcon,
+                          { backgroundColor: entry.color ?? '#fff' },
+                        ]}
+                      />
+                    )}
+                    {entry.variant === 'multiDot' && (
+                      <View style={styles.legendMultiIcon}>
+                        {entry.colors?.map((color, index) => (
+                          <View
+                            key={`${entry.key}-${index}`}
+                            style={[
+                              styles.legendDotMini,
+                              { backgroundColor: color, borderRadius: 999 },
+                            ]}
+                          />
+                        ))}
+                      </View>
+                    )}
+                    {entry.variant === 'icon' && entry.icon && (
+                      <Ionicons name={entry.icon} size={16} color={entry.color} />
+                    )}
+                    <Text style={styles.legendLabel}>{entry.label}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          ))}
+        </View>
       </ScrollView>
       <Modal transparent visible={showEmptyModal} animationType="fade">
         <View style={styles.emptyModalBackdrop}>
@@ -598,6 +692,83 @@ const styles = StyleSheet.create({
   importedEventMore: {
     fontSize: 10,
     color: '#475569',
+  },
+  legendCard: {
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    padding: 16,
+    marginTop: 12,
+    marginBottom: 24,
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.06,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
+  },
+  legendTitle: {
+    fontSize: 12,
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+    color: '#94a3b8',
+    marginBottom: 12,
+  },
+  legendGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: -6,
+  },
+  legendChip: {
+    width: '50%',
+    marginHorizontal: 6,
+    marginBottom: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 14,
+    backgroundColor: '#f8fafc',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  legendGroup: {
+    marginBottom: 12,
+  },
+  legendGroupTitle: {
+    fontSize: 11,
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+    color: '#94a3b8',
+    marginBottom: 6,
+  },
+  legendChipIcon: {
+    width: 10,
+    height: 10,
+    borderRadius: 999,
+  },
+  legendMultiIcon: {
+    flexDirection: 'row',
+    gap: 3,
+  },
+  legendDotMini: {
+    width: 6,
+    height: 6,
+    borderRadius: 999,
+  },
+  legendGroup: {
+    marginBottom: 12,
+  },
+  legendGroupTitle: {
+    fontSize: 11,
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+    color: '#94a3b8',
+    marginBottom: 6,
+  },
+  legendLabel: {
+    fontSize: 12,
+    color: '#475569',
+  },
+  legendIconsRow: {
+    flexDirection: 'row',
   },
   dayHalo: {
     position: 'absolute',
