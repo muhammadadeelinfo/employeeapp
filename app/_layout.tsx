@@ -51,7 +51,7 @@ function LayoutContentInner() {
   const { selectedCalendars, toggleCalendarSelection } = useCalendarSelection();
   const [calendars, setCalendars] = useState<Calendar.Calendar[] | null>(null);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const userId = user?.id;
   const { data: quickShifts = [] } = useQuery({
     queryKey: ['quickActionsShifts', userId],
@@ -59,6 +59,13 @@ function LayoutContentInner() {
     enabled: !!userId,
     staleTime: 30_000,
   });
+  useEffect(() => {
+    if (loading) return;
+
+    if (!user && pathname !== '/login') {
+      router.replace('/login');
+    }
+  }, [loading, pathname, router, user]);
 
   const shouldShowNotificationBell = pathname
     ? !hiddenTopBarPaths.some((path) => pathname.startsWith(path))
