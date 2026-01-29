@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useState } from 'react';
 import type { Shift } from '@features/shifts/shiftsService';
@@ -16,6 +17,13 @@ const statusColors: Record<string, string> = {
   'in-progress': '#059669',
   completed: '#6b7280',
   blocked: '#dc2626',
+};
+
+const statusIconMap: Record<string, string> = {
+  scheduled: 'time-outline',
+  'in-progress': 'play-outline',
+  completed: 'checkmark-done-outline',
+  blocked: 'alert-circle-outline',
 };
 
 const statusLabelTranslationKeys: Record<string, TranslationKey | undefined> = {
@@ -89,6 +97,7 @@ export const ShiftCard = ({
   const [showFullAddress, setShowFullAddress] = useState(false);
   const { theme } = useTheme();
   const { t } = useLanguage();
+  const gradientColors = [theme.heroGradientStart, theme.heroGradientEnd];
   const statusColor = statusColors[shift.status] ?? '#1d4ed8';
   const statusTranslationKey = statusLabelTranslationKeys[shift.status];
   const statusLabel = statusTranslationKey ? t(statusTranslationKey) : shift.status;
@@ -106,8 +115,15 @@ export const ShiftCard = ({
   const confirmationLabel = getShiftConfirmationStatusLabel(normalizedConfirmationStatus);
   const shiftPhase = getShiftPhase(shift.start, shift.end);
   const phaseMetadata = phaseMeta[shiftPhase];
+  const phaseGradientColors = [
+    `${phaseMetadata.color}20`,
+    `${phaseMetadata.color}70`,
+    phaseMetadata.color,
+  ];
 
-  const statusBackground = `${statusColor}1a`;
+  const accentBorder = `${theme.primary}33`;
+  const statusGradientColors = [`${statusColor}33`, `${statusColor}99`, statusColor];
+  const statusIcon = statusIconMap[shift.status];
 
   return (
     <Pressable
@@ -115,7 +131,7 @@ export const ShiftCard = ({
         styles.card,
         {
           backgroundColor: theme.surface,
-          borderColor: theme.borderSoft,
+          borderColor: isPrimary ? accentBorder : theme.borderSoft,
           shadowColor: isPrimary ? theme.primaryAccent : '#000',
         },
         pressed && styles.cardPressed,
@@ -127,29 +143,58 @@ export const ShiftCard = ({
       accessibilityState={{ selected: isPrimary }}
     >
       <View style={[styles.decoration, { backgroundColor: theme.primary }]} />
+      <LinearGradient
+        colors={gradientColors}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.gradientBackground}
+        pointerEvents="none"
+      />
       <View style={styles.content}>
         <View style={styles.headerRow}>
           <View>
-            <Text style={[styles.cardLabel, { color: theme.textPrimary }]}>{t('upcomingShiftListTitle')}</Text>
+            <View style={styles.headerLabelRow}>
+              <Ionicons
+                name="calendar-outline"
+                size={18}
+                color={theme.primary}
+                style={styles.headerIcon}
+              />
+              <Text style={[styles.cardLabel, { color: theme.textPrimary }]}>
+                {t('upcomingShiftListTitle')}
+              </Text>
+            </View>
             <Text style={[styles.cardDate, { color: theme.textSecondary }]}>{formatDate(shift.start)}</Text>
             <View style={styles.phaseRow}>
-              <View style={[styles.phasePill, { backgroundColor: phaseMetadata.background }]}>
+              <LinearGradient
+                colors={phaseGradientColors}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.phaseBadge}
+              >
                 <Ionicons
                   name={phaseMetadata.icon}
                   size={14}
-                  color={phaseMetadata.color}
+                  color="#fff"
                   style={styles.phaseIcon}
                 />
-                <Text style={[styles.phasePillText, { color: phaseMetadata.color }]}>
-                  {phaseMetadata.label}
-                </Text>
-              </View>
+                <Text style={styles.phaseBadgeText}>{phaseMetadata.label}</Text>
+              </LinearGradient>
             </View>
           </View>
-          <View style={[styles.statusPill, { backgroundColor: statusBackground }]}>
-            <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
-            <Text style={[styles.statusText, { color: statusColor }]}>{statusLabel}</Text>
-          </View>
+          <LinearGradient
+            colors={statusGradientColors}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.statusBadge, { borderColor: statusColor }]}
+          >
+            {statusIcon ? (
+              <Ionicons name={statusIcon} size={14} color="#fff" style={styles.statusIcon} />
+            ) : (
+              <View style={[styles.statusDot, { backgroundColor: '#fff' }]} />
+            )}
+            <Text style={[styles.statusText, { color: '#fff' }]}>{statusLabel}</Text>
+          </LinearGradient>
         </View>
 
         <View style={styles.sectionSpacer}>
@@ -240,6 +285,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     borderWidth: 1,
     borderColor: '#e5e7ef',
+    position: 'relative',
   },
   cardPressed: {
     opacity: 0.95,
@@ -252,10 +298,18 @@ const styles = StyleSheet.create({
     width: 6,
     backgroundColor: '#dbeafe',
   },
+  gradientBackground: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0.18,
+    zIndex: 0,
+    borderRadius: 26,
+  },
   content: {
     flex: 1,
     padding: 18,
     paddingBottom: 22,
+    position: 'relative',
+    zIndex: 1,
   },
   headerRow: {
     flexDirection: 'row',
@@ -267,46 +321,74 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#0f172a',
   },
+  headerLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerIcon: {
+    marginRight: 6,
+  },
   cardDate: {
     fontSize: 13,
     color: '#475569',
     marginTop: 4,
   },
-  statusPill: {
+  statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: 999,
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
     paddingVertical: 6,
+    borderWidth: 1,
+    overflow: 'hidden',
+    minWidth: 110,
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 6,
   },
   statusDot: {
     width: 8,
     height: 8,
     borderRadius: 999,
+    marginRight: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
   },
   statusText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600',
     letterSpacing: 0.5,
-    marginLeft: 6,
+  },
+  statusIcon: {
+    marginRight: 6,
   },
   phaseRow: {
     marginTop: 6,
   },
-  phasePill: {
+  phaseBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 16,
-    alignSelf: 'flex-start',
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    minWidth: 110,
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 6,
   },
-  phasePillText: {
+  phaseBadgeText: {
     fontSize: 12,
     fontWeight: '600',
+    color: '#fff',
   },
   phaseIcon: {
-    marginRight: 6,
+    marginRight: 8,
   },
   timeLabel: {
     fontSize: 10,
@@ -408,7 +490,12 @@ const styles = StyleSheet.create({
     color: '#059669',
   },
   confirmButton: {
-    paddingHorizontal: 20,
-    borderRadius: 18,
+    paddingHorizontal: 22,
+    borderRadius: 22,
+    shadowColor: '#2563eb',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.32,
+    shadowRadius: 14,
+    elevation: 5,
   },
 });

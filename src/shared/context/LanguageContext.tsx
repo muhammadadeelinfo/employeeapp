@@ -149,7 +149,7 @@ const translations = {
     quickActionHoursSub: 'Track this week’s logged hours',
     quickActionSupport: 'Support',
     quickActionSupportSub: 'Message operations',
-    upcomingShiftListTitle: 'Upcoming shifts',
+    upcomingShiftListTitle: 'Shift',
     shiftSnapshot: 'Shift snapshot',
     shiftHoursLabel: 'Shift hours',
     nextShift: 'Next shift',
