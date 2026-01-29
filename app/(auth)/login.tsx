@@ -14,6 +14,7 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
 import { supabase } from '@lib/supabaseClient';
 import { useRouter } from 'expo-router';
