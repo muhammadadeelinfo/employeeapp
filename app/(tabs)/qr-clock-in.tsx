@@ -4,9 +4,12 @@ import { Camera, CameraView, BarCodeScanningResult, CameraPermissionResponse } f
 import { PrimaryButton } from '@shared/components/PrimaryButton';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTheme } from '@shared/themeContext';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function QrClockInScreen() {
   const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
   const [permission, setPermission] = useState<CameraPermissionResponse | null>(null);
   const [scannedData, setScannedData] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(true);
@@ -37,24 +40,32 @@ export default function QrClockInScreen() {
 
   if (!permission) {
     return (
-      <SafeAreaView style={[styles.center, safeAreaPadding]}>
-        <Text>{t('requestingCameraPermission')}</Text>
-      </SafeAreaView>
-    );
+    <SafeAreaView style={[styles.center, safeAreaPadding, { backgroundColor: theme.background }]}>
+      <Text style={{ color: theme.textSecondary }}>{t('requestingCameraPermission')}</Text>
+    </SafeAreaView>
+  );
   }
 
   if (!permission?.granted) {
     return (
-      <SafeAreaView style={[styles.center, safeAreaPadding]}>
-        <Text style={styles.error}>{t('cameraPermissionRequired')}</Text>
-        <PrimaryButton title={t('grantCameraAccess')} onPress={handleRequestPermission} />
-      </SafeAreaView>
-    );
+    <SafeAreaView style={[styles.center, safeAreaPadding, { backgroundColor: theme.background }]}>
+      <Text style={[styles.error, { color: theme.fail }]}>{t('cameraPermissionRequired')}</Text>
+      <PrimaryButton title={t('grantCameraAccess')} onPress={handleRequestPermission} />
+    </SafeAreaView>
+  );
   }
 
   return (
-    <SafeAreaView style={[styles.container, safeAreaPadding]} edges={['top']}>
-      <Text style={styles.instructions}>{t('qrInstructions')}</Text>
+    <SafeAreaView
+      style={[styles.container, safeAreaPadding, { backgroundColor: theme.background }]}
+      edges={['top']}
+    >
+      <LinearGradient
+        colors={[theme.heroGradientStart, theme.heroGradientEnd]}
+        style={styles.hero}
+      >
+        <Text style={[styles.instructions, { color: theme.textSecondary }]}>{t('qrInstructions')}</Text>
+      </LinearGradient>
       <View style={styles.preview}>
         <CameraView
           style={styles.camera}
@@ -65,9 +76,9 @@ export default function QrClockInScreen() {
         />
       </View>
       {scannedData ? (
-        <View style={styles.scanResult}>
-          <Text style={styles.scanLabel}>{t('lastScanLabel')}</Text>
-          <Text style={styles.scanValue}>{scannedData}</Text>
+        <View style={[styles.scanResult, { backgroundColor: theme.surface }]}>
+          <Text style={[styles.scanLabel, { color: theme.textSecondary }]}>{t('lastScanLabel')}</Text>
+          <Text style={[styles.scanValue, { color: theme.textPrimary }]}>{scannedData}</Text>
         </View>
       ) : null}
       {!isScanning ? (
@@ -88,11 +99,19 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: '#f8fafc',
+  },
+  hero: {
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 8 },
+    shadowRadius: 18,
+    elevation: 10,
   },
   instructions: {
     textAlign: 'center',
-    color: '#475569',
     marginBottom: 12,
   },
   preview: {
@@ -107,13 +126,13 @@ const styles = StyleSheet.create({
   scanResult: {
     marginTop: 16,
     padding: 12,
-    backgroundColor: '#fff',
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#1f2937',
   },
   scanLabel: {
     textTransform: 'uppercase',
     fontSize: 10,
-    color: '#94a3b8',
   },
   scanValue: {
     marginTop: 4,

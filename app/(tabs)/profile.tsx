@@ -50,14 +50,16 @@ export default function ProfileScreen() {
     { key: 'dark' as const, label: t('darkMode') },
   ];
 
+  const heroGradientColors = [theme.heroGradientStart, theme.heroGradientEnd, theme.surfaceMuted];
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background, ...safeAreaStyle }]}>
       <LinearGradient
-        colors={[theme.surface, theme.surfaceMuted, theme.surface]}
+        colors={heroGradientColors}
         style={styles.headerGradient}
         start={[0, 0]}
         end={[1, 1]}
       >
+        <View style={styles.heroGlow} />
         <View style={styles.heroHeader}>
           <View>
             <Text style={[styles.profileGreeting, { color: theme.textPrimary }]}>
@@ -67,26 +69,40 @@ export default function ProfileScreen() {
               {t('profileSettingsSync')}
             </Text>
           </View>
-          <View style={[styles.statusBadge, { backgroundColor: theme.primary }]}>
+          <View style={[styles.statusBadge, { backgroundColor: theme.primaryAccent }]}>
             <Text style={styles.statusBadgeText}>{translatedStatus}</Text>
           </View>
         </View>
+        <View style={styles.badgeRow}>
+          <View style={styles.heroBadge}>
+            <Ionicons name="notifications-outline" size={16} color={theme.primary} />
+            <Text style={[styles.badgeText, { color: theme.textSecondary }]}>2 alerts</Text>
+          </View>
+          <View style={styles.heroBadge}>
+            <Ionicons name="help-circle-outline" size={16} color={theme.textSecondary} />
+            <Text style={[styles.badgeText, { color: theme.textSecondary }]}>Need help?</Text>
+          </View>
+          <View style={styles.heroBadge}>
+            <Text style={[styles.badgeText, { color: theme.textSecondary }]}> {user ? user.email : '—'} </Text>
+          </View>
+        </View>
         <View style={styles.heroStats}>
-          <View style={styles.heroStat}>
+          <View style={styles.heroStatPill}>
             <Text style={[styles.heroStatLabel, { color: theme.textSecondary }]}>{t('memberSinceLabel')}</Text>
             <Text style={[styles.heroStatValue, { color: theme.textPrimary }]}>{formatDate(user?.created_at)}</Text>
           </View>
-          <View style={styles.heroStat}>
+          <View style={styles.heroStatPill}>
             <Text style={[styles.heroStatLabel, { color: theme.textSecondary }]}>{t('providerLabel')}</Text>
             <Text style={[styles.heroStatValue, { color: theme.textPrimary }]}>{provider.toUpperCase()}</Text>
           </View>
         </View>
         <View style={styles.heroActions}>
-          <View style={styles.actionIcon}>
-            <Ionicons name="notifications-sharp" size={18} color={theme.primary} />
+          <View style={[styles.actionIcon, styles.actionIconLight]}>
+            <Ionicons name="notifications" size={18} color={theme.primary} />
+            <View style={styles.notificationDot} />
           </View>
           <View style={styles.actionIcon}>
-            <Ionicons name="bolt-sharp" size={18} color={theme.primaryAccent} />
+            <Ionicons name="bolt" size={18} color={theme.primaryAccent} />
           </View>
           <Text style={[styles.heroMeta, { color: theme.textSecondary }]}>
             {user ? user.email : t('profileSettingsSync')}
@@ -187,7 +203,25 @@ const styles = StyleSheet.create({
   headerGradient: {
     paddingHorizontal: 24,
     paddingTop: 24,
-    paddingBottom: 20,
+    paddingBottom: 22,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    position: 'relative',
+  },
+  heroGlow: {
+    ...StyleSheet.absoluteFillObject,
+    top: undefined,
+    bottom: -30,
+    left: 32,
+    right: 32,
+    height: 120,
+    borderRadius: 50,
+    backgroundColor: 'rgba(129, 140, 248, 0.25)',
+    opacity: 0.4,
+    shadowColor: '#818cf8',
+    shadowOpacity: 0.4,
+    shadowOffset: { width: 0, height: 24 },
+    shadowRadius: 30,
   },
   heroHeader: {
     flexDirection: 'row',
@@ -212,14 +246,38 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#fff',
   },
-  heroStats: {
-    marginTop: 20,
+  badgeRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    marginTop: 18,
+    gap: 10,
+    flexWrap: 'wrap',
   },
-  heroStat: {
+  heroBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  badgeText: {
+    fontSize: 11,
+    color: '#cbd5f5',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  heroStats: {
+    marginTop: 18,
+    flexDirection: 'row',
+    gap: 12,
+  },
+  heroStatPill: {
     flex: 1,
-    paddingRight: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.08)',
   },
   heroStatLabel: {
     fontSize: 12,
@@ -233,7 +291,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   heroActions: {
-    marginTop: 12,
+    marginTop: 16,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
@@ -250,6 +308,19 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.08)',
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
+  },
+  actionIconLight: {
+    backgroundColor: 'rgba(129, 140, 248, 0.25)',
+  },
+  notificationDot: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#ef4444',
   },
   container: {
     flex: 1,
@@ -259,16 +330,16 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   sectionCard: {
-    borderRadius: 22,
+    borderRadius: 26,
     padding: 20,
     marginTop: 16,
     borderWidth: 1,
-    borderColor: '#0f172a',
-    shadowColor: '#0f172a',
-    shadowOpacity: 0.15,
-    shadowOffset: { width: 0, height: 6 },
-    shadowRadius: 16,
-    elevation: 8,
+    borderColor: '#1c2342',
+    shadowColor: '#050914',
+    shadowOpacity: 0.35,
+    shadowOffset: { width: 0, height: 12 },
+    shadowRadius: 22,
+    elevation: 10,
   },
   sectionHeading: {
     fontSize: 16,
@@ -284,7 +355,7 @@ const styles = StyleSheet.create({
   infoCard: {
     flex: 1,
     minWidth: '45%',
-    borderRadius: 14,
+    borderRadius: 18,
     padding: 14,
   },
   infoLabel: {

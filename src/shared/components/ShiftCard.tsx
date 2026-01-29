@@ -9,6 +9,7 @@ import {
   normalizeShiftConfirmationStatus,
 } from '@lib/shiftConfirmationStatus';
 import { getShiftPhase, phaseMeta } from '@shared/utils/shiftPhase';
+import { useTheme } from '@shared/themeContext';
 
 const statusColors: Record<string, string> = {
   scheduled: '#2563eb',
@@ -86,6 +87,7 @@ export const ShiftCard = ({
   isPrimary,
 }: Props) => {
   const [showFullAddress, setShowFullAddress] = useState(false);
+  const { theme } = useTheme();
   const { t } = useLanguage();
   const statusColor = statusColors[shift.status] ?? '#1d4ed8';
   const statusTranslationKey = statusLabelTranslationKeys[shift.status];
@@ -109,18 +111,27 @@ export const ShiftCard = ({
 
   return (
     <Pressable
-      style={({ pressed }) => [styles.card, pressed && styles.cardPressed, isPrimary && styles.primaryOutline]}
+      style={({ pressed }) => [
+        styles.card,
+        {
+          backgroundColor: theme.surface,
+          borderColor: theme.borderSoft,
+          shadowColor: isPrimary ? theme.primaryAccent : '#000',
+        },
+        pressed && styles.cardPressed,
+        isPrimary && styles.primaryOutline,
+      ]}
       onPress={onPress}
-      android_ripple={{ color: '#e0e7ff' }}
+      android_ripple={{ color: theme.primary }}
       accessibilityRole="button"
       accessibilityState={{ selected: isPrimary }}
     >
-      <View style={styles.decoration} />
+      <View style={[styles.decoration, { backgroundColor: theme.primary }]} />
       <View style={styles.content}>
         <View style={styles.headerRow}>
           <View>
-            <Text style={styles.cardLabel}>{t('upcomingShiftListTitle')}</Text>
-            <Text style={styles.cardDate}>{formatDate(shift.start)}</Text>
+            <Text style={[styles.cardLabel, { color: theme.textPrimary }]}>{t('upcomingShiftListTitle')}</Text>
+            <Text style={[styles.cardDate, { color: theme.textSecondary }]}>{formatDate(shift.start)}</Text>
             <View style={styles.phaseRow}>
               <View style={[styles.phasePill, { backgroundColor: phaseMetadata.background }]}>
                 <Ionicons
@@ -142,34 +153,40 @@ export const ShiftCard = ({
         </View>
 
         <View style={styles.sectionSpacer}>
-          <Text style={styles.timeLabel}>{t('shiftWindowLabel')}</Text>
+          <Text style={[styles.timeLabel, { color: theme.textSecondary }]}>{t('shiftWindowLabel')}</Text>
           <View style={styles.timeRow}>
             <View style={styles.timePart}>
-              <Text style={styles.timeValue}>{formatTime(shift.start)}</Text>
-              <Text style={styles.timeLabelSmall}>{t('shiftStartLabel')}</Text>
+              <Text style={[styles.timeValue, { color: theme.textPrimary }]}>{formatTime(shift.start)}</Text>
+              <Text style={[styles.timeLabelSmall, { color: theme.textSecondary }]}>{t('shiftStartLabel')}</Text>
             </View>
             <View style={styles.timePart}>
-              <Text style={styles.timeValue}>{formatTime(shift.end)}</Text>
-              <Text style={styles.timeLabelSmall}>{t('shiftEndLabel')}</Text>
+              <Text style={[styles.timeValue, { color: theme.textPrimary }]}>{formatTime(shift.end)}</Text>
+              <Text style={[styles.timeLabelSmall, { color: theme.textSecondary }]}>{t('shiftEndLabel')}</Text>
             </View>
             <View style={[styles.durationContainer, styles.timePartRight]}>
-              <Text style={styles.duration}>{formatDuration(shift.start, shift.end)}</Text>
-              <Text style={styles.timeLabelSmall}>· {t('shiftDuration')}</Text>
+              <Text style={[styles.duration, { color: theme.textSecondary }]}>{formatDuration(shift.start, shift.end)}</Text>
+              <Text style={[styles.timeLabelSmall, { color: theme.textSecondary }]}>· {t('shiftDuration')}</Text>
             </View>
           </View>
         </View>
 
         <Pressable
-          style={styles.locationRow}
+          style={[
+            styles.locationRow,
+            {
+              backgroundColor: theme.surfaceMuted,
+              borderColor: theme.border,
+            },
+          ]}
           onPress={() => setShowFullAddress((prev) => !prev)}
           disabled={!locationSubtext}
           accessibilityRole="button"
         >
-          <Ionicons name="location-outline" size={20} color="#2563eb" style={styles.locationIcon} />
+          <Ionicons name="location-outline" size={20} color={theme.info} style={styles.locationIcon} />
           <View style={styles.locationText}>
-            <Text style={styles.locationLabel}>{locationLabel}</Text>
+            <Text style={[styles.locationLabel, { color: theme.textPrimary }]}>{locationLabel}</Text>
             <Text
-              style={styles.locationDetails}
+              style={[styles.locationDetails, { color: theme.textSecondary }]}
               numberOfLines={showFullAddress ? 2 : 1}
             >
               {displayedAddress}
@@ -179,20 +196,20 @@ export const ShiftCard = ({
             <Ionicons
               name={showFullAddress ? 'chevron-up-outline' : 'chevron-down-outline'}
               size={18}
-              color="#6b7280"
+              color={theme.textSecondary}
             />
           )}
         </Pressable>
 
-        <Text style={styles.description}>{shift.description ?? t('beOnTime')}</Text>
+        <Text style={[styles.description, { color: theme.textSecondary }]}>{shift.description ?? t('beOnTime')}</Text>
 
         <View style={styles.confirmSection}>
           <View>
-            <Text style={styles.confirmInstruction}>{t('beOnTime')}</Text>
-            <Text style={styles.confirmSubLabel}>{t('confirmShift')}</Text>
+            <Text style={[styles.confirmInstruction, { color: theme.textSecondary }]}>{t('beOnTime')}</Text>
+            <Text style={[styles.confirmSubLabel, { color: theme.textPrimary }]}>{t('confirmShift')}</Text>
           </View>
           {isConfirmed ? (
-            <Text style={styles.confirmedTextOption}>{confirmationLabel}</Text>
+            <Text style={[styles.confirmedTextOption, { color: theme.success }]}>{confirmationLabel}</Text>
           ) : (
             onConfirm && (
               <PrimaryButton
@@ -221,6 +238,8 @@ const styles = StyleSheet.create({
     elevation: 8,
     overflow: 'hidden',
     flexDirection: 'row',
+    borderWidth: 1,
+    borderColor: '#e5e7ef',
   },
   cardPressed: {
     opacity: 0.95,

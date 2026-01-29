@@ -7,7 +7,9 @@ import { confirmShiftAssignment } from '@features/shifts/shiftsService';
 import { getShiftPhase } from '@shared/utils/shiftPhase';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { useRouter } from 'expo-router';
+import { useTheme } from '@shared/themeContext';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const getMonthLabel = (date: Date) => date.toLocaleDateString([], { month: 'long', year: 'numeric' });
 
@@ -25,6 +27,7 @@ const renderSkeletons = () => (
 export default function MyShiftsScreen() {
   const router = useRouter();
   const { t } = useLanguage();
+  const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const { orderedShifts, isLoading, error, refetch } = useShiftFeed();
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
@@ -101,21 +104,32 @@ export default function MyShiftsScreen() {
   const containerStyle = [
     styles.container,
     {
+      backgroundColor: theme.background,
       paddingTop: 12 + insets.top,
     },
   ];
-  const listContentStyle = styles.list;
+  const listContentStyle = [styles.list, { backgroundColor: theme.background }];
+  const heroGradientColors = [theme.heroGradientStart, theme.heroGradientEnd, theme.surfaceElevated];
 
   return (
     <SafeAreaView style={containerStyle} edges={['top']}>
-  <View style={styles.headerWrapper}>
-        <Text style={styles.headerTitle}>{`${t('shiftsTabTitle')} · ${monthLabel}`}</Text>
-      </View>
+      <LinearGradient colors={heroGradientColors} style={styles.hero} start={[0, 0]} end={[1, 1]}>
+        <Text style={styles.heroLabel}>{t('shiftsTabTitle')}</Text>
+        <Text style={styles.heroSubtitle}>{monthLabel}</Text>
+        <View style={styles.heroRow}>
+          <Text style={styles.heroCallout}>{liveShift ? t('nextShift') : t('noUpcomingShifts')}</Text>
+          <PrimaryButton
+            title={t('viewSchedule')}
+            onPress={() => router.push('/calendar')}
+            style={styles.heroButton}
+          />
+        </View>
+      </LinearGradient>
       {errorView}
       <ScrollView
         ref={listScrollRef}
         contentContainerStyle={listContentStyle}
-        style={styles.scrollView}
+        style={[styles.scrollView, { backgroundColor: theme.background }]}
         refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => refetch()} />}
       >
         {showSkeletons && renderSkeletons()}
@@ -145,17 +159,45 @@ export default function MyShiftsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
     paddingHorizontal: 16,
     paddingTop: 0,
     paddingBottom: 0,
   },
-  headerWrapper: {
+  hero: {
+    borderRadius: 28,
+    marginHorizontal: -16,
     marginBottom: 12,
+    padding: 20,
+    shadowColor: '#050914',
+    shadowOpacity: 0.4,
+    shadowOffset: { width: 0, height: 14 },
+    shadowRadius: 24,
+    elevation: 12,
   },
-  headerTitle: {
-    fontSize: 20,
+  heroLabel: {
+    fontSize: 22,
     fontWeight: '700',
+    color: '#fff',
+  },
+  heroSubtitle: {
+    fontSize: 14,
+    color: '#dbeafe',
+    marginTop: 4,
+  },
+  heroRow: {
+    marginTop: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  heroCallout: {
+    color: '#e0e7ff',
+    fontSize: 13,
+    letterSpacing: 0.2,
+  },
+  heroButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
   },
   list: {
     paddingBottom: 24,
@@ -163,47 +205,51 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   scrollView: {
-    backgroundColor: '#f8fafc',
+    borderTopLeftRadius: 26,
+    borderTopRightRadius: 26,
   },
   errorCard: {
-    backgroundColor: '#fee2e2',
-    borderRadius: 14,
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderRadius: 16,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#fecaca',
+    borderColor: 'rgba(239, 68, 68, 0.4)',
   },
   errorTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#991b1b',
+    color: '#f97316',
     marginBottom: 4,
   },
   errorText: {
-    color: '#b91c1c',
+    color: '#f97316',
     fontSize: 14,
     marginBottom: 10,
   },
   retryButton: {
     alignSelf: 'flex-start',
-    paddingHorizontal: 18,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 12,
   },
   listEmptyState: {
     alignItems: 'center',
-    paddingVertical: 24,
+    paddingVertical: 32,
   },
   emptyTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1f2937',
+    color: '#e2e8f0',
     marginBottom: 6,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#6b7280',
+    color: '#94a3b8',
     marginBottom: 12,
     textAlign: 'center',
-    maxWidth: 260,
+    maxWidth: 280,
   },
   emptyAction: {
     minWidth: 180,
@@ -214,21 +260,21 @@ const styles = StyleSheet.create({
   skeletonCard: {
     height: 120,
     borderRadius: 20,
-    backgroundColor: '#eef2ff',
+    backgroundColor: '#111a34',
     marginBottom: 12,
     padding: 16,
     justifyContent: 'center',
   },
   skeletonLine: {
-    height: 16,
-    backgroundColor: '#dbeafe',
-    borderRadius: 8,
+    height: 12,
+    backgroundColor: '#1f263d',
+    borderRadius: 6,
     marginBottom: 8,
   },
   skeletonLineShort: {
     height: 12,
     width: '60%',
-    backgroundColor: '#dbeafe',
+    backgroundColor: '#1f263d',
     borderRadius: 6,
   },
 });

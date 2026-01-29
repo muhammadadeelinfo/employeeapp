@@ -21,6 +21,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useNotifications } from '@shared/context/NotificationContext';
 import { useRouter } from 'expo-router';
 import * as Calendar from 'expo-calendar';
+import { useTheme } from '@shared/themeContext';
 
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -152,6 +153,7 @@ const renderSkeletons = () => (
 export default function CalendarScreen() {
   const router = useRouter();
   const { t } = useLanguage();
+  const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const { orderedShifts, isLoading, error, refetch } = useShiftFeed();
   const [visibleMonth, setVisibleMonth] = useState(() => startOfMonth(new Date()));
@@ -451,9 +453,17 @@ export default function CalendarScreen() {
   }, [selectedCalendars, visibleMonth, importedCalendarColorMap]);
 
   const errorView = error ? (
-    <View style={styles.errorCard}>
-      <Text style={styles.errorTitle}>{t('shiftSyncFailedTitle')}</Text>
-      <Text style={styles.errorText}>{t('shiftSyncFailedMessage')}</Text>
+    <View
+      style={[
+        styles.errorCard,
+        {
+          backgroundColor: `${theme.fail}1a`,
+          borderColor: `${theme.fail}4d`,
+        },
+      ]}
+    >
+      <Text style={[styles.errorTitle, { color: theme.fail }]}>{t('shiftSyncFailedTitle')}</Text>
+      <Text style={[styles.errorText, { color: theme.fail }]}>{t('shiftSyncFailedMessage')}</Text>
       <PrimaryButton title={t('retrySync')} onPress={() => refetch()} style={styles.retryButton} />
     </View>
   ) : null;
@@ -478,47 +488,110 @@ export default function CalendarScreen() {
     }
   }, [addNotification, error, isLoading, orderedShifts.length, t]);
 
-  const containerStyle = [styles.container, { paddingTop: 12 + insets.top }];
-  const scrollContentStyle = [styles.scrollContent, { paddingBottom: 12 + insets.bottom }];
+  const containerStyle = [
+    styles.container,
+    {
+      backgroundColor: theme.background,
+      paddingTop: 12 + insets.top,
+    },
+  ];
+  const heroGradientColors = [theme.heroGradientStart, theme.heroGradientEnd, theme.surfaceElevated];
+  const monthCardGradientColors = [theme.heroGradientStart, theme.heroGradientEnd];
+  const dayChipBaseStyle = {
+    backgroundColor: theme.surface,
+    borderColor: theme.borderSoft,
+    borderWidth: 1,
+  };
+  const dayChipFocusedStyle = {
+    backgroundColor: theme.surfaceElevated,
+    borderColor: theme.primaryAccent,
+    borderWidth: 2,
+    shadowColor: theme.primaryAccent,
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 8 },
+  };
+  const dayChipActiveStyle = {
+    borderColor: theme.primary,
+  };
+  const dayChipPressedStyle = {
+    opacity: 0.7,
+  };
+  const scrollContentStyle = [
+    styles.scrollContent,
+    { paddingBottom: 12 + insets.bottom, backgroundColor: theme.background },
+  ];
 
   return (
     <SafeAreaView style={containerStyle} edges={['top']}>
-      <LinearGradient colors={['#eef3ff', '#f4f6ff']} style={styles.background} />
+      <LinearGradient colors={heroGradientColors} style={styles.background} />
       <ScrollView
         contentContainerStyle={scrollContentStyle}
         refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => refetch()} />}
       >
-        <View style={styles.monthCard}>
-          <LinearGradient
-            colors={['#fdfdfe', '#eef2ff']}
-            style={styles.monthCardGradient}
-          />
+        <View
+          style={[
+            styles.monthCard,
+            {
+              backgroundColor: theme.surfaceElevated,
+              borderColor: theme.borderSoft,
+            },
+          ]}
+        >
+          <LinearGradient colors={monthCardGradientColors} style={styles.monthCardGradient} />
           <View style={styles.monthNavRow}>
-            <Pressable onPress={() => handleMonthChange(-1)} style={styles.monthNavButton}>
-              <Ionicons name="chevron-back" size={20} color="#94a3b8" />
+            <Pressable
+              onPress={() => handleMonthChange(-1)}
+              style={[
+                styles.monthNavButton,
+                {
+                  backgroundColor: theme.surface,
+                  shadowColor: theme.primary,
+                },
+              ]}
+            >
+              <Ionicons name="chevron-back" size={20} color={theme.textSecondary} />
             </Pressable>
-            <Text style={styles.monthLabel}>{monthLabel}</Text>
-            <Pressable onPress={() => handleMonthChange(1)} style={styles.monthNavButton}>
-              <Ionicons name="chevron-forward" size={20} color="#94a3b8" />
+            <Text style={[styles.monthLabel, { color: theme.textPrimary }]}>{monthLabel}</Text>
+            <Pressable
+              onPress={() => handleMonthChange(1)}
+              style={[
+                styles.monthNavButton,
+                {
+                  backgroundColor: theme.surface,
+                  shadowColor: theme.primary,
+                },
+              ]}
+            >
+              <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
             </Pressable>
           </View>
         </View>
         {errorView}
         {showSkeletons && renderSkeletons()}
         {!error && (
-          <View style={styles.calendarCard}>
-            <Animated.View
-              {...calendarPanResponder.panHandlers}
-              style={[
-                styles.calendarWrapper,
-                {
-                  transform: [{ perspective: 1000 }, { rotateY: rotateY }],
-                },
-              ]}
-            >
+          <View
+            style={[
+              styles.calendarCard,
+              {
+                backgroundColor: theme.surface,
+                borderColor: theme.borderSoft,
+              },
+            ]}
+          >
+              <Animated.View
+                {...calendarPanResponder.panHandlers}
+                style={[
+                  styles.calendarWrapper,
+                  {
+                    transform: [{ perspective: 1000 }, { rotateY: rotateY }],
+                    backgroundColor: theme.surfaceElevated,
+                  },
+                ]}
+              >
               <View style={styles.calendarHeader}>
                 {WEEKDAY_LABELS.map((label) => (
-                  <Text key={label} style={styles.calendarHeaderLabel}>
+                  <Text key={label} style={[styles.calendarHeaderLabel, { color: theme.textSecondary }]}>
                     {label}
                   </Text>
                 ))}
@@ -542,10 +615,12 @@ export default function CalendarScreen() {
                           key={key}
                           style={({ pressed }) => [
                             styles.dayChip,
+                            dayChipBaseStyle,
                             !isCurrentMonth && styles.dayChipMuted,
                             isFocusedDay && styles.dayChipFocused,
-                            dayShifts.length && styles.dayChipActive,
-                            pressed && dayShifts.length ? styles.dayChipPressed : undefined,
+                            isFocusedDay && dayChipFocusedStyle,
+                            dayShifts.length && dayChipActiveStyle,
+                            pressed && dayShifts.length ? dayChipPressedStyle : undefined,
                           ]}
                           accessibilityRole="button"
                           onPress={() => {
@@ -557,6 +632,7 @@ export default function CalendarScreen() {
                             style={[
                               styles.dayChipLabel,
                               !isCurrentMonth && styles.dayChipLabelMuted,
+                              { color: isCurrentMonth ? theme.textPrimary : theme.textSecondary },
                             ]}
                           >
                             {day.getDate()}
@@ -564,7 +640,16 @@ export default function CalendarScreen() {
                           {shiftTypes && shiftTypes.size ? (
                             <View style={styles.shiftIconRow}>
                               {Array.from(shiftTypes).map((type) => (
-                                <View key={type} style={styles.shiftIcon}>
+                                <View
+                                  key={type}
+                                  style={[
+                                    styles.shiftIcon,
+                                    {
+                                      backgroundColor: theme.surface,
+                                      shadowColor: theme.shadowBlue,
+                                    },
+                                  ]}
+                                >
                                   <Ionicons
                                     name={shiftTypeIconMap[type].name}
                                     size={12}
@@ -583,7 +668,7 @@ export default function CalendarScreen() {
                                 />
                               ))}
                               {importedEvents.length > 3 && (
-                                <Text style={styles.importedEventMore}>
+                                <Text style={[styles.importedEventMore, { color: theme.textSecondary }]}>
                                   +{importedEvents.length - 3}
                                 </Text>
                               )}
@@ -601,19 +686,48 @@ export default function CalendarScreen() {
             </Animated.View>
           </View>
         )}
-        <View style={styles.legendCard}>
-          <LinearGradient colors={['#fff', '#eef3ff']} style={styles.legendGradient} />
+        <View
+          style={[
+            styles.legendCard,
+            {
+              backgroundColor: theme.surface,
+              borderColor: theme.borderSoft,
+            },
+          ]}
+        >
+          <LinearGradient
+            colors={[theme.surface, theme.surfaceMuted]}
+            style={styles.legendGradient}
+          />
           <View style={styles.legendHeader}>
-            <Text style={styles.legendTitle}>{t('calendarLegendTitle')}</Text>
-            <View style={styles.legendHeaderDivider} />
+            <Text style={[styles.legendTitle, { color: theme.textSecondary }]}>
+              {t('calendarLegendTitle')}
+            </Text>
+            <View style={[styles.legendHeaderDivider, { backgroundColor: theme.borderSoft }]} />
           </View>
           {legendGroups.map((group) => (
-          <View key={group.key} style={styles.legendGroup}>
-            <Text style={styles.legendGroupTitle}>{group.title}</Text>
-          <View style={styles.legendList}>
-            {group.entries.map((entry) => (
-              <View key={entry.key} style={styles.legendEntryCard}>
-                <View style={styles.legendEntryIcon}>
+            <View key={group.key} style={styles.legendGroup}>
+              <Text style={[styles.legendGroupTitle, { color: theme.textSecondary }]}>
+                {group.title}
+              </Text>
+              <View style={styles.legendList}>
+              {group.entries.map((entry) => (
+                <View
+                  key={entry.key}
+                  style={[
+                    styles.legendEntryCard,
+                    {
+                      backgroundColor: theme.surfaceMuted,
+                      borderColor: theme.borderSoft,
+                    },
+                  ]}
+                >
+                    <View
+                      style={[
+                        styles.legendEntryIcon,
+                        { backgroundColor: theme.surface, borderColor: theme.borderSoft },
+                      ]}
+                    >
                   {entry.variant === 'dot' && (
                         <View
                           style={[
@@ -640,9 +754,11 @@ export default function CalendarScreen() {
                       )}
                     </View>
                     <View style={styles.legendText}>
-                      <Text style={styles.legendLabel}>{entry.label}</Text>
+                      <Text style={[styles.legendLabel, { color: theme.textPrimary }]}>{entry.label}</Text>
                       {entry.description ? (
-                        <Text style={styles.legendDescription}>{entry.description}</Text>
+                        <Text style={[styles.legendDescription, { color: theme.textSecondary }]}>
+                          {entry.description}
+                        </Text>
                       ) : null}
                   </View>
                 </View>
@@ -659,14 +775,23 @@ export default function CalendarScreen() {
         onRequestClose={closeDayDetailModal}
       >
         <Pressable style={styles.dayDetailBackdrop} onPress={closeDayDetailModal} />
-        <View style={styles.dayDetailCard}>
-          <View style={styles.dayDetailHeader}>
-            <View>
-              <Text style={styles.dayDetailTitle}>{t('calendarDetailTitle')}</Text>
-              {activeDayLabel ? (
-                <Text style={styles.dayDetailDate}>{activeDayLabel}</Text>
-              ) : null}
-            </View>
+        <View
+          style={[
+            styles.dayDetailCard,
+            { backgroundColor: theme.surface, borderColor: theme.borderSoft },
+          ]}
+        >
+            <View style={styles.dayDetailHeader}>
+              <View>
+                <Text style={[styles.dayDetailTitle, { color: theme.textPrimary }]}>
+                  {t('calendarDetailTitle')}
+                </Text>
+                {activeDayLabel ? (
+                  <Text style={[styles.dayDetailDate, { color: theme.textSecondary }]}>
+                    {activeDayLabel}
+                  </Text>
+                ) : null}
+              </View>
             <Pressable style={styles.dayDetailCloseButton} onPress={closeDayDetailModal}>
               <Ionicons name="close" size={18} color="#475569" />
             </Pressable>
@@ -679,7 +804,11 @@ export default function CalendarScreen() {
             nestedScrollEnabled
           >
             <View style={styles.dayDetailSection}>
-              <Text style={styles.dayDetailSectionTitle}>{t('calendarDetailShiftsTitle')}</Text>
+              <Text
+                style={[styles.dayDetailSectionTitle, { color: theme.textSecondary }]}
+              >
+                {t('calendarDetailShiftsTitle')}
+              </Text>
               {activeDayShifts.length ? (
                 activeDayShifts.map((shift) => {
                   const { startLabel, endLabel } = formatShiftTime(shift);
@@ -688,9 +817,12 @@ export default function CalendarScreen() {
                   const phaseLabel = t(PHASE_TRANSLATION_KEYS[shiftPhase]);
                   const locationLabel = buildShiftLocation(shift);
                   return (
-                    <View key={shift.id} style={styles.dayDetailShiftCard}>
+                    <View
+                      key={shift.id}
+                      style={[styles.dayDetailShiftCard, { backgroundColor: theme.surfaceElevated }]}
+                    >
                       <View style={styles.dayDetailShiftHeader}>
-                        <Text style={styles.dayDetailShiftTitle}>{shift.title}</Text>
+                      <Text style={[styles.dayDetailShiftTitle, { color: theme.textPrimary }]}>{shift.title}</Text>
                         <View
                           style={[
                             styles.dayDetailPhaseChip,
@@ -708,24 +840,34 @@ export default function CalendarScreen() {
                           </Text>
                         </View>
                       </View>
-                      <Text style={styles.dayDetailShiftTime}>
+                      <Text style={[styles.dayDetailShiftTime, { color: theme.textSecondary }]}>
                         {startLabel} — {endLabel}
                       </Text>
                       {locationLabel ? (
-                        <Text style={styles.dayDetailLocation}>{locationLabel}</Text>
+                        <Text style={[styles.dayDetailLocation, { color: theme.textSecondary }]}>
+                          {locationLabel}
+                        </Text>
                       ) : null}
                       {shift.description ? (
-                        <Text style={styles.dayDetailDescription}>{shift.description}</Text>
+                        <Text style={[styles.dayDetailDescription, { color: theme.textSecondary }]}>
+                          {shift.description}
+                        </Text>
                       ) : null}
                     </View>
                   );
                 })
               ) : (
-                <Text style={styles.dayDetailEmptyText}>{t('calendarDetailNoEvents')}</Text>
+                <Text style={[styles.dayDetailEmptyText, { color: theme.textSecondary }]}>
+                  {t('calendarDetailNoEvents')}
+                </Text>
               )}
             </View>
             <View style={styles.dayDetailSection}>
-              <Text style={styles.dayDetailSectionTitle}>{t('calendarDetailImportedTitle')}</Text>
+              <Text
+                style={[styles.dayDetailSectionTitle, { color: theme.textSecondary }]}
+              >
+                {t('calendarDetailImportedTitle')}
+              </Text>
               {sortedActiveDayImportedEvents.length ? (
                 sortedActiveDayImportedEvents.map((event) => {
                   const eventTime = event.startDate
@@ -744,16 +886,16 @@ export default function CalendarScreen() {
                           ]}
                         />
                         <View style={styles.dayDetailImportedMeta}>
-                          <Text style={styles.dayDetailItemTitle}>
-                            {event.title ?? t('calendarDetailImportedUntitled')}
-                          </Text>
-                          <Text style={styles.dayDetailItemMeta}>
-                            {event.calendarTitle ?? t('calendarDetailImportedCalendarFallback')}
-                          </Text>
-                          {eventTime ? (
-                            <Text style={styles.dayDetailItemMeta}>
-                              {t('calendarDetailTimeLabel')}: {eventTime}
-                            </Text>
+                      <Text style={[styles.dayDetailItemTitle, { color: theme.textPrimary }]}>
+                      {event.title ?? t('calendarDetailImportedUntitled')}
+                      </Text>
+                      <Text style={[styles.dayDetailItemMeta, { color: theme.textSecondary }]}>
+                        {event.calendarTitle ?? t('calendarDetailImportedCalendarFallback')}
+                      </Text>
+                      {eventTime ? (
+                        <Text style={[styles.dayDetailItemMeta, { color: theme.textSecondary }]}>
+                          {t('calendarDetailTimeLabel')}: {eventTime}
+                        </Text>
                           ) : null}
                         </View>
                       </View>
@@ -761,7 +903,9 @@ export default function CalendarScreen() {
                   );
                 })
               ) : (
-                <Text style={styles.dayDetailEmptyText}>{t('calendarDetailNoImports')}</Text>
+                <Text style={[styles.dayDetailEmptyText, { color: theme.textSecondary }]}>
+                  {t('calendarDetailNoImports')}
+                </Text>
               )}
             </View>
           </ScrollView>
@@ -769,9 +913,18 @@ export default function CalendarScreen() {
       </Modal>
       <Modal transparent visible={showEmptyModal} animationType="fade">
         <View style={styles.emptyModalBackdrop}>
-          <View style={styles.emptyModalCard}>
-            <Text style={styles.emptyModalTitle}>{t('noUpcomingShifts')}</Text>
-            <Text style={styles.emptyModalSubtitle}>{t('listEmptySubtitle')}</Text>
+          <View
+            style={[
+              styles.emptyModalCard,
+              { backgroundColor: theme.surface, borderColor: theme.borderSoft },
+            ]}
+          >
+            <Text style={[styles.emptyModalTitle, { color: theme.textPrimary }]}>
+              {t('noUpcomingShifts')}
+            </Text>
+            <Text style={[styles.emptyModalSubtitle, { color: theme.textSecondary }]}>
+              {t('listEmptySubtitle')}
+            </Text>
             <PrimaryButton title={t('refreshShifts')} onPress={() => {
               setShowEmptyModal(false);
               refetch();
