@@ -23,6 +23,7 @@ import { AuthProvider } from '@hooks/useSupabaseAuth';
 import { queryClient } from '@lib/queryClient';
 import { useExpoPushToken } from '@hooks/useExpoPushToken';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { NotificationBell } from '@shared/components/NotificationBell';
 import { NotificationProvider, useNotifications } from '@shared/context/NotificationContext';
 import {
@@ -33,7 +34,7 @@ import {
   CalendarSelectionProvider,
   useCalendarSelection,
 } from '@shared/context/CalendarSelectionContext';
-import { ThemeProvider } from '@shared/themeContext';
+import { ThemeProvider, useTheme } from '@shared/themeContext';
 import * as Calendar from 'expo-calendar';
 import { useAuth } from '@hooks/useSupabaseAuth';
 import { useQuery } from '@tanstack/react-query';
@@ -77,8 +78,9 @@ function LayoutContentInner() {
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
   const { unreadCount } = useNotifications();
-  const statusBarStyle = 'dark';
-  const statusBarBgColor = '#f8fafc';
+  const { theme, mode } = useTheme();
+  const statusBarStyle = mode === 'dark' ? 'light' : 'dark';
+  const statusBarBgColor = theme.surface;
 
   useEffect(() => {
     if (Constants.appOwnership === 'expo') {
@@ -251,25 +253,40 @@ function LayoutContentInner() {
               <NotificationBell />
             </View>
             <TouchableOpacity
-              style={styles.quickActionButton}
-              onPress={() =>
-                setQuickActionMenuOpen((prev) => !prev)
-              }
+              style={[
+                styles.quickActionButton,
+                {
+                  backgroundColor: theme.surface,
+                  shadowColor: mode === 'dark' ? 'rgba(0, 0, 0, 0.5)' : '#0f172a',
+                },
+              ]}
+              onPress={() => setQuickActionMenuOpen((prev) => !prev)}
             >
-              <Ionicons name="flash-outline" size={20} color="#2563eb" />
+              <Ionicons name="flash-outline" size={20} color={theme.primary} />
             </TouchableOpacity>
           </View>
         )}
         {quickActionMenuOpen && (
           <>
             <Pressable
-              style={[StyleSheet.absoluteFillObject, styles.menuBackdrop]}
+              style={[
+                StyleSheet.absoluteFillObject,
+                styles.menuBackdrop,
+                { backgroundColor: theme.overlay },
+              ]}
               onPress={() => setQuickActionMenuOpen(false)}
             />
-            <View
+            <LinearGradient
+              colors={[theme.surfaceElevated, theme.surface]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
               style={[
                 styles.quickActionMenu,
-                { top: insets.top + 60, maxHeight: windowHeight - insets.top - 80 },
+                {
+                  top: insets.top + 60,
+                  maxHeight: windowHeight - insets.top - 80,
+                  borderColor: theme.border,
+                },
               ]}
               onStartShouldSetResponder={() => true}
             >
@@ -279,7 +296,14 @@ function LayoutContentInner() {
                 nestedScrollEnabled
                 showsVerticalScrollIndicator
               >
-                <Text style={styles.quickActionMenuTitle}>{t('quickActionsMenuTitle')}</Text>
+                <Text
+                  style={[
+                    styles.quickActionMenuTitle,
+                    { color: theme.textSecondary },
+                  ]}
+                >
+                  {t('quickActionsMenuTitle')}
+                </Text>
                 <TouchableOpacity
                   style={styles.quickActionMenuItem}
                   onPress={() => {
@@ -287,13 +311,27 @@ function LayoutContentInner() {
                     router.push('/calendar');
                   }}
                 >
-                  <Text style={styles.quickActionMenuItemText}>{t('calendarMenuOpen')}</Text>
+                  <Text
+                    style={[
+                      styles.quickActionMenuItemText,
+                      { color: theme.textPrimary },
+                    ]}
+                  >
+                    {t('calendarMenuOpen')}
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.quickActionMenuItem}
                   onPress={() => setQuickActionMenuOpen(false)}
                 >
-                  <Text style={styles.quickActionMenuItemText}>{t('calendarMenuSync')}</Text>
+                  <Text
+                    style={[
+                      styles.quickActionMenuItemText,
+                      { color: theme.textPrimary },
+                    ]}
+                  >
+                    {t('calendarMenuSync')}
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.quickActionMenuItem}
@@ -302,7 +340,14 @@ function LayoutContentInner() {
                     Linking.openURL('https://calendar.google.com');
                   }}
                 >
-                  <Text style={styles.quickActionMenuItemText}>{t('calendarMenuImportGoogle')}</Text>
+                  <Text
+                    style={[
+                      styles.quickActionMenuItemText,
+                      { color: theme.textPrimary },
+                    ]}
+                  >
+                    {t('calendarMenuImportGoogle')}
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.quickActionMenuItem}
@@ -311,10 +356,29 @@ function LayoutContentInner() {
                     Linking.openURL('https://outlook.live.com/calendar/');
                   }}
                 >
-                  <Text style={styles.quickActionMenuItemText}>{t('calendarMenuImportOutlook')}</Text>
+                  <Text
+                    style={[
+                      styles.quickActionMenuItemText,
+                      { color: theme.textPrimary },
+                    ]}
+                  >
+                    {t('calendarMenuImportOutlook')}
+                  </Text>
                 </TouchableOpacity>
-                <View style={styles.sectionSeparator} />
-                <Text style={styles.quickActionListTitle}>{t('reportsTitle')}</Text>
+                <View
+                  style={[
+                    styles.sectionSeparator,
+                    { backgroundColor: theme.borderSoft },
+                  ]}
+                />
+                <Text
+                  style={[
+                    styles.quickActionListTitle,
+                    { color: theme.textSecondary },
+                  ]}
+                >
+                  {t('reportsTitle')}
+                </Text>
                 <TouchableOpacity
                   style={styles.quickActionMenuItem}
                   onPress={() => {
@@ -322,7 +386,12 @@ function LayoutContentInner() {
                     handleGeneratePDF('monthly');
                   }}
                 >
-                  <Text style={styles.quickActionMenuItemText}>
+                  <Text
+                    style={[
+                      styles.quickActionMenuItemText,
+                      { color: theme.textPrimary },
+                    ]}
+                  >
                     {isGeneratingReport ? t('reportGenerating') : t('reportGeneratePdf')}
                   </Text>
                 </TouchableOpacity>
@@ -333,19 +402,48 @@ function LayoutContentInner() {
                     handleGeneratePDF('summary');
                   }}
                 >
-                  <Text style={styles.quickActionMenuItemText}>
+                  <Text
+                    style={[
+                      styles.quickActionMenuItemText,
+                      { color: theme.textPrimary },
+                    ]}
+                  >
                     {isGeneratingReport ? t('reportGenerating') : t('reportDownloadSummary')}
                   </Text>
                 </TouchableOpacity>
-                <View style={styles.quickActionList}>
-                  <Text style={styles.quickActionListTitle}>{t('calendarMenuAvailable')}</Text>
-                  <Text style={styles.quickActionSelectionHint}>
+                <View
+                  style={[
+                    styles.quickActionList,
+                    { borderTopColor: theme.borderSoft },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.quickActionListTitle,
+                      { color: theme.textSecondary },
+                    ]}
+                  >
+                    {t('calendarMenuAvailable')}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.quickActionSelectionHint,
+                      { color: theme.textSecondary },
+                    ]}
+                  >
                     {selectedCalendars.length
                       ? t('calendarMenuSelectionCount', { count: selectedCalendars.length })
                       : t('calendarMenuSelectionPrompt')}
                   </Text>
                   {calendars === null ? (
-                    <Text style={styles.quickActionListEmpty}>{t('calendarMenuLoading')}</Text>
+                    <Text
+                      style={[
+                        styles.quickActionListEmpty,
+                        { color: theme.textSecondary },
+                      ]}
+                    >
+                      {t('calendarMenuLoading')}
+                    </Text>
                   ) : calendars.length ? (
                     calendars.map((cal) => {
                       const isSelected = selectedCalendars.some((entry) => entry.id === cal.id);
@@ -355,6 +453,9 @@ function LayoutContentInner() {
                           style={[
                             styles.quickActionListItem,
                             isSelected && styles.quickActionListItemSelected,
+                            isSelected && {
+                              backgroundColor: `${theme.primary}20`,
+                            },
                           ]}
                           onPress={() =>
                             toggleCalendarSelection({
@@ -365,13 +466,25 @@ function LayoutContentInner() {
                           }
                         >
                           <View>
-                            <Text style={styles.quickActionListItemTitle}>{cal.title}</Text>
-                            <Text style={styles.quickActionListItemMeta}>
+                            <Text
+                              style={[
+                                styles.quickActionListItemTitle,
+                                { color: theme.textPrimary },
+                              ]}
+                            >
+                              {cal.title}
+                            </Text>
+                            <Text
+                              style={[
+                                styles.quickActionListItemMeta,
+                                { color: theme.textSecondary },
+                              ]}
+                            >
                               {cal.source?.name ?? cal.source?.type}
                             </Text>
                           </View>
                           {isSelected && (
-                            <Ionicons name="checkmark-circle" size={20} color="#2563eb" />
+                            <Ionicons name="checkmark-circle" size={20} color={theme.primary} />
                           )}
                         </TouchableOpacity>
                       );
@@ -381,7 +494,7 @@ function LayoutContentInner() {
                   )}
                 </View>
               </ScrollView>
-            </View>
+            </LinearGradient>
           </>
         )}
         <View style={styles.content}>
@@ -436,7 +549,6 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 16,
-    backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 8,
@@ -454,7 +566,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   menuBackdrop: {
-    backgroundColor: 'rgba(15,23,42,0.35)',
     zIndex: 25,
   },
   quickActionMenu: {
@@ -462,7 +573,6 @@ const styles = StyleSheet.create({
     right: 16,
     width: 200,
     borderRadius: 16,
-    backgroundColor: '#fff',
     padding: 12,
     zIndex: 30,
     shadowColor: '#0f172a',
@@ -470,6 +580,7 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 8 },
     elevation: 14,
+    borderWidth: 1,
   },
   quickActionScroll: {
     maxHeight: 320,
