@@ -14,6 +14,7 @@ import { Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@lib/supabaseClient';
 import { useAuth } from '@hooks/useSupabaseAuth';
+import { useRouter } from 'expo-router';
 
 type NotificationItem = {
   id: string;
@@ -22,6 +23,8 @@ type NotificationItem = {
   createdAt: string;
   read: boolean;
   category: NotificationCategory;
+  metadata?: Record<string, unknown>;
+  targetPath?: string;
 };
 
 type NotificationContextValue = {
@@ -94,6 +97,22 @@ const determineNotificationCategory = (title: string, detail: string): Notificat
   return 'general';
 };
 
+const normalizeString = (value?: unknown): string | undefined =>
+  typeof value === 'string' && value.trim() ? value.trim() : undefined;
+
+const resolveTargetPath = (metadata?: Record<string, unknown>) => {
+  if (!metadata) return undefined;
+  const directTarget = normalizeString(metadata.target ?? metadata.url ?? metadata.deepLink);
+  if (directTarget) return directTarget;
+  const shiftId = normalizeString(
+    metadata.shiftId ?? metadata.shift_id ?? metadata.assignmentId ?? metadata.assignment_id
+  );
+  if (shiftId) {
+    return `/shift-details/${shiftId}`;
+  }
+  return undefined;
+};
+
 const createFallbackNotifications = (): NotificationItem[] => {
   const now = Date.now();
   const minutesAgo = (minutes: number) => new Date(now - minutes * 60 * 1000).toISOString();
@@ -105,6 +124,8 @@ const createFallbackNotifications = (): NotificationItem[] => {
       createdAt: minutesAgo(2),
       read: false,
       category: 'shift-schedule',
+      metadata: { target: '/my-shifts' },
+      targetPath: '/my-shifts',
     },
     {
       id: 'policy-update',
@@ -151,6 +172,10 @@ const normalizeNotificationRow = (row: Record<string, unknown>): NotificationIte
     row.is_read ?? row.read ?? row.viewed ?? row.dismissed ?? row.status === 'read'
   );
   const category = determineNotificationCategory(normalizedTitle, normalizedDetail);
+  const metadata = (row.metadata ?? row.meta ?? row.data ?? row.payload ?? row.context) as
+    | Record<string, unknown>
+    | undefined;
+  const targetPath = resolveTargetPath(metadata);
   return {
     id: String(rawId),
     title: normalizedTitle,
@@ -158,6 +183,8 @@ const normalizeNotificationRow = (row: Record<string, unknown>): NotificationIte
     createdAt,
     read,
     category,
+    metadata,
+    targetPath,
   };
 };
 
@@ -237,6 +264,7 @@ const NotificationContext = createContext<NotificationContextValue | undefined>(
 
 export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
+  const router = useRouter();
   const employeeId = user?.id;
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>(createFallbackNotifications);
@@ -297,6 +325,8 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     (
       entry: Omit<NotificationItem, 'id' | 'createdAt'> & {
         category?: NotificationCategory;
+        metadata?: Record<string, unknown>;
+        targetPath?: string;
       }
     ) => {
       setNotifications((prev) => [
@@ -307,12 +337,35 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
           createdAt: new Date().toISOString(),
           read: entry.read ?? false,
           category: entry.category ?? determineNotificationCategory(entry.title, entry.detail),
+          metadata: entry.metadata,
+          targetPath:
+            entry.targetPath ?? entry.metadata && resolveTargetPath(entry.metadata),
         },
         ...prev,
       ]);
     },
     []
   );
+
+  const markNotificationRead = useCallback(async (notificationId: string) => {
+    setNotifications((prev) =>
+      prev.map((item) => (item.id === notificationId ? { ...item, read: true } : item))
+    );
+
+    if (!supabase) return;
+
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('id', notificationId);
+      if (error) {
+        throw error;
+      }
+    } catch (error) {
+      console.warn('Failed to mark notification as read', error);
+    }
+  }, []);
 
   const markAllAsRead = useCallback(async () => {
     const unreadIds = notifications.filter((item) => !item.read).map((item) => item.id);
@@ -387,6 +440,17 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     [open, toggle, close, notifications, unreadCount, markAllAsRead, refresh, addNotification]
   );
 
+  const handleNotificationPress = useCallback(
+    (item: NotificationItem) => {
+      void markNotificationRead(item.id);
+      if (item.targetPath) {
+        setOpen(false);
+        router.push(item.targetPath);
+      }
+    },
+    [markNotificationRead, router]
+  );
+
   const groupedSections = useMemo(() => groupNotificationsByRecency(notifications), [notifications]);
   const categoryCounts = useMemo(() => tallyCategoryCounts(notifications), [notifications]);
 
@@ -435,15 +499,22 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
                   <View key={section.key} style={styles.sectionGroup}>
                     <Text style={styles.sectionTitle}>{section.title}</Text>
                     {section.items.map((item) => (
-                      <View key={item.id} style={styles.notificationCard}>
+                      <Pressable
+                        key={item.id}
+                        style={({ pressed }) => [
+                          styles.notificationCard,
+                          pressed && styles.notificationCardPressed,
+                        ]}
+                        onPress={() => handleNotificationPress(item)}
+                        android_ripple={{ color: 'rgba(255,255,255,0.08)' }}
+                      >
                         <View style={styles.notificationTitleRow}>
                           <Text style={styles.notificationTitle}>{item.title}</Text>
                           <View
                             style={[
                               styles.categoryChip,
                               {
-                                backgroundColor:
-                                  categoryMeta[item.category].background,
+                                backgroundColor: categoryMeta[item.category].background,
                                 borderColor: categoryMeta[item.category].color,
                               },
                             ]}
@@ -463,7 +534,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
                           {item.detail}
                         </Text>
                         <Text style={styles.notificationTime}>{getRelativeTimeLabel(item.createdAt)}</Text>
-                      </View>
+                      </Pressable>
                     ))}
                   </View>
                 ))}
@@ -578,6 +649,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.05)',
     marginBottom: 10,
+  },
+  notificationCardPressed: {
+    borderColor: 'rgba(255,255,255,0.25)',
   },
   notificationTitleRow: {
     flexDirection: 'row',

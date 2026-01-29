@@ -105,13 +105,19 @@ const buildShiftDetail = (shift?: Shift, fallbackRow?: Record<string, unknown>) 
   return fallbackParts.filter(Boolean).join(' · ') || 'Recent shift update';
 };
 
-const insertNotificationRow = async (employeeId: string, title: string, detail: string) => {
+const insertNotificationRow = async (
+  employeeId: string,
+  title: string,
+  detail: string,
+  metadata?: Record<string, unknown>
+) => {
   if (!supabase) return;
   try {
     const { error } = await supabase.from('notifications').insert({
       employee_id: employeeId,
       title,
       detail,
+      metadata: metadata && Object.keys(metadata).length ? metadata : undefined,
     });
     if (error) {
       throw error;
@@ -194,7 +200,11 @@ export const useShiftNotifications = (shiftIds: string[]) => {
 
       const title = normalizedEvent === 'DELETE' ? 'Shift removed' : 'Shift published';
       const detail = buildShiftDetail(await getShiftById(shiftId), payload.new ?? payload.old);
-      await insertNotificationRow(employeeId, title, detail);
+      await insertNotificationRow(employeeId, title, detail, {
+        shiftId,
+        target: `/shift-details/${shiftId}`,
+        event: normalizedEvent,
+      });
     };
 
     const handleShiftChangeEvent = async (payload: PostgresRealtimePayload) => {
@@ -220,7 +230,11 @@ export const useShiftNotifications = (shiftIds: string[]) => {
       shiftCache.current.set(shiftId, eventKey);
 
       const detail = buildShiftDetail(await getShiftById(shiftId), payload.new ?? payload.old);
-      await insertNotificationRow(employeeId, 'Shift schedule updated', detail);
+      await insertNotificationRow(employeeId, 'Shift schedule updated', detail, {
+        shiftId,
+        target: `/shift-details/${shiftId}`,
+        event: 'UPDATE',
+      });
     };
 
     const assignmentChannel = supabase.channel(`shift-assignments-notifications:${employeeId}`);

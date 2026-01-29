@@ -55,6 +55,7 @@ A cross-platform Expo app that lets employees interact with internal services, l
 
 - The app relies on a `public.notifications` table (see `supabase/notifications-table.sql`) so `NotificationContext` can fetch the most recent rows, mark them read, and stay subscribed to Supabase Realtime changes without `PGRST205`. Apply that SQL in the Supabase SQL editor or `supabase db query`.
 - A new `useShiftNotifications` hook watches your assigned `shift_assignments` plus the matching `shifts` rows. When a shift is published/removed or its window/location changes, the client automatically writes a descriptive row into `public.notifications`, keeping the bell badge current without you having to emit those specific rows from your backend.
+- Each notification carries optional JSON `metadata` (e.g., `{ shiftId, target: '/shift-details/<id>' }`) so the bell can deep-link into the updated shift or admin screen when the user taps the row.
 - Insert rows into this table whenever real events happen (shifts assigned, policy updates, etc.); the client already listens on `notifications` filtered by `employeeId`, so each new row immediately updates the bell, badge, and modal without additional work.
 - For native push alerts, run a development build (`eas build --profile development` or `expo run:android/ios`) so Expo can register push tokens (Expo Go with SDK 53+ cannot). Save that token alongside the user and send push messages whenever you write a notification row so users receive both the server-side push and the in-app bell.
 
