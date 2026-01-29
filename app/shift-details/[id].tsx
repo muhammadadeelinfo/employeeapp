@@ -21,31 +21,41 @@ import { useLanguage, type TranslationKey } from '@shared/context/LanguageContex
 
 const statusStyles: Record<
   Shift['status'],
-  { border: string; dot: string; text: string; description: string }
+  {
+    border: string;
+    dot: string;
+    text: string;
+    labelKey: TranslationKey;
+    descriptionKey: TranslationKey;
+  }
 > = {
   scheduled: {
     border: '#c7d2fe',
     dot: '#93c5fd',
     text: '#1d4ed8',
-    description: 'This shift is confirmed and ready for you to accept.',
+    labelKey: 'statusScheduled',
+    descriptionKey: 'statusScheduledDescription',
   },
   'in-progress': {
     border: '#4ade80',
     dot: '#22c55e',
     text: '#059669',
-    description: 'You are currently on the clock—wrap up the essentials and keep the momentum.',
+    labelKey: 'statusInProgress',
+    descriptionKey: 'statusInProgressDescription',
   },
   completed: {
     border: '#d1d5db',
     dot: '#6b7280',
     text: '#4b5563',
-    description: 'Nice work! This shift is marked as completed.',
+    labelKey: 'statusCompleted',
+    descriptionKey: 'statusCompletedDescription',
   },
   blocked: {
     border: '#fca5a5',
     dot: '#dc2626',
     text: '#b91c1c',
-    description: 'This assignment needs attention before you can start.',
+    labelKey: 'statusBlocked',
+    descriptionKey: 'statusBlockedDescription',
   },
 };
 
@@ -156,6 +166,8 @@ export default function ShiftDetailsScreen() {
   const endLabel = formatTime(shiftToShow.end);
   const dateLabel = formatDate(shiftToShow.start);
   const description = shiftToShow.description?.trim();
+  const statusLabel = t(status.labelKey);
+  const statusDescription = t(status.descriptionKey);
   const now = new Date();
   const shiftStart = new Date(shiftToShow.start);
   const minutesUntilStart = Math.max(
@@ -228,9 +240,7 @@ export default function ShiftDetailsScreen() {
         <View style={styles.heroTop}>
           <View style={[styles.statusBadge, { borderColor: status.border }]}>
             <View style={[styles.statusDot, { backgroundColor: status.dot }]} />
-            <Text style={[styles.statusText, { color: status.text }]}>
-              {shiftToShow.status.toUpperCase()}
-            </Text>
+            <Text style={[styles.statusText, { color: status.text }]}>{statusLabel}</Text>
           </View>
           <View>
             <Text style={styles.heroTempoLabel}>{shiftTempo}</Text>
@@ -239,7 +249,7 @@ export default function ShiftDetailsScreen() {
         </View>
         <Text style={styles.title}>{shiftToShow.title}</Text>
         <Text style={styles.subtitle}>{locationLabel}</Text>
-        <Text style={styles.statusDescription}>{status.description}</Text>
+        <Text style={styles.statusDescription}>{statusDescription}</Text>
 
         <View style={styles.heroStats}>
           {heroStats.map((stat, index) => (

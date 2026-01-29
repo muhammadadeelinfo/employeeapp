@@ -67,6 +67,11 @@ const translations = {
     statusInProgress: 'In progress',
     statusCompleted: 'Completed',
     statusBlocked: 'Blocked',
+    statusScheduledDescription: 'This shift is confirmed and ready for you to accept.',
+    statusInProgressDescription:
+      'You are currently on the clock—wrap up the essentials and keep the momentum.',
+    statusCompletedDescription: 'Nice work! This shift is marked as completed.',
+    statusBlockedDescription: 'This assignment needs attention before you can start.',
     confirmShift: 'Confirm shift',
     phasePast: 'Past shift',
     phaseLive: 'Live now',
@@ -264,6 +269,11 @@ const translations = {
     statusInProgress: 'Läuft',
     statusCompleted: 'Abgeschlossen',
     statusBlocked: 'Blockiert',
+    statusScheduledDescription: 'Diese Schicht ist bestätigt und bereit zur Annahme.',
+    statusInProgressDescription:
+      'Du bist aktuell im Einsatz – erledige die wichtigsten Aufgaben und bleib im Flow.',
+    statusCompletedDescription: 'Gute Arbeit! Diese Schicht wurde abgeschlossen.',
+    statusBlockedDescription: 'Dieser Einsatz braucht noch Aufmerksamkeit, bevor du starten kannst.',
     confirmShift: 'Schicht bestätigen',
     phasePast: 'Vergangene Schicht',
     phaseLive: 'Jetzt live',
