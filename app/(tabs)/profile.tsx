@@ -4,6 +4,8 @@ import { useTheme } from '@shared/themeContext';
 import { useAuth } from '@hooks/useSupabaseAuth';
 import { languageDefinitions, useLanguage } from '@shared/context/LanguageContext';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const formatDate = (iso?: string) => {
   if (!iso) return '—';
@@ -49,44 +51,62 @@ export default function ProfileScreen() {
   ];
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background, ...safeAreaStyle }]}> 
-      <ScrollView
-        style={[styles.container, { backgroundColor: theme.background }]}
-        contentContainerStyle={contentContainerStyle}
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background, ...safeAreaStyle }]}>
+      <LinearGradient
+        colors={[theme.surface, theme.surfaceMuted, theme.surface]}
+        style={styles.headerGradient}
+        start={[0, 0]}
+        end={[1, 1]}
       >
-        <View style={[styles.profileHeadline, { backgroundColor: theme.surface }]}> 
+        <View style={styles.heroHeader}>
           <View>
-            <Text style={[styles.profileGreeting, { color: theme.textPrimary }]}> 
+            <Text style={[styles.profileGreeting, { color: theme.textPrimary }]}>
               {t('profileGreeting', { name: profileName(user) })}
             </Text>
             <Text style={[styles.profileSubtext, { color: theme.textSecondary }]}>
               {t('profileSettingsSync')}
             </Text>
           </View>
-          <View style={[styles.statusBadge, { backgroundColor: theme.primary }]}> 
+          <View style={[styles.statusBadge, { backgroundColor: theme.primary }]}>
             <Text style={styles.statusBadgeText}>{translatedStatus}</Text>
           </View>
         </View>
-
-        <View style={styles.badgeRow}>
-          <View style={[styles.badgePill, { backgroundColor: theme.surface, marginRight: 12 }]}>
-            <Text style={[styles.badgeLabel, { color: theme.textSecondary }]}>{t('memberSinceLabel')}</Text>
-            <Text style={[styles.badgeValue, { color: theme.textPrimary }]}>{formatDate(user?.created_at)}</Text>
+        <View style={styles.heroStats}>
+          <View style={styles.heroStat}>
+            <Text style={[styles.heroStatLabel, { color: theme.textSecondary }]}>{t('memberSinceLabel')}</Text>
+            <Text style={[styles.heroStatValue, { color: theme.textPrimary }]}>{formatDate(user?.created_at)}</Text>
           </View>
-          <View style={[styles.badgePill, { backgroundColor: theme.surface, marginRight: 0 }]}>
-            <Text style={[styles.badgeLabel, { color: theme.textSecondary }]}>{t('providerLabel')}</Text>
-            <Text style={[styles.badgeValue, { color: theme.textPrimary }]}>{provider.toUpperCase()}</Text>
+          <View style={styles.heroStat}>
+            <Text style={[styles.heroStatLabel, { color: theme.textSecondary }]}>{t('providerLabel')}</Text>
+            <Text style={[styles.heroStatValue, { color: theme.textPrimary }]}>{provider.toUpperCase()}</Text>
           </View>
         </View>
+        <View style={styles.heroActions}>
+          <View style={styles.actionIcon}>
+            <Ionicons name="notifications-sharp" size={18} color={theme.primary} />
+          </View>
+          <View style={styles.actionIcon}>
+            <Ionicons name="bolt-sharp" size={18} color={theme.primaryAccent} />
+          </View>
+          <Text style={[styles.heroMeta, { color: theme.textSecondary }]}>
+            {user ? user.email : t('profileSettingsSync')}
+          </Text>
+        </View>
+      </LinearGradient>
 
-        <View style={[styles.sectionCard, { backgroundColor: theme.surface }]}> 
+      <ScrollView
+        style={[styles.container, { backgroundColor: theme.background }]}
+        contentContainerStyle={contentContainerStyle}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={[styles.sectionCard, { backgroundColor: theme.surface }]}>
           <Text style={[styles.sectionHeading, { color: theme.textPrimary }]}>{t('accountSnapshot')}</Text>
           <View style={styles.infoGrid}>
             {[
               { label: t('emailVerifiedLabel'), value: user?.email_confirmed_at ? t('yes') : t('pending') },
               { label: t('statusActive'), value: translatedStatus },
             ].map((stat) => (
-              <View key={stat.label} style={[styles.infoCard, { backgroundColor: theme.surface }]}> 
+              <View key={stat.label} style={[styles.infoCard, { backgroundColor: theme.surfaceMuted }]}>
                 <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>{stat.label}</Text>
                 <Text style={[styles.infoValue, { color: theme.textPrimary }]}>{stat.value}</Text>
               </View>
@@ -94,24 +114,25 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        <View style={[styles.sectionCard, { backgroundColor: theme.surface }]}> 
+        <View style={[styles.sectionCard, { backgroundColor: theme.surface }]}>
           <Text style={[styles.sectionHeading, { color: theme.textPrimary }]}>{t('security')}</Text>
           <View style={styles.preferenceGroup}>
             <Text style={[styles.preferenceLabel, { color: theme.textSecondary }]}>{t('preferencesTitle')}</Text>
-            <View style={styles.smallToggleRow}>
+            <View style={styles.toggleRow}>
               {appearanceOptions.map((option) => (
                 <TouchableOpacity
                   key={option.key}
                   onPress={() => setMode(option.key)}
                   style={[
-                    styles.smallToggleOption,
-                    mode === option.key && styles.smallToggleOptionActive,
+                    styles.togglePill,
+                    mode === option.key && styles.togglePillActive,
+                    { borderColor: theme.borderSoft, backgroundColor: mode === option.key ? theme.primary : 'transparent' },
                   ]}
                 >
                   <Text
                     style={[
-                      styles.smallToggleLabel,
-                      mode === option.key && styles.smallToggleLabelActive,
+                      styles.toggleLabel,
+                      mode === option.key ? styles.toggleLabelActive : { color: theme.textSecondary },
                     ]}
                   >
                     {option.label}
@@ -132,13 +153,14 @@ export default function ProfileScreen() {
                     style={[
                       styles.languageToggleItem,
                       isActive && styles.languageToggleItemActive,
+                      { backgroundColor: isActive ? theme.primary : theme.surfaceMuted },
                     ]}
                   >
                     <Text style={styles.languageFlag}>{definition.flag}</Text>
                     <Text
                       style={[
                         styles.languageShortLabel,
-                        isActive && styles.languageShortLabelActive,
+                        isActive ? styles.languageShortLabelActive : { color: theme.textPrimary },
                       ]}
                     >
                       {definition.shortLabel}
@@ -159,35 +181,25 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingHorizontal: 16,
-  },
-  content: {
-    paddingBottom: 40,
-  },
   safeArea: {
     flex: 1,
   },
-  profileHeadline: {
+  headerGradient: {
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 20,
+  },
+  heroHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    borderRadius: 22,
-    padding: 18,
-    marginBottom: 16,
-    shadowColor: '#0f172a',
-    shadowOpacity: 0.08,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 8,
+    alignItems: 'flex-start',
   },
   profileGreeting: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: '700',
   },
   profileSubtext: {
-    fontSize: 13,
+    fontSize: 14,
     marginTop: 4,
   },
   statusBadge: {
@@ -198,154 +210,155 @@ const styles = StyleSheet.create({
   statusBadgeText: {
     fontSize: 12,
     fontWeight: '700',
-    letterSpacing: 0.3,
     color: '#fff',
   },
-  badgeRow: {
+  heroStats: {
+    marginTop: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 16,
   },
-  badgePill: {
+  heroStat: {
     flex: 1,
-    borderRadius: 16,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    marginRight: 12,
-    shadowColor: '#0f172a',
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
+    paddingRight: 12,
   },
-  badgeLabel: {
-    fontSize: 10,
-    letterSpacing: 0.4,
+  heroStatLabel: {
+    fontSize: 12,
+    fontWeight: '600',
     textTransform: 'uppercase',
+    letterSpacing: 0.6,
     marginBottom: 4,
   },
-  badgeValue: {
-    fontSize: 14,
-    fontWeight: '600',
+  heroStatValue: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  heroActions: {
+    marginTop: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  heroMeta: {
+    flex: 1,
+    fontSize: 12,
+    letterSpacing: 0.3,
+  },
+  actionIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  container: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  content: {
+    paddingBottom: 40,
   },
   sectionCard: {
     borderRadius: 22,
-    padding: 18,
-    marginBottom: 16,
+    padding: 20,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: '#0f172a',
     shadowColor: '#0f172a',
-    shadowOpacity: 0.04,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 6,
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 16,
+    elevation: 8,
   },
   sectionHeading: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '700',
     marginBottom: 12,
   },
   infoGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 12,
   },
   infoCard: {
     flex: 1,
-    borderRadius: 18,
+    minWidth: '45%',
+    borderRadius: 14,
     padding: 14,
-    marginHorizontal: 4,
-    alignItems: 'flex-start',
-    shadowColor: '#0f172a',
-    shadowOpacity: 0.03,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 3,
   },
   infoLabel: {
-    fontSize: 11,
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
-    marginBottom: 6,
+    fontSize: 12,
+    marginBottom: 4,
   },
   infoValue: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
   },
   preferenceGroup: {
     marginBottom: 16,
   },
   preferenceLabel: {
-    fontSize: 11,
-    letterSpacing: 0.3,
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 8,
     textTransform: 'uppercase',
-    marginBottom: 6,
+    letterSpacing: 0.4,
   },
-  smallToggleRow: {
+  toggleRow: {
     flexDirection: 'row',
-    backgroundColor: '#f3f4f6',
-    borderRadius: 16,
-    padding: 4,
+    gap: 12,
   },
-  smallToggleOption: {
+  togglePill: {
     flex: 1,
     paddingVertical: 10,
-    borderRadius: 12,
+    borderRadius: 999,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  smallToggleOptionActive: {
-    backgroundColor: '#fff',
-    shadowColor: '#0f172a',
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
+  togglePillActive: {
+    borderWidth: 0,
   },
-  smallToggleLabel: {
-    fontSize: 13,
+  toggleLabel: {
+    fontSize: 14,
     fontWeight: '600',
-    color: '#475569',
   },
-  smallToggleLabelActive: {
-    color: '#111827',
+  toggleLabelActive: {
+    color: '#fff',
   },
   languageToggleList: {
     flexDirection: 'row',
-    borderRadius: 16,
-    backgroundColor: '#f1f5f9',
-    padding: 4,
+    gap: 12,
   },
   languageToggleItem: {
     flex: 1,
-    flexDirection: 'row',
+    borderRadius: 14,
+    paddingVertical: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 999,
-    paddingVertical: 6,
-    paddingHorizontal: 4,
-    borderWidth: 1,
-    borderColor: 'transparent',
+    flexDirection: 'row',
+    gap: 6,
   },
   languageToggleItemActive: {
-    backgroundColor: '#fff',
-    borderColor: '#cbd5f5',
+    borderWidth: 0,
   },
   languageFlag: {
     fontSize: 14,
-    marginRight: 4,
   },
   languageShortLabel: {
-    fontSize: 11,
-    letterSpacing: 0.3,
-    color: '#475569',
+    fontSize: 13,
+    fontWeight: '600',
   },
   languageShortLabelActive: {
-    color: '#111827',
-    fontWeight: '700',
+    color: '#fff',
   },
   button: {
     marginTop: 16,
   },
   link: {
-    marginTop: 10,
-    textAlign: 'center',
+    marginTop: 12,
+    fontSize: 13,
+    fontWeight: '600',
   },
 });

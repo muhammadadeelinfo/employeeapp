@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo, useState, type PropsWithChildren } from 'react';
-import { lightTheme, darkTheme } from './colors';
+import { lightTheme, darkTheme } from './theme/colors';
 
 type ThemeName = 'light' | 'dark';
 
