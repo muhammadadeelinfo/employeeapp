@@ -1,7 +1,7 @@
 import { Tabs } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ThemeProvider, useTheme } from '@shared/themeContext';
+import { useTheme } from '@shared/themeContext';
 
 const iconConfig: Record<string, { active: string; inactive: string; label: string }> = {
   'my-shifts': {
@@ -28,11 +28,7 @@ const iconConfig: Record<string, { active: string; inactive: string; label: stri
 
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
-  return (
-    <ThemeProvider>
-      <ThemeAwareTabs insets={insets} />
-    </ThemeProvider>
-  );
+  return <ThemeAwareTabs insets={insets} />;
 }
 
 function ThemeAwareTabs({ insets }: { insets: ReturnType<typeof useSafeAreaInsets> }) {

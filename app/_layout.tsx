@@ -277,6 +277,7 @@ function LayoutContentInner() {
               onPress={() => setQuickActionMenuOpen(false)}
             />
             <LinearGradient
+              key={`quick-actions-gradient-${mode}`}
               colors={[theme.surfaceElevated, theme.surface]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
@@ -490,7 +491,14 @@ function LayoutContentInner() {
                       );
                     })
                   ) : (
-                    <Text style={styles.quickActionListEmpty}>{t('calendarMenuNoCalendars')}</Text>
+                    <Text
+                      style={[
+                        styles.quickActionListEmpty,
+                        { color: theme.textSecondary },
+                      ]}
+                    >
+                      {t('calendarMenuNoCalendars')}
+                    </Text>
                   )}
                 </View>
               </ScrollView>
