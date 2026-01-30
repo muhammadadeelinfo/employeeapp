@@ -248,18 +248,6 @@ const groupNotificationsByRecency = (notifications: NotificationItem[]): {
     .filter((section) => section.items.length > 0);
 };
 
-const tallyCategoryCounts = (notifications: NotificationItem[]) =>
-  notifications.reduce<Record<NotificationCategory, number>>((acc, notification) => {
-    acc[notification.category] = (acc[notification.category] ?? 0) + 1;
-    return acc;
-  }, {
-    'shift-published': 0,
-    'shift-removed': 0,
-    'shift-schedule': 0,
-    admin: 0,
-    general: 0,
-  });
-
 const NotificationContext = createContext<NotificationContextValue | undefined>(undefined);
 
 export const NotificationProvider = ({ children }: { children: ReactNode }) => {
@@ -452,7 +440,6 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   );
 
   const groupedSections = useMemo(() => groupNotificationsByRecency(notifications), [notifications]);
-  const categoryCounts = useMemo(() => tallyCategoryCounts(notifications), [notifications]);
 
   return (
     <NotificationContext.Provider value={value}>
@@ -466,31 +453,6 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
                 <Text style={styles.panelMeta}>
                   {unreadCount > 0 ? `${unreadCount} waiting` : 'All caught up'}
                 </Text>
-              </View>
-              <View style={styles.summaryChips}>
-                {Object.entries(categoryCounts)
-                  .filter(([, count]) => count > 0)
-                  .map(([category, count]) => (
-                    <View
-                      key={category}
-                      style={[
-                        styles.summaryChip,
-                        {
-                          backgroundColor: categoryMeta[category as NotificationCategory].background,
-                          borderColor: categoryMeta[category as NotificationCategory].color,
-                        },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.summaryChipText,
-                          { color: categoryMeta[category as NotificationCategory].color },
-                        ]}
-                      >
-                        {`${categoryMeta[category as NotificationCategory].label}: ${count}`}
-                      </Text>
-                    </View>
-                  ))}
               </View>
             </View>
             {groupedSections.length ? (
@@ -611,25 +573,6 @@ const styles = StyleSheet.create({
   panelMeta: {
     color: '#b1bfed',
     fontSize: 12,
-  },
-  summaryChips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginLeft: 12,
-  },
-  summaryChip: {
-    borderRadius: 999,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    marginBottom: 4,
-    marginRight: 6,
-    backgroundColor: 'rgba(15, 23, 42, 0.6)',
-    color: '#e0e7ff',
-  },
-  summaryChipText: {
-    fontSize: 11,
-    fontWeight: '600',
   },
   notificationsList: {
     marginTop: 10,
