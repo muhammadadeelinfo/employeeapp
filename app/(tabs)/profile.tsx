@@ -1,4 +1,5 @@
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useQuery } from '@tanstack/react-query';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
 import { useTheme } from '@shared/themeContext';
 import { useAuth } from '@hooks/useSupabaseAuth';
@@ -6,6 +7,7 @@ import { languageDefinitions, useLanguage } from '@shared/context/LanguageContex
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { supabase } from '@lib/supabaseClient';
 
 const formatDate = (iso?: string) => {
   if (!iso) return '—';
@@ -13,6 +15,102 @@ const formatDate = (iso?: string) => {
   if (Number.isNaN(parsed.getTime())) return '—';
   return parsed.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
 };
+
+const normalizeContactString = (value?: unknown) =>
+  typeof value === 'string' && value.trim() ? value.trim() : undefined;
+
+type EmployeeProfile = {
+  mobile?: string | null;
+  phone?: string | null;
+  address?: string | null;
+};
+
+const isMissingColumnError = (error: unknown) =>
+  typeof error === 'object' &&
+  error !== null &&
+  'code' in error &&
+  (error as { code?: string }).code === '42703';
+
+const fetchEmployeeProfile = async (employeeId: string): Promise<EmployeeProfile | null> => {
+  if (!supabase) {
+    console.warn('Supabase client not configured; skipping employee profile fetch.');
+    return null;
+  }
+
+  const candidateColumns = ['id', 'employeeId', 'employee_id', 'userId', 'user_id'] as const;
+  for (const column of candidateColumns) {
+    const { data, error } = await supabase
+      .from('employees')
+      .select('mobile,phone,address')
+      .eq(column, employeeId)
+      .maybeSingle();
+
+    if (error) {
+      if (isMissingColumnError(error)) {
+        continue;
+      }
+      console.warn('Failed to load employee profile', error);
+      return null;
+    }
+
+    if (data) {
+      return data;
+    }
+  }
+
+  return null;
+};
+
+const getStringField = (source?: Record<string, unknown>, key?: string) => {
+  if (!source || !key) return undefined;
+  const value = source[key];
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+};
+
+const formatMetadataAddress = (metadata?: Record<string, unknown>) => {
+  if (!metadata) return undefined;
+  const addressCandidate = metadata.address;
+  if (typeof addressCandidate === 'string' && addressCandidate.trim()) {
+    return addressCandidate.trim();
+  }
+  if (addressCandidate && typeof addressCandidate === 'object') {
+    const addressParts = [
+      'line1',
+      'line2',
+      'street',
+      'addressLine1',
+      'addressLine2',
+      'city',
+      'state',
+      'postal_code',
+      'postalCode',
+      'country',
+    ]
+      .map((key) => getStringField(addressCandidate as Record<string, unknown>, key))
+      .filter((part): part is string => Boolean(part));
+    if (addressParts.length) {
+      return addressParts.join(', ');
+    }
+  }
+  const fallbackParts = [
+    'street',
+    'city',
+    'state',
+    'postal_code',
+    'postalCode',
+    'country',
+    'location',
+  ]
+    .map((key) => getStringField(metadata, key))
+    .filter((part): part is string => Boolean(part));
+  return fallbackParts.length ? fallbackParts.join(', ') : undefined;
+};
+
+const getPhoneNumber = (metadata?: Record<string, unknown>) =>
+  getStringField(metadata, 'phone') ??
+  getStringField(metadata, 'phone_number') ??
+  getStringField(metadata, 'mobile') ??
+  getStringField(metadata, 'phoneNumber');
 
 const profileName = (user: ReturnType<typeof useAuth>['user'] | null) => {
   if (!user) return 'Guest';
@@ -34,22 +132,36 @@ const shiftStatus = (metadata?: Record<string, unknown> | null) => {
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();
-  const { mode, setMode, theme } = useTheme();
+  const { theme } = useTheme();
   const { t, language, setLanguage } = useLanguage();
   const insets = useSafeAreaInsets();
+  const employeeId = user?.id;
+  const { data: employeeRecord } = useQuery({
+    queryKey: ['employeeProfile', employeeId],
+    queryFn: () => (employeeId ? fetchEmployeeProfile(employeeId) : null),
+    enabled: !!employeeId,
+    staleTime: 60_000,
+  });
   const provider = user?.identities?.[0]?.provider ?? 'email';
   const status = shiftStatus(user?.user_metadata);
   const translatedStatus = status === 'Active' ? t('statusActive') : status;
+  const metadata = user?.user_metadata;
+  const contactPhone =
+    normalizeContactString(employeeRecord?.mobile) ??
+    normalizeContactString(employeeRecord?.phone) ??
+    getPhoneNumber(metadata);
+  const contactAddress =
+    normalizeContactString(employeeRecord?.address) ?? formatMetadataAddress(metadata);
   const handleSignOut = () => {
     signOut();
   };
   const safeAreaStyle = { paddingTop: 12 + insets.top };
   const contentContainerStyle = [styles.content, { paddingBottom: 40 + insets.bottom }];
-  const appearanceOptions = [
-    { key: 'light' as const, label: t('lightMode') },
-    { key: 'dark' as const, label: t('darkMode') },
+  const contactFields = [
+    { label: t('emailLabel'), value: user?.email ?? t('notProvided') },
+    { label: t('phoneLabel'), value: contactPhone ?? t('notProvided') },
+    { label: t('addressLabel'), value: contactAddress ?? t('notProvided') },
   ];
-
   const heroGradientColors = [theme.heroGradientStart, theme.heroGradientEnd, theme.surfaceMuted];
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background, ...safeAreaStyle }]}>
@@ -103,35 +215,22 @@ export default function ProfileScreen() {
               </View>
             ))}
           </View>
+          <View style={styles.contactList}>
+            <Text style={[styles.contactSectionTitle, { color: theme.textSecondary }]}>{t('contactInformation')}</Text>
+            {contactFields.map((field) => (
+              <View
+                key={field.label}
+                style={[styles.contactRow, { borderColor: theme.borderSoft }]}
+              >
+                <Text style={[styles.contactLabel, { color: theme.textSecondary }]}>{field.label}</Text>
+                <Text style={[styles.contactValue, { color: theme.textPrimary }]}>{field.value}</Text>
+              </View>
+            ))}
+          </View>
         </View>
 
         <View style={[styles.sectionCard, { backgroundColor: theme.surface }]}>
           <Text style={[styles.sectionHeading, { color: theme.textPrimary }]}>{t('security')}</Text>
-          <View style={styles.preferenceGroup}>
-            <Text style={[styles.preferenceLabel, { color: theme.textSecondary }]}>{t('preferencesTitle')}</Text>
-            <View style={styles.toggleRow}>
-              {appearanceOptions.map((option) => (
-                <TouchableOpacity
-                  key={option.key}
-                  onPress={() => setMode(option.key)}
-                  style={[
-                    styles.togglePill,
-                    mode === option.key && styles.togglePillActive,
-                    { borderColor: theme.borderSoft, backgroundColor: mode === option.key ? theme.primary : 'transparent' },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.toggleLabel,
-                      mode === option.key ? styles.toggleLabelActive : { color: theme.textSecondary },
-                    ]}
-                  >
-                    {option.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
           <View style={styles.preferenceGroup}>
             <Text style={[styles.preferenceLabel, { color: theme.textSecondary }]}>{t('languageLabel')}</Text>
             <View style={styles.languageToggleList}>
@@ -333,6 +432,29 @@ const styles = StyleSheet.create({
   infoValue: {
     fontSize: 14,
     fontWeight: '700',
+  },
+  contactList: {
+    marginTop: 16,
+  },
+  contactSectionTitle: {
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+    marginBottom: 8,
+  },
+  contactRow: {
+    borderTopWidth: 1,
+    paddingVertical: 10,
+  },
+  contactLabel: {
+    fontSize: 12,
+    letterSpacing: 0.2,
+  },
+  contactValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginTop: 2,
   },
   preferenceGroup: {
     marginBottom: 16,

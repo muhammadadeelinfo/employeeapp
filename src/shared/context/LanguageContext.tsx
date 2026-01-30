@@ -1,4 +1,6 @@
-import { createContext, ReactNode, useContext, useMemo, useState } from 'react';
+import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from '@hooks/useSupabaseAuth';
 
 export const languageDefinitions = [
   { code: 'en', shortLabel: 'EN', flag: '🇬🇧', labelKey: 'languageEnglish' },
@@ -500,6 +502,12 @@ const translations = {
   },
 } as const;
 
+const LANGUAGE_STORAGE_KEY_BASE = 'employee-portal-language';
+const getLanguageStorageKey = (employeeId?: string | null) =>
+  employeeId ? `${LANGUAGE_STORAGE_KEY_BASE}:${employeeId}` : null;
+const isValidLanguage = (value: string | null): value is LanguageCode =>
+  languageDefinitions.some((definition) => definition.code === value);
+
 type TranslationKey = keyof typeof translations['en'];
 
 type LanguageContextValue = {
@@ -523,14 +531,54 @@ const interpolate = (value: string, vars?: TranslationVars) => {
 };
 
 export const LanguageProvider = ({ children }: Props) => {
-  const [language, setLanguage] = useState<LanguageCode>('en');
+  const { user } = useAuth();
+  const storageKey = useMemo(() => getLanguageStorageKey(user?.id), [user?.id]);
+  const [language, setLanguageState] = useState<LanguageCode>('en');
+
+  useEffect(() => {
+    if (!storageKey) {
+      setLanguageState('en');
+      return undefined;
+    }
+
+    let isMounted = true;
+    AsyncStorage.getItem(storageKey)
+      .then((stored) => {
+        if (!isMounted) return;
+        if (isValidLanguage(stored)) {
+          setLanguageState(stored);
+        } else {
+          setLanguageState('en');
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setLanguageState('en');
+        }
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [storageKey]);
+
+  const setLanguage = useCallback(
+    (newLanguage: LanguageCode) => {
+      setLanguageState(newLanguage);
+      if (!storageKey) return;
+      AsyncStorage.setItem(storageKey, newLanguage).catch(() => {
+        /* ignore */
+      });
+    },
+    [storageKey]
+  );
+
   const value = useMemo<LanguageContextValue>(
     () => ({
       language,
       setLanguage,
       t: (key, vars) => interpolate(translations[language][key], vars),
     }),
-    [language]
+    [language, setLanguage]
   );
 
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;

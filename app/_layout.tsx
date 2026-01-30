@@ -250,7 +250,7 @@ function LayoutContentInner() {
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
   const { unreadCount } = useNotifications();
-  const { theme, mode } = useTheme();
+  const { theme } = useTheme();
   const reportThemeOptions = useMemo(
     () => ({
       default: [theme.primary, theme.primaryAccent],
@@ -258,7 +258,7 @@ function LayoutContentInner() {
     }),
     [theme]
   );
-  const statusBarStyle = mode === 'dark' ? 'light' : 'dark';
+  const statusBarStyle = 'light';
   const statusBarBgColor = theme.surface;
   const previewTitle = customReportTitle;
   const previewDescription = customReportDescription;
@@ -1014,7 +1014,7 @@ function LayoutContentInner() {
                 styles.quickActionButton,
                 {
                   backgroundColor: theme.surface,
-                  shadowColor: mode === 'dark' ? 'rgba(0, 0, 0, 0.5)' : '#0f172a',
+                  shadowColor: 'rgba(0, 0, 0, 0.5)',
                 },
               ]}
               onPress={() => setQuickActionMenuOpen((prev) => !prev)}
@@ -1034,7 +1034,7 @@ function LayoutContentInner() {
               onPress={() => setQuickActionMenuOpen(false)}
             />
             <LinearGradient
-              key={`quick-actions-gradient-${mode}`}
+              key="quick-actions-gradient-dark"
               colors={[theme.surfaceElevated, theme.surface]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
@@ -1105,7 +1105,7 @@ function LayoutContentInner() {
                         {
                           backgroundColor: theme.surfaceElevated,
                           borderColor: theme.borderSoft,
-                          shadowColor: mode === 'dark' ? '#000' : '#0f172a',
+                          shadowColor: '#000',
                         },
                       ]}
                       onPress={entry.onPress}

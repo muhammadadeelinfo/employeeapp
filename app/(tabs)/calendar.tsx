@@ -913,22 +913,35 @@ export default function CalendarScreen() {
       </Modal>
       <Modal transparent visible={showEmptyModal} animationType="fade">
         <View style={styles.emptyModalBackdrop}>
+          <LinearGradient
+            colors={[`${theme.primary}66`, `${theme.primaryAccent}22`]}
+            start={[0, 0]}
+            end={[1, 1]}
+            style={[styles.emptyModalGlow, { shadowColor: theme.primaryAccent }]}
+          />
           <View
             style={[
               styles.emptyModalCard,
               { backgroundColor: theme.surface, borderColor: theme.borderSoft },
             ]}
           >
+            <View style={[styles.emptyModalIconCircle, { backgroundColor: theme.primaryAccent }]}>
+              <Ionicons name="calendar-clear" size={26} color={theme.surface} />
+            </View>
             <Text style={[styles.emptyModalTitle, { color: theme.textPrimary }]}>
               {t('noUpcomingShifts')}
             </Text>
             <Text style={[styles.emptyModalSubtitle, { color: theme.textSecondary }]}>
               {t('listEmptySubtitle')}
             </Text>
-            <PrimaryButton title={t('refreshShifts')} onPress={() => {
-              setShowEmptyModal(false);
-              refetch();
-            }} />
+            <PrimaryButton
+              title={t('refreshShifts')}
+              onPress={() => {
+                setShowEmptyModal(false);
+                refetch();
+              }}
+              style={styles.emptyModalButton}
+            />
           </View>
         </View>
       </Modal>
@@ -1415,31 +1428,61 @@ const styles = StyleSheet.create({
   },
   emptyModalBackdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(15,23,42,0.35)',
+    backgroundColor: 'rgba(3, 7, 25, 0.7)',
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 18,
+  },
+  emptyModalGlow: {
+    position: 'absolute',
+    width: 260,
+    height: 260,
+    borderRadius: 260,
+    opacity: 0.7,
+    top: '18%',
+    zIndex: 1,
   },
   emptyModalCard: {
-    width: '80%',
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 20,
+    width: '100%',
+    maxWidth: 340,
+    borderRadius: 26,
+    padding: 28,
     alignItems: 'center',
+    borderWidth: 1,
     shadowColor: '#0f172a',
-    shadowOpacity: 0.25,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 10,
+    shadowOpacity: 0.35,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 16 },
+    elevation: 22,
+    position: 'relative',
+    zIndex: 2,
+  },
+  emptyModalIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.3,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 6,
   },
   emptyModalTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     marginBottom: 8,
+    textAlign: 'center',
   },
   emptyModalSubtitle: {
     fontSize: 14,
-    color: '#6b7280',
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  emptyModalButton: {
+    width: '100%',
   },
 });

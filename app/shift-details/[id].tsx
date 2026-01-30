@@ -141,7 +141,7 @@ export default function ShiftDetailsScreen() {
     : undefined;
   const shiftToShow = shift ?? cachedShift;
   const { t } = useLanguage();
-  const { theme, mode } = useTheme();
+  const { theme } = useTheme();
 
   if (isLoading && !shiftToShow) {
     return (
@@ -205,7 +205,7 @@ export default function ShiftDetailsScreen() {
   ];
   const reachOutCopy = t('reachOutCopy', { contact: opsContact });
   const heroGradientColors = [theme.heroGradientStart, theme.heroGradientEnd];
-  const sectionShadowColor = mode === 'dark' ? '#000' : '#0f172a';
+  const sectionShadowColor = '#000';
   const sectionBackground = theme.surface;
   const heroChipBackground = theme.surfaceMuted;
   const heroStatBackground = theme.surface;
