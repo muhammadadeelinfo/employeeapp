@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { FlatList, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
 import { useTheme } from '@shared/themeContext';
@@ -8,6 +8,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '@lib/supabaseClient';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 
 const formatDate = (iso?: string) => {
   if (!iso) return '—';
@@ -135,6 +136,8 @@ export default function ProfileScreen() {
   const { theme } = useTheme();
   const { t, language, setLanguage } = useLanguage();
   const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
+  const isIOS = Platform.OS === 'ios';
   const employeeId = user?.id;
   const { data: employeeRecord } = useQuery({
     queryKey: ['employeeProfile', employeeId],
@@ -155,117 +158,187 @@ export default function ProfileScreen() {
   const handleSignOut = () => {
     signOut();
   };
-  const safeAreaStyle = { paddingTop: 12 + insets.top };
-  const contentContainerStyle = [styles.content, { paddingBottom: 40 + insets.bottom }];
+  const contentContainerStyle = [
+    styles.content,
+    { paddingBottom: 28 + insets.bottom + tabBarHeight },
+  ];
   const contactFields = [
-    { label: t('emailLabel'), value: user?.email ?? t('notProvided') },
-    { label: t('phoneLabel'), value: contactPhone ?? t('notProvided') },
-    { label: t('addressLabel'), value: contactAddress ?? t('notProvided') },
+    { label: t('emailLabel'), value: user?.email ?? t('notProvided'), icon: 'mail-outline' as const },
+    { label: t('phoneLabel'), value: contactPhone ?? t('notProvided'), icon: 'call-outline' as const },
+    { label: t('addressLabel'), value: contactAddress ?? t('notProvided'), icon: 'location-outline' as const },
   ];
   const heroGradientColors = [theme.heroGradientStart, theme.heroGradientEnd, theme.surfaceMuted];
+  const initials = profileName(user)
+    .split(' ')
+    .filter(Boolean)
+    .map((part) => part[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background, ...safeAreaStyle }]}>
-      <LinearGradient
-        colors={heroGradientColors}
-        style={[styles.headerGradient, styles.headerGlass]}
-        start={[0, 0]}
-        end={[1, 1]}
-      >
-        <View style={styles.heroGlow} />
-        <View style={styles.heroCard}>
-          <View style={styles.heroHeader}>
-            <View>
-              <Text style={[styles.profileGreeting, { color: theme.textPrimary }]}>
-                {t('profileGreeting', { name: profileName(user) })}
-              </Text>
-            </View>
-            <View style={[styles.statusBadge, { backgroundColor: theme.primaryAccent }]}>
-              <Text style={styles.statusBadgeText}>{translatedStatus}</Text>
-            </View>
-          </View>
-          <View style={styles.heroMetrics}>
-            <View style={styles.heroMetricBlock}>
-              <Text style={[styles.profileMetricLabel, { color: theme.textSecondary }]}>{t('memberSince')}</Text>
-              <Text style={[styles.profileMetricValue, { color: theme.textPrimary }]}>{formatDate(user?.created_at)}</Text>
-            </View>
-            <View style={styles.heroMetricBlock}>
-              <Text style={[styles.profileMetricLabel, { color: theme.textSecondary }]}>{t('providerLabel')}</Text>
-              <Text style={[styles.profileMetricValue, { color: theme.textPrimary }]}>{provider.toUpperCase()}</Text>
-            </View>
-          </View>
-        <View style={styles.heroActions} />
-        </View>
-      </LinearGradient>
-
-      <ScrollView
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
+      <FlatList
         style={[styles.container, { backgroundColor: theme.background }]}
         contentContainerStyle={contentContainerStyle}
         showsVerticalScrollIndicator={false}
-      >
-        <View style={[styles.sectionCard, { backgroundColor: theme.surface }]}>
-          <Text style={[styles.sectionHeading, { color: theme.textPrimary }]}>{t('accountSnapshot')}</Text>
-          <View style={styles.infoGrid}>
-            {[
-              { label: t('emailVerifiedLabel'), value: user?.email_confirmed_at ? t('yes') : t('pending') },
-              { label: t('statusActive'), value: translatedStatus },
-            ].map((stat) => (
-              <View key={stat.label} style={[styles.infoCard, { backgroundColor: theme.surfaceMuted }]}>
-                <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>{stat.label}</Text>
-                <Text style={[styles.infoValue, { color: theme.textPrimary }]}>{stat.value}</Text>
+        contentInsetAdjustmentBehavior="never"
+        alwaysBounceVertical
+        bounces
+        keyboardShouldPersistTaps="handled"
+        nestedScrollEnabled
+        scrollEnabled
+        directionalLockEnabled
+        keyboardDismissMode="on-drag"
+        scrollIndicatorInsets={
+          isIOS ? { bottom: tabBarHeight + insets.bottom } : undefined
+        }
+        ListFooterComponent={<View style={[styles.footerSpacer, { height: tabBarHeight + insets.bottom }]} />}
+        data={[{ key: 'profile' }]}
+        keyExtractor={(item) => item.key}
+        ListHeaderComponentStyle={styles.headerSpacing}
+        ListHeaderComponent={
+          <LinearGradient
+            colors={heroGradientColors}
+            style={[
+              styles.headerGradient,
+              styles.headerGlass,
+              { paddingTop: isIOS ? Math.max(0, insets.top - 18) : 14 + insets.top },
+            ]}
+            start={[0, 0]}
+            end={[1, 1]}
+          >
+            <View style={styles.heroGlow} />
+            <View
+              style={[
+                styles.heroCard,
+                { backgroundColor: 'rgba(255,255,255,0.06)' },
+                isIOS && styles.heroCardIOS,
+              ]}
+            >
+              <View style={styles.heroHeader}>
+                <View style={styles.heroIdentity}>
+                  <View style={[styles.avatar, { backgroundColor: theme.primary }, isIOS && styles.avatarIOS]}>
+                    <Text style={styles.avatarText}>{initials}</Text>
+                  </View>
+                  <View>
+                    <Text style={[styles.profileGreeting, { color: theme.textPrimary }, isIOS && styles.profileGreetingIOS]}>
+                      {t('profileGreeting', { name: profileName(user) })}
+                    </Text>
+                    <Text style={[styles.profileSubtext, { color: theme.textSecondary }, isIOS && styles.profileSubtextIOS]}>
+                      {t('profileSettingsSync')}
+                    </Text>
+                  </View>
+                </View>
+                <View style={[styles.statusBadge, { backgroundColor: theme.primaryAccent }, isIOS && styles.statusBadgeIOS]}>
+                  <Text style={styles.statusBadgeText}>{translatedStatus}</Text>
+                </View>
               </View>
-            ))}
-          </View>
-          <View style={styles.contactList}>
-            <Text style={[styles.contactSectionTitle, { color: theme.textSecondary }]}>{t('contactInformation')}</Text>
-            {contactFields.map((field) => (
-              <View
-                key={field.label}
-                style={[styles.contactRow, { borderColor: theme.borderSoft }]}
-              >
-                <Text style={[styles.contactLabel, { color: theme.textSecondary }]}>{field.label}</Text>
-                <Text style={[styles.contactValue, { color: theme.textPrimary }]}>{field.value}</Text>
+              <View style={styles.heroMetrics}>
+                <View style={styles.heroMetricBlock}>
+                  <Text style={[styles.profileMetricLabel, { color: theme.textSecondary }]}>{t('memberSince')}</Text>
+                  <Text style={[styles.profileMetricValue, { color: theme.textPrimary }]}>
+                    {formatDate(user?.created_at)}
+                  </Text>
+                </View>
+                <View style={styles.heroMetricBlock}>
+                  <Text style={[styles.profileMetricLabel, { color: theme.textSecondary }]}>{t('providerLabel')}</Text>
+                  <Text style={[styles.profileMetricValue, { color: theme.textPrimary }]}>{provider.toUpperCase()}</Text>
+                </View>
               </View>
-            ))}
-          </View>
-        </View>
-
-        <View style={[styles.sectionCard, { backgroundColor: theme.surface }]}>
-          <Text style={[styles.sectionHeading, { color: theme.textPrimary }]}>{t('security')}</Text>
-          <View style={styles.preferenceGroup}>
-            <Text style={[styles.preferenceLabel, { color: theme.textSecondary }]}>{t('languageLabel')}</Text>
-            <View style={styles.languageToggleList}>
-              {languageDefinitions.map((definition) => {
-                const isActive = language === definition.code;
-                return (
-                  <TouchableOpacity
-                    key={definition.code}
-                    onPress={() => setLanguage(definition.code)}
+              <View style={styles.heroActions} />
+            </View>
+          </LinearGradient>
+        }
+        renderItem={() => (
+          <View style={[styles.body, isIOS && styles.bodyIOS]}>
+            <View style={[styles.sectionCard, { backgroundColor: theme.surface }, isIOS && styles.sectionCardIOS]}>
+              <Text style={[styles.sectionHeading, { color: theme.textPrimary }]}>{t('accountSnapshot')}</Text>
+              <View style={styles.infoGrid}>
+                {[
+                  { label: t('emailVerifiedLabel'), value: user?.email_confirmed_at ? t('yes') : t('pending') },
+                  { label: t('statusActive'), value: translatedStatus },
+                ].map((stat) => (
+                  <View
+                    key={stat.label}
                     style={[
-                      styles.languageToggleItem,
-                      isActive && styles.languageToggleItemActive,
-                      { backgroundColor: isActive ? theme.primary : theme.surfaceMuted },
+                      styles.infoCard,
+                      { backgroundColor: theme.surfaceMuted },
+                      isIOS && styles.infoCardIOS,
                     ]}
                   >
-                    <Text style={styles.languageFlag}>{definition.flag}</Text>
-                    <Text
+                    <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>{stat.label}</Text>
+                    <Text style={[styles.infoValue, { color: theme.textPrimary }]}>{stat.value}</Text>
+                  </View>
+                ))}
+              </View>
+              <View style={styles.contactList}>
+                <Text style={[styles.contactSectionTitle, { color: theme.textSecondary }]}>{t('contactInformation')}</Text>
+                {contactFields.map((field) => (
+                  <View
+                    key={field.label}
+                    style={[
+                      styles.contactRow,
+                      { borderColor: theme.borderSoft },
+                      isIOS && styles.contactRowIOS,
+                    ]}
+                  >
+                    <View
                       style={[
-                        styles.languageShortLabel,
-                        isActive ? styles.languageShortLabelActive : { color: theme.textPrimary },
+                        styles.contactIconWrap,
+                        { backgroundColor: theme.surfaceMuted },
+                        isIOS && styles.contactIconWrapIOS,
                       ]}
                     >
-                      {definition.shortLabel}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
+                      <Ionicons name={field.icon} size={16} color={theme.primary} />
+                    </View>
+                    <View style={styles.contactContent}>
+                      <Text style={[styles.contactLabel, { color: theme.textSecondary }]}>{field.label}</Text>
+                      <Text style={[styles.contactValue, { color: theme.textPrimary }]}>{field.value}</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            <View style={[styles.sectionCard, { backgroundColor: theme.surface }, isIOS && styles.sectionCardIOS]}>
+              <Text style={[styles.sectionHeading, { color: theme.textPrimary }]}>{t('security')}</Text>
+              <View style={styles.preferenceGroup}>
+                <Text style={[styles.preferenceLabel, { color: theme.textSecondary }]}>{t('languageLabel')}</Text>
+                <View style={styles.languageToggleList}>
+                  {languageDefinitions.map((definition) => {
+                    const isActive = language === definition.code;
+                    return (
+                      <TouchableOpacity
+                        key={definition.code}
+                        onPress={() => setLanguage(definition.code)}
+                        style={[
+                          styles.languageToggleItem,
+                          isActive && styles.languageToggleItemActive,
+                          { backgroundColor: isActive ? theme.primary : theme.surfaceMuted },
+                        ]}
+                      >
+                        <Text style={styles.languageFlag}>{definition.flag}</Text>
+                        <Text
+                          style={[
+                            styles.languageShortLabel,
+                            isActive ? styles.languageShortLabelActive : { color: theme.textPrimary },
+                          ]}
+                        >
+                          {definition.shortLabel}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+              <PrimaryButton title={t('signOut')} onPress={handleSignOut} style={[styles.button, isIOS && styles.buttonIOS]} />
+              <TouchableOpacity onPress={handleSignOut}>
+                <Text style={[styles.link, { color: theme.primary }]}>{t('switchAccount')}</Text>
+              </TouchableOpacity>
             </View>
           </View>
-          <PrimaryButton title={t('signOut')} onPress={handleSignOut} style={styles.button} />
-          <TouchableOpacity onPress={handleSignOut}>
-            <Text style={[styles.link, { color: theme.primary }]}>{t('switchAccount')}</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+        )}
+      />
     </SafeAreaView>
   );
 }
@@ -306,18 +379,60 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
   },
+  heroIdentity: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingRight: 12,
+  },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#312e81',
+    shadowOpacity: 0.35,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 10,
+  },
+  avatarIOS: {
+    width: 52,
+    height: 52,
+    borderRadius: 20,
+  },
+  avatarText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
   profileGreeting: {
     fontSize: 24,
     fontWeight: '700',
   },
+  profileGreetingIOS: {
+    fontSize: 26,
+    letterSpacing: 0.2,
+  },
   profileSubtext: {
     fontSize: 14,
     marginTop: 4,
+    maxWidth: 220,
+  },
+  profileSubtextIOS: {
+    fontSize: 13,
+    lineHeight: 18,
   },
   statusBadge: {
     borderRadius: 999,
     paddingVertical: 6,
     paddingHorizontal: 16,
+  },
+  statusBadgeIOS: {
+    paddingVertical: 7,
+    paddingHorizontal: 18,
   },
   statusBadgeText: {
     fontSize: 12,
@@ -338,6 +453,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.12)',
   },
+  heroCardIOS: {
+    padding: 16,
+    borderRadius: 28,
+    marginTop: -2,
+  },
   heroMetrics: {
     marginTop: 12,
     flexDirection: 'row',
@@ -348,7 +468,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 8,
     borderRadius: 16,
-    backgroundColor: 'rgba(0,0,0,0.12)',
+    backgroundColor: 'rgba(0,0,0,0.16)',
   },
   profileInfo: {
     marginTop: 20,
@@ -391,10 +511,24 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    paddingHorizontal: 16,
   },
   content: {
     paddingBottom: 40,
+    flexGrow: 1,
+    justifyContent: 'flex-start',
+  },
+  headerSpacing: {
+    marginBottom: 4,
+  },
+  footerSpacer: {
+    width: '100%',
+  },
+  body: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+  },
+  bodyIOS: {
+    paddingTop: 6,
   },
   sectionCard: {
     borderRadius: 26,
@@ -407,6 +541,10 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 12 },
     shadowRadius: 22,
     elevation: 10,
+  },
+  sectionCardIOS: {
+    borderRadius: 28,
+    padding: 22,
   },
   sectionHeading: {
     fontSize: 16,
@@ -424,6 +562,10 @@ const styles = StyleSheet.create({
     minWidth: '45%',
     borderRadius: 18,
     padding: 14,
+  },
+  infoCardIOS: {
+    borderRadius: 20,
+    padding: 16,
   },
   infoLabel: {
     fontSize: 12,
@@ -444,8 +586,29 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   contactRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     borderTopWidth: 1,
     paddingVertical: 10,
+  },
+  contactRowIOS: {
+    paddingVertical: 12,
+  },
+  contactIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  contactIconWrapIOS: {
+    width: 36,
+    height: 36,
+    borderRadius: 13,
+  },
+  contactContent: {
+    flex: 1,
   },
   contactLabel: {
     fontSize: 12,
@@ -516,6 +679,9 @@ const styles = StyleSheet.create({
   },
   button: {
     marginTop: 16,
+  },
+  buttonIOS: {
+    marginTop: 18,
   },
   link: {
     marginTop: 12,

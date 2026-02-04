@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Text,
   View,
+  Platform,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -22,6 +23,7 @@ import { useNotifications } from '@shared/context/NotificationContext';
 import { useRouter } from 'expo-router';
 import * as Calendar from 'expo-calendar';
 import { useTheme } from '@shared/themeContext';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -155,6 +157,8 @@ export default function CalendarScreen() {
   const { t } = useLanguage();
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
+  const isIOS = Platform.OS === 'ios';
   const { orderedShifts, isLoading, error, refetch } = useShiftFeed();
   const [visibleMonth, setVisibleMonth] = useState(() => startOfMonth(new Date()));
   const calendarFlip = useRef(new Animated.Value(0)).current;
@@ -366,6 +370,10 @@ export default function CalendarScreen() {
         onStartShouldSetPanResponder: () => false,
         onMoveShouldSetPanResponder: (_, gestureState) =>
           Math.abs(gestureState.dx) > Math.abs(gestureState.dy) && Math.abs(gestureState.dx) > 20,
+        onMoveShouldSetPanResponderCapture: (_, gestureState) =>
+          Math.abs(gestureState.dx) > Math.abs(gestureState.dy) && Math.abs(gestureState.dx) > 20,
+        onPanResponderTerminationRequest: () => true,
+        onShouldBlockNativeResponder: () => false,
         onPanResponderRelease: (_, gestureState) => {
           if (Math.abs(gestureState.dx) < 35) return;
           if (gestureState.dx < 0) {
@@ -492,7 +500,8 @@ export default function CalendarScreen() {
     styles.container,
     {
       backgroundColor: theme.background,
-      paddingTop: 12 + insets.top,
+      paddingTop: isIOS ? 0 : 12 + insets.top,
+      paddingHorizontal: isIOS ? 16 : 12,
     },
   ];
   const heroGradientColors = [theme.heroGradientStart, theme.heroGradientEnd, theme.surfaceElevated];
@@ -519,7 +528,10 @@ export default function CalendarScreen() {
   };
   const scrollContentStyle = [
     styles.scrollContent,
-    { paddingBottom: 12 + insets.bottom, backgroundColor: theme.background },
+    {
+      paddingBottom: 20 + insets.bottom + tabBarHeight,
+      backgroundColor: theme.background,
+    },
   ];
 
   return (
@@ -528,6 +540,15 @@ export default function CalendarScreen() {
       <ScrollView
         contentContainerStyle={scrollContentStyle}
         refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => refetch()} />}
+        showsVerticalScrollIndicator={false}
+        contentInsetAdjustmentBehavior="never"
+        scrollIndicatorInsets={isIOS ? { bottom: tabBarHeight + insets.bottom } : undefined}
+        scrollEnabled
+        alwaysBounceVertical
+        bounces
+        directionalLockEnabled
+        keyboardDismissMode="on-drag"
+        decelerationRate={isIOS ? 'fast' : 'normal'}
       >
         <View
           style={[
@@ -535,7 +556,9 @@ export default function CalendarScreen() {
             {
               backgroundColor: theme.surfaceElevated,
               borderColor: theme.borderSoft,
+              paddingVertical: isIOS ? 18 : 16,
             },
+            isIOS && styles.monthCardIOS,
           ]}
         >
           <LinearGradient colors={monthCardGradientColors} style={styles.monthCardGradient} />
@@ -547,12 +570,21 @@ export default function CalendarScreen() {
                 {
                   backgroundColor: theme.surface,
                   shadowColor: theme.primary,
+                  padding: isIOS ? 8 : 6,
                 },
               ]}
             >
               <Ionicons name="chevron-back" size={20} color={theme.textSecondary} />
             </Pressable>
-            <Text style={[styles.monthLabel, { color: theme.textPrimary }]}>{monthLabel}</Text>
+            <Text
+              style={[
+                styles.monthLabel,
+                { color: theme.textPrimary },
+                isIOS && styles.monthLabelIOS,
+              ]}
+            >
+              {monthLabel}
+            </Text>
             <Pressable
               onPress={() => handleMonthChange(1)}
               style={[
@@ -560,6 +592,7 @@ export default function CalendarScreen() {
                 {
                   backgroundColor: theme.surface,
                   shadowColor: theme.primary,
+                  padding: isIOS ? 8 : 6,
                 },
               ]}
             >
@@ -577,6 +610,7 @@ export default function CalendarScreen() {
                 backgroundColor: theme.surface,
                 borderColor: theme.borderSoft,
               },
+              isIOS && styles.calendarCardIOS,
             ]}
           >
               <Animated.View
@@ -587,6 +621,7 @@ export default function CalendarScreen() {
                     transform: [{ perspective: 1000 }, { rotateY: rotateY }],
                     backgroundColor: theme.surfaceElevated,
                   },
+                  isIOS && styles.calendarWrapperIOS,
                 ]}
               >
               <View style={styles.calendarHeader}>
@@ -615,6 +650,7 @@ export default function CalendarScreen() {
                           key={key}
                           style={({ pressed }) => [
                             styles.dayChip,
+                            isIOS && styles.dayChipIOS,
                             dayChipBaseStyle,
                             !isCurrentMonth && styles.dayChipMuted,
                             isFocusedDay && styles.dayChipFocused,
@@ -693,6 +729,7 @@ export default function CalendarScreen() {
               backgroundColor: theme.surface,
               borderColor: theme.borderSoft,
             },
+            isIOS && styles.legendCardIOS,
           ]}
         >
           <LinearGradient
@@ -969,6 +1006,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     overflow: 'hidden',
   },
+  monthCardIOS: {
+    borderRadius: 40,
+    paddingVertical: 18,
+    marginBottom: 14,
+    marginTop: -8,
+  },
   monthCardGradient: {
     ...StyleSheet.absoluteFillObject,
     opacity: 0.65,
@@ -983,6 +1026,10 @@ const styles = StyleSheet.create({
     color: '#0f172a',
     flex: 1,
     textAlign: 'center',
+  },
+  monthLabelIOS: {
+    fontSize: 24,
+    letterSpacing: 0.2,
   },
   monthNavButton: {
     padding: 6,
@@ -1006,10 +1053,19 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 10,
   },
+  calendarCardIOS: {
+    borderRadius: 40,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+  },
   calendarWrapper: {
     borderRadius: 32,
     backgroundColor: '#f4f5ff',
     padding: 8,
+  },
+  calendarWrapperIOS: {
+    borderRadius: 34,
+    padding: 10,
   },
   calendarHeader: {
     flexDirection: 'row',
@@ -1023,7 +1079,7 @@ const styles = StyleSheet.create({
     color: '#94a3b8',
   },
   scrollContent: {
-    paddingBottom: 20,
+    paddingBottom: 16,
   },
   calendarGrid: {
     marginTop: 18,
@@ -1040,6 +1096,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
+  },
+  dayChipIOS: {
+    margin: 4,
+    minHeight: 74,
+    borderRadius: 24,
   },
   dayChipFocused: {
     backgroundColor: '#fff',
@@ -1109,6 +1170,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     paddingHorizontal: 18,
     paddingVertical: 16,
+  },
+  legendCardIOS: {
+    borderRadius: 28,
+    marginTop: 14,
+    marginBottom: 28,
+    paddingHorizontal: 20,
+    paddingVertical: 18,
   },
   legendGradient: {
     ...StyleSheet.absoluteFillObject,
