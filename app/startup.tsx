@@ -19,6 +19,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Constants from 'expo-constants';
 import { useAuth } from '@hooks/useSupabaseAuth';
+import { useLanguage } from '@shared/context/LanguageContext';
 
 type StartupJob = {
   id: string;
@@ -84,10 +85,34 @@ const normalizeStartupJobs = (payload: StartupJobsResponse): StartupJob[] => {
   return payload.jobs;
 };
 
+const resolveCtaUrl = (rawUrl?: string | null): string | null => {
+  if (!rawUrl) return null;
+  const value = rawUrl.trim();
+  if (!value) return null;
+
+  if (/^https?:\/\//i.test(value)) {
+    return value;
+  }
+
+  if (value.startsWith('//')) {
+    return `https:${value}`;
+  }
+
+  const origin = getApiOrigin();
+  if (value.startsWith('/')) {
+    if (!origin) return null;
+    return `${origin}${value}`;
+  }
+
+  // If backend sends a host/path without scheme, default to https.
+  return `https://${value}`;
+};
+
 export default function StartupScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
+  const { t } = useLanguage();
   const { session, loading: authLoading } = useAuth();
 
   const [jobs, setJobs] = useState<StartupJob[]>([]);
@@ -107,7 +132,7 @@ export default function StartupScreen() {
       const url = jobsEndpointUrl();
       if (!url) {
         setJobs([]);
-        setJobsError('Missing API base URL. Set API_BASE_URL in environment.');
+        setJobsError(t('startupJobsMissingApiBaseUrl'));
         setLoadingJobs(false);
         setRefreshingJobs(false);
         return;
@@ -134,7 +159,13 @@ export default function StartupScreen() {
 
         if (!response.ok) {
           const responseText = await response.text();
-          throw new Error(responseText || `Request failed with status ${response.status}`);
+          if (
+            response.status === 401 ||
+            responseText.toLowerCase().includes('missing access token')
+          ) {
+            throw new Error(t('startupJobsMissingAccessToken'));
+          }
+          throw new Error(t('startupJobsLoadFailed'));
         }
 
         const payload = (await response.json()) as StartupJobsResponse;
@@ -142,13 +173,13 @@ export default function StartupScreen() {
         setJobsError(null);
       } catch (error) {
         setJobs([]);
-        setJobsError(error instanceof Error ? error.message : 'Failed to load startup jobs.');
+        setJobsError(error instanceof Error ? error.message : t('startupJobsLoadFailed'));
       } finally {
         setLoadingJobs(false);
         setRefreshingJobs(false);
       }
     },
-    [authLoading, session?.access_token]
+    [authLoading, session?.access_token, t]
   );
 
   useEffect(() => {
@@ -187,11 +218,20 @@ export default function StartupScreen() {
   const shownCount = filteredJobs.length;
 
   const openJobLink = async (url?: string | null) => {
-    if (!url) return;
+    const resolvedUrl = resolveCtaUrl(url);
+    if (!resolvedUrl) {
+      setJobsError(t('startupJobsOpenLinkFailed'));
+      return;
+    }
+
     try {
-      await Linking.openURL(url);
+      const supported = await Linking.canOpenURL(resolvedUrl);
+      if (!supported) {
+        throw new Error('Unsupported URL');
+      }
+      await Linking.openURL(resolvedUrl);
     } catch {
-      setJobsError('Unable to open the job link.');
+      setJobsError(t('startupJobsOpenLinkFailed'));
     }
   };
 
@@ -226,14 +266,14 @@ export default function StartupScreen() {
         >
           <View style={styles.heroTopActions}>
             <View>
-              <Text style={[styles.title, { color: theme.textPrimary }]}>Jobs</Text>
+              <Text style={[styles.title, { color: theme.textPrimary }]}>{t('startupJobsTitle')}</Text>
             </View>
             <TouchableOpacity
               onPress={() => router.push('/login')}
               activeOpacity={0.85}
               style={[styles.loginIconButton, { backgroundColor: theme.surface, borderColor: theme.border }]}
               accessibilityRole="button"
-              accessibilityLabel="Go to login"
+              accessibilityLabel={t('startupJobsGoToLogin')}
             >
               <Ionicons name="log-in-outline" size={20} color={theme.textPrimary} />
             </TouchableOpacity>
@@ -242,11 +282,15 @@ export default function StartupScreen() {
           <View style={styles.statRow}>
             <View style={[styles.statPill, { backgroundColor: theme.surface, borderColor: theme.borderSoft }]}>
               <Ionicons name="briefcase-outline" size={14} color={theme.primary} />
-              <Text style={[styles.statText, { color: theme.textPrimary }]}>{jobs.length} jobs</Text>
+              <Text style={[styles.statText, { color: theme.textPrimary }]}>
+                {t('startupJobsCount', { count: jobs.length })}
+              </Text>
             </View>
             <View style={[styles.statPill, { backgroundColor: theme.surface, borderColor: theme.borderSoft }]}>
               <Ionicons name="eye-outline" size={14} color={theme.primaryAccent} />
-              <Text style={[styles.statText, { color: theme.textPrimary }]}>{shownCount} shown</Text>
+              <Text style={[styles.statText, { color: theme.textPrimary }]}>
+                {t('startupJobsShownCount', { count: shownCount })}
+              </Text>
             </View>
           </View>
         </LinearGradient>
@@ -263,7 +307,7 @@ export default function StartupScreen() {
               <TextInput
                 value={searchQuery}
                 onChangeText={setSearchQuery}
-                placeholder="Search jobs"
+                placeholder={t('startupJobsSearchPlaceholder')}
                 placeholderTextColor={theme.textPlaceholder}
                 style={[styles.searchInput, { color: theme.textPrimary }]}
                 autoCapitalize="none"
@@ -273,7 +317,7 @@ export default function StartupScreen() {
                 <TouchableOpacity
                   onPress={() => setSearchQuery('')}
                   accessibilityRole="button"
-                  accessibilityLabel="Clear search"
+                  accessibilityLabel={t('startupJobsClearSearch')}
                 >
                   <Ionicons name="close-circle" size={18} color={theme.textSecondary} />
                 </TouchableOpacity>
@@ -285,7 +329,7 @@ export default function StartupScreen() {
         {loadingJobs ? (
           <View style={[styles.statusCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             <ActivityIndicator color={theme.primary} />
-            <Text style={[styles.helperText, { color: theme.textSecondary }]}>Loading startup jobs...</Text>
+            <Text style={[styles.helperText, { color: theme.textSecondary }]}>{t('startupJobsLoading')}</Text>
           </View>
         ) : null}
 
@@ -299,7 +343,7 @@ export default function StartupScreen() {
         {shouldShowJobsSection && filteredJobs.length === 0 ? (
           <View style={[styles.statusCard, { backgroundColor: theme.surface, borderColor: theme.border }]}> 
             <Ionicons name="search-outline" size={18} color={theme.textSecondary} />
-            <Text style={[styles.helperText, { color: theme.textSecondary }]}>No matching jobs.</Text>
+            <Text style={[styles.helperText, { color: theme.textSecondary }]}>{t('startupJobsNoMatches')}</Text>
           </View>
         ) : null}
 
@@ -342,7 +386,7 @@ export default function StartupScreen() {
                       activeOpacity={0.85}
                       style={[styles.applyButton, { backgroundColor: theme.primary }]}
                     >
-                      <Text style={styles.applyButtonText}>{job.ctaLabel?.trim() || 'Apply now'}</Text>
+                      <Text style={styles.applyButtonText}>{job.ctaLabel?.trim() || t('startupJobsApplyNow')}</Text>
                       <Ionicons name="arrow-forward" size={14} color="#fff" />
                     </TouchableOpacity>
                   ) : null}

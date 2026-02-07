@@ -60,7 +60,7 @@ export default function LoginScreen() {
         ? t('authEmailPasswordRequiredBody')
         : /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)
           ? null
-          : 'Please enter a valid email address.';
+          : t('authInvalidEmailBody');
     const nextPasswordError = !trimmedPassword ? t('authEmailPasswordRequiredBody') : null;
     setEmailError(nextEmailError);
     setPasswordError(nextPasswordError);
@@ -205,7 +205,7 @@ export default function LoginScreen() {
             disabled={loading}
           >
             <Ionicons name="arrow-back-circle-outline" size={18} color="#94a3b8" />
-            <Text style={styles.backText}>No credentials? Back to jobs</Text>
+            <Text style={styles.backText}>{t('loginBackToJobs')}</Text>
           </TouchableOpacity>
           <PrimaryButton
             title={t('loginSignInButton')}
