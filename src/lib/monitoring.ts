@@ -57,7 +57,9 @@ export const initializeMonitoring = () => {
   registerGlobalJsHandler();
 
   if (!dsn) {
-    console.warn('Sentry DSN missing. Monitoring runs in console-only mode.');
+    if (!__DEV__) {
+      console.warn('Sentry DSN missing. Monitoring runs in console-only mode.');
+    }
     return;
   }
 

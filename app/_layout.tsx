@@ -268,9 +268,6 @@ function LayoutContentInner() {
 
   useEffect(() => {
     if (Constants.appOwnership === 'expo') {
-      console.warn(
-        'Remote push notifications are not available in Expo Go (SDK 53+). Use a dev build for push tokens.'
-      );
       return;
     }
 

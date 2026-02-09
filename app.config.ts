@@ -17,5 +17,21 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     apiBaseUrl: process.env.API_BASE_URL ?? '',
     enableLocationInDev: process.env.ENABLE_LOCATION_IN_DEV === 'true',
   },
-  plugins: [...(config.plugins ?? []), 'expo-router', '@sentry/react-native/expo'],
+  plugins: (() => {
+    const plugins = [...(config.plugins ?? []), 'expo-router'];
+    const sentryOrg = process.env.SENTRY_ORG?.trim();
+    const sentryProject = process.env.SENTRY_PROJECT?.trim();
+
+    if (sentryOrg && sentryProject) {
+      plugins.push([
+        '@sentry/react-native/expo',
+        {
+          organization: sentryOrg,
+          project: sentryProject,
+        },
+      ]);
+    }
+
+    return plugins;
+  })(),
 });

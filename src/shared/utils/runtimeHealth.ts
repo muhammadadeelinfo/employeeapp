@@ -4,6 +4,13 @@ const REQUIRED_EXPO_EXTRA_KEYS = ['supabaseUrl', 'supabaseAnonKey', 'apiBaseUrl'
 
 type RequiredExtraKey = (typeof REQUIRED_EXPO_EXTRA_KEYS)[number];
 
+const parseBooleanExtra = (value: unknown): boolean => {
+  if (typeof value === 'boolean') return value;
+  if (typeof value !== 'string') return false;
+  const normalized = value.trim().toLowerCase();
+  return ['1', 'true', 'yes', 'on'].includes(normalized);
+};
+
 export const getRuntimeConfigIssues = (): string[] => {
   const extra = (Constants.expoConfig?.extra ?? {}) as Record<string, unknown>;
   const issues: string[] = [];
@@ -16,6 +23,11 @@ export const getRuntimeConfigIssues = (): string[] => {
   });
 
   return issues;
+};
+
+export const shouldRunNotificationsTableHealthCheck = (): boolean => {
+  const extra = (Constants.expoConfig?.extra ?? {}) as Record<string, unknown>;
+  return parseBooleanExtra(extra.requireNotificationsTableHealthCheck);
 };
 
 const isMissingTableError = (status: number, body: string): boolean =>

@@ -1,4 +1,5 @@
-import { SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const readmeSummary = [
   'Employee Portal is an Expo app backed by Supabase for shift data plus shared Prisma/Next.js tooling.',

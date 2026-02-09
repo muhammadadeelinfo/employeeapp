@@ -2,7 +2,6 @@ import {
   Alert,
   Linking,
   Pressable,
-  SafeAreaView,
   StyleSheet,
   Switch,
   Text,
@@ -11,6 +10,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';

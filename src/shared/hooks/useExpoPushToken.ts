@@ -9,9 +9,6 @@ export const useExpoPushToken = () => {
 
     const registerForPushNotifications = async () => {
       if (!Constants.isDevice || Constants.appOwnership === 'expo') {
-        console.warn(
-          'Expo Go cannot obtain push tokens (SDK 53+). Use a development build for Expo push notifications.'
-        );
         return;
       }
 

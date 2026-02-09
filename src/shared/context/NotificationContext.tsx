@@ -115,6 +115,14 @@ const determineNotificationCategory = (title: string, detail: string): Notificat
 const normalizeString = (value?: unknown): string | undefined =>
   typeof value === 'string' && value.trim() ? value.trim() : undefined;
 
+const isMissingNotificationsTableError = (error: unknown): boolean => {
+  if (!error || typeof error !== 'object') return false;
+  const maybeError = error as { code?: unknown; message?: unknown };
+  const code = typeof maybeError.code === 'string' ? maybeError.code : '';
+  const message = typeof maybeError.message === 'string' ? maybeError.message : '';
+  return code === 'PGRST205' || message.includes("Could not find the table 'public.notifications'");
+};
+
 const resolveTargetPath = (metadata?: Record<string, unknown>) => {
   if (!metadata) return undefined;
   const directTarget = normalizeString(metadata.target ?? metadata.url ?? metadata.deepLink);
@@ -279,10 +287,15 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>(createFallbackNotifications);
   const mountedRef = useRef(true);
+  const notificationsTableUnavailableRef = useRef(false);
 
   const loadNotifications = useCallback(async () => {
     if (!mountedRef.current) return;
     if (!supabase) {
+      setNotifications(createFallbackNotifications());
+      return;
+    }
+    if (notificationsTableUnavailableRef.current) {
       setNotifications(createFallbackNotifications());
       return;
     }
@@ -317,7 +330,11 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
 
       setNotifications(normalized);
     } catch (error) {
-      console.warn('Failed to load notifications', error);
+      if (isMissingNotificationsTableError(error)) {
+        notificationsTableUnavailableRef.current = true;
+      } else {
+        console.warn('Failed to load notifications', error);
+      }
       if (mountedRef.current) {
         setNotifications(createFallbackNotifications());
       }
@@ -353,7 +370,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
       prev.map((item) => (item.id === notificationId ? { ...item, read: true } : item))
     );
 
-    if (!supabase) return;
+    if (!supabase || notificationsTableUnavailableRef.current) return;
 
     try {
       const { error } = await supabase
@@ -364,6 +381,10 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         throw error;
       }
     } catch (error) {
+      if (isMissingNotificationsTableError(error)) {
+        notificationsTableUnavailableRef.current = true;
+        return;
+      }
       console.warn('Failed to mark notification as read', error);
     }
   }, []);
@@ -373,7 +394,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     if (!unreadIds.length) return;
     setNotifications((prev) => prev.map((item) => ({ ...item, read: true })));
 
-    if (!supabase) return;
+    if (!supabase || notificationsTableUnavailableRef.current) return;
 
     try {
       let query = supabase.from('notifications').update({ is_read: true });
@@ -385,6 +406,10 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         throw error;
       }
     } catch (error) {
+      if (isMissingNotificationsTableError(error)) {
+        notificationsTableUnavailableRef.current = true;
+        return;
+      }
       console.warn('Failed to mark notifications as read', error);
     }
   }, [notifications, employeeId]);
@@ -398,7 +423,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   }, [loadNotifications]);
 
   useEffect(() => {
-    if (!supabase || !employeeId) return;
+    if (!supabase || !employeeId || notificationsTableUnavailableRef.current) return;
     const channel = supabase.channel(`notifications:${employeeId}`);
     channel.on(
       'postgres_changes',

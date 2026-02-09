@@ -23,6 +23,7 @@ import { useLanguage } from '@shared/context/LanguageContext';
 import {
   checkNotificationsTableHealth,
   getRuntimeConfigIssues,
+  shouldRunNotificationsTableHealthCheck,
 } from '@shared/utils/runtimeHealth';
 
 type StartupJob = {
@@ -478,7 +479,7 @@ export default function StartupScreen() {
       const configIssues = getRuntimeConfigIssues();
       const issues = [...configIssues];
 
-      if (configIssues.length === 0) {
+      if (configIssues.length === 0 && shouldRunNotificationsTableHealthCheck()) {
         const notificationsCheck = await checkNotificationsTableHealth();
         if (!notificationsCheck.ok && notificationsCheck.issue) {
           issues.push(notificationsCheck.issue);
