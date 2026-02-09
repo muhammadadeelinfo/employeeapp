@@ -1,5 +1,5 @@
 {
-  "extends": "expo-router/tsconfig",
+  "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
     "types": ["expo-router/types"],
@@ -10,5 +10,7 @@
       "@hooks/*": ["src/shared/hooks/*"],
       "@lib/*": ["src/lib/*"]
     }
-  }
+  },
+  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"],
+  "exclude": ["tests"]
 }

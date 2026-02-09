@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { ComponentProps } from 'react';
 import { Slot, usePathname, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -24,10 +25,12 @@ import {
 } from 'react-native';
 import { AuthProvider } from '@hooks/useSupabaseAuth';
 import { queryClient } from '@lib/queryClient';
+import { initializeMonitoring } from '@lib/monitoring';
 import { useExpoPushToken } from '@hooks/useExpoPushToken';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NotificationBell } from '@shared/components/NotificationBell';
+import { AppErrorBoundary } from '@shared/components/AppErrorBoundary';
 import { NotificationProvider, useNotifications } from '@shared/context/NotificationContext';
 import {
   LanguageProvider,
@@ -45,7 +48,7 @@ import { getShifts, type Shift } from '@features/shifts/shiftsService';
 import { useShiftNotifications } from '@shared/hooks/useShiftNotifications';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 
 const hiddenTopBarPaths = ['/login', '/signup', '/guest', '/startup'];
 
@@ -251,7 +254,7 @@ function LayoutContentInner() {
   const { height: windowHeight } = useWindowDimensions();
   const { unreadCount } = useNotifications();
   const { theme } = useTheme();
-  const reportThemeOptions = useMemo(
+  const reportThemeOptions = useMemo<Record<'default' | 'soft', [string, string]>>(
     () => ({
       default: [theme.primary, theme.primaryAccent],
       soft: [theme.primaryAccent, theme.surface],
@@ -282,6 +285,8 @@ function LayoutContentInner() {
           shouldPlaySound: false,
           shouldSetBadge: false,
           shouldShowAlert: true,
+          shouldShowBanner: true,
+          shouldShowList: true,
         }),
       });
     })();
@@ -1063,7 +1068,7 @@ function LayoutContentInner() {
                   {t('quickActionsMenuTitle')}
                 </Text>
                 <View style={styles.quickActionCardStack}>
-                  {[
+                  {([
                     {
                       key: 'calendar',
                       label: t('calendarMenuOpen'),
@@ -1097,7 +1102,12 @@ function LayoutContentInner() {
                         Linking.openURL('https://outlook.live.com/calendar/');
                       },
                     },
-                  ].map((entry) => (
+                  ] as {
+                    key: string;
+                    label: string;
+                    icon: ComponentProps<typeof Ionicons>['name'];
+                    onPress: () => void;
+                  }[]).map((entry) => (
                     <TouchableOpacity
                       key={entry.key}
                       style={[
@@ -1271,20 +1281,26 @@ function LayoutContent() {
 }
 
 export default function RootLayout() {
+  useEffect(() => {
+    initializeMonitoring();
+  }, []);
+
   return (
-    <AuthProvider>
-      <NotificationProvider>
-        <SafeAreaProvider>
-          <LanguageProvider>
-            <ThemeProvider>
-              <CalendarSelectionProvider>
-                <LayoutContent />
-              </CalendarSelectionProvider>
-            </ThemeProvider>
-          </LanguageProvider>
-        </SafeAreaProvider>
-      </NotificationProvider>
-    </AuthProvider>
+    <AppErrorBoundary>
+      <AuthProvider>
+        <NotificationProvider>
+          <SafeAreaProvider>
+            <LanguageProvider>
+              <ThemeProvider>
+                <CalendarSelectionProvider>
+                  <LayoutContent />
+                </CalendarSelectionProvider>
+              </ThemeProvider>
+            </LanguageProvider>
+          </SafeAreaProvider>
+        </NotificationProvider>
+      </AuthProvider>
+    </AppErrorBoundary>
   );
 }
 
@@ -1586,9 +1602,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     alignItems: 'center',
     marginRight: 8,
-  },
-  previewThemeButtonLast: {
-    marginRight: 0,
   },
   previewThemeButtonLast: {
     marginRight: 0,

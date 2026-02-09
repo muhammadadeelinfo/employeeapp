@@ -166,23 +166,22 @@ const mapShiftArray = (
     }
   });
 
-  const parsed = data
-    .map((row) => {
+  const parsed: Shift[] = [];
+  data.forEach((row) => {
       const shift = mapShiftRecord(row);
-      if (shift.id === 'unknown') return undefined;
+      if (shift.id === 'unknown') return;
       const assignment = assignmentByShiftId.get(shift.id);
       const confirmationStatus = normalizeShiftConfirmationStatus(assignment?.confirmationStatus);
       if (confirmationStatus === 'not published' || confirmationStatus === 'pending') {
-        return undefined;
+        return;
       }
-      return {
+      parsed.push({
         ...shift,
         assignmentId: assignment?.assignmentId,
         confirmationStatus,
         confirmedAt: assignment?.confirmedAt,
-      };
-    })
-    .filter((shift): shift is Shift => Boolean(shift));
+      });
+    });
   return sortShiftsByStart(parsed);
 };
 
@@ -193,6 +192,7 @@ const isMissingColumnError = (error: unknown) =>
   (error as PostgrestError).code === '42703';
 
 const tryFetchShiftAssignments = async (employeeId: string): Promise<AssignmentMeta[]> => {
+  if (!supabase) return [];
   const { data, error } = await supabase
     .from('shift_assignments')
     .select('id, shiftId, confirmationStatus, confirmedAt')
@@ -215,6 +215,7 @@ const tryFetchShiftAssignments = async (employeeId: string): Promise<AssignmentM
 
 const tryFetchShiftsByIds = async (ids: string[]): Promise<Record<string, unknown>[]> => {
   if (!ids.length) return [];
+  if (!supabase) return [];
   const { data, error } = await supabase
     .from('shifts')
     .select('*, object:objectId (title, address)')

@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import type { ComponentProps } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { getShiftById } from '@features/shifts/shiftsService';
@@ -204,7 +205,7 @@ export default function ShiftDetailsScreen() {
     { label: t('heroStatsDuration'), value: duration },
   ];
   const reachOutCopy = t('reachOutCopy', { contact: opsContact });
-  const heroGradientColors = [theme.heroGradientStart, theme.heroGradientEnd];
+  const heroGradientColors: [string, string] = [theme.heroGradientStart, theme.heroGradientEnd];
   const sectionShadowColor = '#000';
   const sectionBackground = theme.surface;
   const heroChipBackground = theme.surfaceMuted;
@@ -317,7 +318,11 @@ export default function ShiftDetailsScreen() {
           </View>
         </View>
         <View style={[styles.heroPhase, { backgroundColor: phaseMeta[shiftPhase].background }]}>
-          <Ionicons name={phaseMeta[shiftPhase].icon} size={16} color={phaseMeta[shiftPhase].color} />
+          <Ionicons
+            name={phaseMeta[shiftPhase].icon as ComponentProps<typeof Ionicons>['name']}
+            size={16}
+            color={phaseMeta[shiftPhase].color}
+          />
           <Text style={[styles.heroPhaseLabel, { color: phaseMeta[shiftPhase].color }]}>
             {phaseLabel}
           </Text>

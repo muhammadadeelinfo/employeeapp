@@ -33,8 +33,23 @@ type NotificationContextValue = {
   close: () => void;
   notifications: NotificationItem[];
   unreadCount: number;
+  addNotification: (
+    entry: Pick<NotificationItem, 'title' | 'detail'> & {
+      read?: boolean;
+      category?: NotificationCategory;
+      metadata?: Record<string, unknown>;
+      targetPath?: string;
+    }
+  ) => void;
   markAllAsRead: () => Promise<void>;
   refresh: () => Promise<void>;
+};
+
+type AddNotificationInput = Pick<NotificationItem, 'title' | 'detail'> & {
+  read?: boolean;
+  category?: NotificationCategory;
+  metadata?: Record<string, unknown>;
+  targetPath?: string;
 };
 
 type NotificationCategory =
@@ -157,12 +172,19 @@ const normalizeNotificationRow = (row: Record<string, unknown>): NotificationIte
   const rawId = row.id ?? row.notificationId ?? row.notification_id;
   if (rawId === undefined || rawId === null) return null;
   const titleCandidate =
-    (typeof row.title === 'string' && row.title.trim()) ||
-    (typeof row.message === 'string' && row.message.trim());
+    typeof row.title === 'string' && row.title.trim()
+      ? row.title.trim()
+      : typeof row.message === 'string' && row.message.trim()
+      ? row.message.trim()
+      : undefined;
   const detailCandidate =
-    (typeof row.detail === 'string' && row.detail.trim()) ||
-    (typeof row.body === 'string' && row.body.trim()) ||
-    (typeof row.description === 'string' && row.description.trim());
+    typeof row.detail === 'string' && row.detail.trim()
+      ? row.detail.trim()
+      : typeof row.body === 'string' && row.body.trim()
+      ? row.body.trim()
+      : typeof row.description === 'string' && row.description.trim()
+      ? row.description.trim()
+      : undefined;
   const normalizedTitle = titleCandidate ?? 'Notification';
   const normalizedDetail = detailCandidate ?? 'Tap to see the latest update.';
   const createdAt = parseIsoDate(
@@ -309,14 +331,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     await loadNotifications();
   }, [loadNotifications]);
 
-  const addNotification = useCallback(
-    (
-      entry: Omit<NotificationItem, 'id' | 'createdAt'> & {
-        category?: NotificationCategory;
-        metadata?: Record<string, unknown>;
-        targetPath?: string;
-      }
-    ) => {
+  const addNotification = useCallback((entry: AddNotificationInput) => {
       setNotifications((prev) => [
         {
           id: `system-${Date.now()}`,
@@ -331,9 +346,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         },
         ...prev,
       ]);
-    },
-    []
-  );
+    }, []);
 
   const markNotificationRead = useCallback(async (notificationId: string) => {
     setNotifications((prev) =>
@@ -556,7 +569,6 @@ const styles = StyleSheet.create({
     shadowRadius: 25,
     shadowOffset: { width: 0, height: 12 },
     elevation: 16,
-    backdropFilter: 'blur(24px)',
     maxHeight: 420,
   },
   panelHeader: {

@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useState } from 'react';
+import type { ComponentProps } from 'react';
 import type { Shift } from '@features/shifts/shiftsService';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
 import { useLanguage, type TranslationKey } from '@shared/context/LanguageContext';
@@ -19,7 +20,7 @@ const statusColors: Record<string, string> = {
   blocked: '#dc2626',
 };
 
-const statusIconMap: Record<string, string> = {
+const statusIconMap: Record<string, ComponentProps<typeof Ionicons>['name']> = {
   scheduled: 'time-outline',
   'in-progress': 'play-outline',
   completed: 'checkmark-done-outline',
@@ -97,7 +98,7 @@ export const ShiftCard = ({
   const [showFullAddress, setShowFullAddress] = useState(false);
   const { theme } = useTheme();
   const { t } = useLanguage();
-  const gradientColors = [theme.heroGradientStart, theme.heroGradientEnd];
+  const gradientColors: [string, string] = [theme.heroGradientStart, theme.heroGradientEnd];
   const statusColor = statusColors[shift.status] ?? '#1d4ed8';
   const statusTranslationKey = statusLabelTranslationKeys[shift.status];
   const statusLabel = statusTranslationKey ? t(statusTranslationKey) : shift.status;
@@ -115,14 +116,18 @@ export const ShiftCard = ({
   const confirmationLabel = getShiftConfirmationStatusLabel(normalizedConfirmationStatus);
   const shiftPhase = getShiftPhase(shift.start, shift.end);
   const phaseMetadata = phaseMeta[shiftPhase];
-  const phaseGradientColors = [
+  const phaseGradientColors: [string, string, ...string[]] = [
     `${phaseMetadata.color}20`,
     `${phaseMetadata.color}70`,
     phaseMetadata.color,
   ];
 
   const accentBorder = `${theme.primary}33`;
-  const statusGradientColors = [`${statusColor}33`, `${statusColor}99`, statusColor];
+  const statusGradientColors: [string, string, ...string[]] = [
+    `${statusColor}33`,
+    `${statusColor}99`,
+    statusColor,
+  ];
   const statusIcon = statusIconMap[shift.status];
 
   return (
@@ -173,7 +178,7 @@ export const ShiftCard = ({
                 style={styles.phaseBadge}
               >
                 <Ionicons
-                  name={phaseMetadata.icon}
+                  name={phaseMetadata.icon as ComponentProps<typeof Ionicons>['name']}
                   size={14}
                   color="#fff"
                   style={styles.phaseIcon}

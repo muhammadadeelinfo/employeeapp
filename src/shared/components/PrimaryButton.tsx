@@ -1,10 +1,10 @@
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, ViewStyle } from 'react-native';
+import { ActivityIndicator, StyleProp, StyleSheet, Text, TouchableOpacity, ViewStyle } from 'react-native';
 
 type Props = {
   title: string;
   onPress: () => void;
   loading?: boolean;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
 };
 
 export const PrimaryButton = ({ title, onPress, loading, style }: Props) => (

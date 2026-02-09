@@ -20,6 +20,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Constants from 'expo-constants';
 import { useAuth } from '@hooks/useSupabaseAuth';
 import { useLanguage } from '@shared/context/LanguageContext';
+import {
+  checkNotificationsTableHealth,
+  getRuntimeConfigIssues,
+} from '@shared/utils/runtimeHealth';
 
 type StartupJob = {
   id: string;
@@ -48,10 +52,66 @@ type StartupJobsResponse = {
 const STARTUP_JOBS_LIMIT = 3;
 const BACKGROUND_REFRESH_MS = 5 * 60 * 1000;
 
+const isLocalhostHost = (host: string): boolean => {
+  const normalized = host.trim().toLowerCase();
+  return normalized === 'localhost' || normalized === '127.0.0.1' || normalized === '::1';
+};
+
+const extractHostFromHostUri = (value?: string | null): string | null => {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const withoutProtocol = trimmed.replace(/^[a-z]+:\/\//i, '');
+  const [host] = withoutProtocol.split('/');
+  if (!host) return null;
+  return host.split(':')[0] ?? null;
+};
+
+const resolveExpoDevHost = (): string | null => {
+  const candidates = [
+    Constants.expoConfig?.hostUri,
+    (Constants as unknown as { manifest2?: { extra?: { expoGo?: { debuggerHost?: string } } } }).manifest2?.extra
+      ?.expoGo?.debuggerHost,
+    (Constants as unknown as { manifest?: { debuggerHost?: string } }).manifest?.debuggerHost,
+  ];
+
+  for (const candidate of candidates) {
+    const host = extractHostFromHostUri(candidate);
+    if (host && !isLocalhostHost(host)) {
+      return host;
+    }
+  }
+
+  return null;
+};
+
+const resolveApiOriginForDevice = (value: string): string => {
+  if (Platform.OS === 'web') {
+    return value;
+  }
+
+  try {
+    const parsed = new URL(value);
+    if (!isLocalhostHost(parsed.hostname)) {
+      return value;
+    }
+
+    const resolvedHost = resolveExpoDevHost();
+    if (!resolvedHost) {
+      return value;
+    }
+
+    parsed.hostname = resolvedHost;
+    return parsed.origin;
+  } catch {
+    return value;
+  }
+};
+
 const getApiOrigin = (): string | null => {
   const explicitBaseUrl = (Constants.expoConfig?.extra?.apiBaseUrl as string | undefined)?.trim();
   if (explicitBaseUrl) {
-    return explicitBaseUrl.replace(/\/+$/, '');
+    return resolveApiOriginForDevice(explicitBaseUrl.replace(/\/+$/, ''));
   }
 
   const redirectUrl = (Constants.expoConfig?.extra?.authRedirectUrl as string | undefined)?.trim();
@@ -342,6 +402,8 @@ export default function StartupScreen() {
   const [refreshingJobs, setRefreshingJobs] = useState(false);
   const [jobsError, setJobsError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [runtimeIssues, setRuntimeIssues] = useState<string[]>([]);
+  const [runningHealthChecks, setRunningHealthChecks] = useState(true);
 
   const fetchStartupJobs = useCallback(
     async ({ asRefresh = false }: { asRefresh?: boolean } = {}) => {
@@ -407,6 +469,32 @@ export default function StartupScreen() {
   useEffect(() => {
     fetchStartupJobs();
   }, [fetchStartupJobs]);
+
+  useEffect(() => {
+    let mounted = true;
+    setRunningHealthChecks(true);
+
+    (async () => {
+      const configIssues = getRuntimeConfigIssues();
+      const issues = [...configIssues];
+
+      if (configIssues.length === 0) {
+        const notificationsCheck = await checkNotificationsTableHealth();
+        if (!notificationsCheck.ok && notificationsCheck.issue) {
+          issues.push(notificationsCheck.issue);
+        }
+      }
+
+      if (mounted) {
+        setRuntimeIssues(issues);
+        setRunningHealthChecks(false);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextState) => {
@@ -520,6 +608,33 @@ export default function StartupScreen() {
             </View>
           </View>
         </LinearGradient>
+
+        {runningHealthChecks ? (
+          <View style={[styles.statusCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <ActivityIndicator color={theme.primary} />
+            <Text style={[styles.helperText, { color: theme.textSecondary }]}>Running startup health checks...</Text>
+          </View>
+        ) : null}
+
+        {!runningHealthChecks && runtimeIssues.length > 0 ? (
+          <View
+            style={[
+              styles.statusCard,
+              styles.healthCard,
+              { backgroundColor: theme.surface, borderColor: theme.fail },
+            ]}
+          >
+            <View style={styles.healthHeaderRow}>
+              <Ionicons name="warning-outline" size={18} color={theme.fail} />
+              <Text style={[styles.errorText, { color: theme.fail }]}>System checks found issues:</Text>
+            </View>
+            {runtimeIssues.map((issue) => (
+              <Text key={issue} style={[styles.healthIssueText, { color: theme.fail }]}>
+                - {issue}
+              </Text>
+            ))}
+          </View>
+        ) : null}
 
         {shouldShowJobsSection ? (
           <View style={[styles.searchPanel, { backgroundColor: theme.surface, borderColor: theme.border }]}>
@@ -738,6 +853,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginLeft: 8,
     flex: 1,
+  },
+  healthCard: {
+    alignItems: 'flex-start',
+    flexDirection: 'column',
+  },
+  healthHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  healthIssueText: {
+    fontSize: 13,
+    lineHeight: 18,
+    marginLeft: 6,
+    marginBottom: 2,
   },
   card: {
     borderWidth: 1,

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
-import { Camera, CameraView, BarCodeScanningResult, CameraPermissionResponse } from 'expo-camera';
+import { Camera, CameraView, BarcodeScanningResult, PermissionResponse } from 'expo-camera';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,7 +10,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 export default function QrClockInScreen() {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
-  const [permission, setPermission] = useState<CameraPermissionResponse | null>(null);
+  const [permission, setPermission] = useState<PermissionResponse | null>(null);
   const [scannedData, setScannedData] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(true);
   const { t } = useLanguage();
@@ -27,7 +27,7 @@ export default function QrClockInScreen() {
     setPermission(response);
   };
 
-  const handleBarCodeScanned = ({ data }: BarCodeScanningResult) => {
+  const handleBarCodeScanned = ({ data }: BarcodeScanningResult) => {
     setScannedData(data);
     setIsScanning(false);
     Alert.alert(t('qrDetectedTitle'), t('qrDetectedMessage', { code: data }));
@@ -69,9 +69,9 @@ export default function QrClockInScreen() {
       <View style={styles.preview}>
         <CameraView
           style={styles.camera}
-          onBarCodeScanned={isScanning ? handleBarCodeScanned : undefined}
-          barCodeScannerSettings={{
-            barCodeTypes: ['qr', 'code128', 'code39'],
+          onBarcodeScanned={isScanning ? handleBarCodeScanned : undefined}
+          barcodeScannerSettings={{
+            barcodeTypes: ['qr', 'code128', 'code39'],
           }}
         />
       </View>

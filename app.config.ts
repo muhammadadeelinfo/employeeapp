@@ -3,16 +3,19 @@ import { ExpoConfig, ConfigContext } from 'expo/config';
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
+  name: config.name ?? 'employee-portal',
+  slug: config.slug ?? 'employee-portal',
   sdkVersion: '54.0.0',
   scheme: process.env.EXPO_SCHEME ?? 'employeeportal',
   extra: {
     supabaseUrl: process.env.SUPABASE_URL ?? '',
     supabaseAnonKey: process.env.SUPABASE_ANON_KEY ?? '',
+    sentryDsn: process.env.SENTRY_DSN ?? '',
     expoStage: process.env.EXPO_STAGE ?? 'development',
     easProjectId: process.env.EAS_PROJECT_ID ?? '',
     authRedirectUrl: process.env.AUTH_REDIRECT_URL ?? '',
     apiBaseUrl: process.env.API_BASE_URL ?? '',
     enableLocationInDev: process.env.ENABLE_LOCATION_IN_DEV === 'true',
   },
-  plugins: [...(config.plugins ?? []), 'expo-router'],
+  plugins: [...(config.plugins ?? []), 'expo-router', '@sentry/react-native/expo'],
 });

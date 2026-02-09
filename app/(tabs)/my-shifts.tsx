@@ -122,6 +122,9 @@ export default function MyShiftsScreen() {
         {!error &&
           orderedShifts.map((shift) => (
             <View key={shift.id} onLayout={handleShiftLayout(shift.id)}>
+              {(() => {
+                const assignmentId = shift.assignmentId;
+                return (
               <ShiftCard
                 shift={shift}
                 isPrimary={shift.id === focusedShiftId}
@@ -131,9 +134,11 @@ export default function MyShiftsScreen() {
                     params: { from: 'shifts' },
                   })
                 }
-                onConfirm={shift.assignmentId ? () => handleConfirm(shift.assignmentId) : undefined}
-                confirmLoading={shift.assignmentId ? confirmingId === shift.assignmentId : false}
+                onConfirm={assignmentId ? () => handleConfirm(assignmentId) : undefined}
+                confirmLoading={assignmentId ? confirmingId === assignmentId : false}
               />
+                );
+              })()}
             </View>
           ))}
         {!error && !orderedShifts.length && !isLoading && renderListEmptyState()}

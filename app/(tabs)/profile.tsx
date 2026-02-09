@@ -167,7 +167,11 @@ export default function ProfileScreen() {
     { label: t('phoneLabel'), value: contactPhone ?? t('notProvided'), icon: 'call-outline' as const },
     { label: t('addressLabel'), value: contactAddress ?? t('notProvided'), icon: 'location-outline' as const },
   ];
-  const heroGradientColors = [theme.heroGradientStart, theme.heroGradientEnd, theme.surfaceMuted];
+  const heroGradientColors: [string, string, ...string[]] = [
+    theme.heroGradientStart,
+    theme.heroGradientEnd,
+    theme.surfaceMuted,
+  ];
   const initials = profileName(user)
     .split(' ')
     .filter(Boolean)
@@ -331,7 +335,11 @@ export default function ProfileScreen() {
                   })}
                 </View>
               </View>
-              <PrimaryButton title={t('signOut')} onPress={handleSignOut} style={[styles.button, isIOS && styles.buttonIOS]} />
+              <PrimaryButton
+                title={t('signOut')}
+                onPress={handleSignOut}
+                style={[styles.button, isIOS && styles.buttonIOS]}
+              />
               <TouchableOpacity onPress={handleSignOut}>
                 <Text style={[styles.link, { color: theme.primary }]}>{t('switchAccount')}</Text>
               </TouchableOpacity>

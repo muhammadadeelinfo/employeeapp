@@ -4,7 +4,9 @@ import * as Location from 'expo-location';
 
 export const useLocation = () => {
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
-  const [status, setStatus] = useState<Location.PermissionStatus>('undetermined');
+  const [status, setStatus] = useState<Location.PermissionStatus>(
+    Location.PermissionStatus.UNDETERMINED
+  );
   const enableLocationInDev = Boolean(Constants.expoConfig?.extra?.enableLocationInDev);
 
   useEffect(() => {
@@ -14,7 +16,7 @@ export const useLocation = () => {
     (async () => {
       if (skipLocationInDev) {
         if (!cancelled) {
-          setStatus('denied');
+          setStatus(Location.PermissionStatus.DENIED);
         }
         return;
       }

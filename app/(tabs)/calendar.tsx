@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { ComponentProps } from 'react';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
 import { useShiftFeed } from '@features/shifts/useShiftFeed';
 import { getShiftPhase, phaseMeta, type ShiftPhase } from '@shared/utils/shiftPhase';
@@ -265,7 +266,7 @@ export default function CalendarScreen() {
   }, [monthShifts]);
 
   const shiftsByDay = useMemo(() => {
-    const map = new Map<string, typeof orderedShifts[number]>();
+    const map = new Map<string, (typeof orderedShifts)[number][]>();
     monthShifts.forEach((shift) => {
       const shiftDate = new Date(shift.start);
       if (Number.isNaN(shiftDate.getTime())) return;
@@ -504,8 +505,12 @@ export default function CalendarScreen() {
       paddingHorizontal: isIOS ? 16 : 12,
     },
   ];
-  const heroGradientColors = [theme.heroGradientStart, theme.heroGradientEnd, theme.surfaceElevated];
-  const monthCardGradientColors = [theme.heroGradientStart, theme.heroGradientEnd];
+  const heroGradientColors: [string, string, ...string[]] = [
+    theme.heroGradientStart,
+    theme.heroGradientEnd,
+    theme.surfaceElevated,
+  ];
+  const monthCardGradientColors: [string, string] = [theme.heroGradientStart, theme.heroGradientEnd];
   const dayChipBaseStyle = {
     backgroundColor: theme.surface,
     borderColor: theme.borderSoft,
@@ -655,8 +660,8 @@ export default function CalendarScreen() {
                             !isCurrentMonth && styles.dayChipMuted,
                             isFocusedDay && styles.dayChipFocused,
                             isFocusedDay && dayChipFocusedStyle,
-                            dayShifts.length && dayChipActiveStyle,
-                            pressed && dayShifts.length ? dayChipPressedStyle : undefined,
+                            dayShifts.length > 0 ? dayChipActiveStyle : undefined,
+                            pressed && dayShifts.length > 0 ? dayChipPressedStyle : undefined,
                           ]}
                           accessibilityRole="button"
                           onPress={() => {
@@ -682,7 +687,7 @@ export default function CalendarScreen() {
                                     styles.shiftIcon,
                                     {
                                       backgroundColor: theme.surface,
-                                      shadowColor: theme.shadowBlue,
+                                      shadowColor: theme.primary,
                                     },
                                   ]}
                                 >
@@ -867,7 +872,7 @@ export default function CalendarScreen() {
                           ]}
                         >
                           <Ionicons
-                            name={phaseInfo.icon}
+                            name={phaseInfo.icon as ComponentProps<typeof Ionicons>['name']}
                             size={16}
                             color={phaseInfo.color}
                             style={styles.dayDetailPhaseIcon}
@@ -1409,9 +1414,6 @@ const styles = StyleSheet.create({
   dayDetailDescription: {
     fontSize: 12,
     color: '#475569',
-  },
-  legendGroup: {
-    marginBottom: 12,
   },
   dayHalo: {
     position: 'absolute',
