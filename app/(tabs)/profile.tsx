@@ -776,27 +776,28 @@ const styles = StyleSheet.create({
   },
   languageToggleList: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 6,
   },
   languageToggleItem: {
     flex: 1,
-    borderRadius: 12,
-    paddingVertical: 11,
+    borderRadius: 10,
+    paddingVertical: 8,
+    minHeight: 36,
     borderWidth: 1,
     borderColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
-    gap: 6,
+    gap: 4,
   },
   languageToggleItemActive: {
     borderColor: 'rgba(255,255,255,0.18)',
   },
   languageFlag: {
-    fontSize: 14,
+    fontSize: 12,
   },
   languageShortLabel: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
   },
   languageShortLabelActive: {
