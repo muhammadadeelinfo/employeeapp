@@ -311,8 +311,8 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: 18,
-    paddingBottom: 22,
+    padding: 16,
+    paddingBottom: 18,
     position: 'relative',
     zIndex: 1,
   },
@@ -408,8 +408,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   sectionSpacer: {
-    marginTop: 12,
-    marginBottom: 8,
+    marginTop: 10,
+    marginBottom: 6,
   },
   timeRow: {
     flexDirection: 'row',
@@ -439,9 +439,9 @@ const styles = StyleSheet.create({
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 16,
+    marginTop: 12,
+    paddingVertical: 13,
+    paddingHorizontal: 14,
     borderRadius: 18,
     backgroundColor: '#f7f8ff',
     borderWidth: 1,
@@ -464,8 +464,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   description: {
-    marginTop: 12,
-    marginBottom: 8,
+    marginTop: 10,
+    marginBottom: 6,
     fontSize: 13,
     color: '#4b5563',
     minHeight: 30,
@@ -474,8 +474,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 18,
-    paddingBottom: 6,
+    marginTop: 14,
+    paddingBottom: 2,
   },
   confirmInstruction: {
     textTransform: 'uppercase',

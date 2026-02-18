@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { ComponentProps } from 'react';
 import { Slot, usePathname, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -14,11 +13,8 @@ import {
   StyleSheet,
   TouchableOpacity,
   Text,
-  Pressable,
-  Linking,
   Alert,
   ScrollView,
-  useWindowDimensions,
   Modal,
   Switch,
   TextInput,
@@ -29,19 +25,14 @@ import { initializeMonitoring } from '@lib/monitoring';
 import { useExpoPushToken } from '@hooks/useExpoPushToken';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { NotificationBell } from '@shared/components/NotificationBell';
 import { AppErrorBoundary } from '@shared/components/AppErrorBoundary';
-import { NotificationProvider, useNotifications } from '@shared/context/NotificationContext';
+import { NotificationProvider } from '@shared/context/NotificationContext';
 import {
   LanguageProvider,
   useLanguage,
 } from '@shared/context/LanguageContext';
-import {
-  CalendarSelectionProvider,
-  useCalendarSelection,
-} from '@shared/context/CalendarSelectionContext';
+import { CalendarSelectionProvider } from '@shared/context/CalendarSelectionContext';
 import { ThemeProvider, useTheme } from '@shared/themeContext';
-import * as Calendar from 'expo-calendar';
 import { useAuth } from '@hooks/useSupabaseAuth';
 import { useQuery } from '@tanstack/react-query';
 import { getShifts, type Shift } from '@features/shifts/shiftsService';
@@ -49,8 +40,6 @@ import { useShiftNotifications } from '@shared/hooks/useShiftNotifications';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
-
-const hiddenTopBarPaths = ['/login', '/signup', '/guest', '/startup'];
 
 type ReportOptionKey =
   | 'includeEmployeeName'
@@ -108,10 +97,7 @@ function LayoutContentInner() {
   const pushToken = useExpoPushToken();
   const pathname = usePathname();
   const router = useRouter();
-  const [quickActionMenuOpen, setQuickActionMenuOpen] = useState(false);
   const { t } = useLanguage();
-  const { selectedCalendars, toggleCalendarSelection } = useCalendarSelection();
-  const [calendars, setCalendars] = useState<Calendar.Calendar[] | null>(null);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [previewReportType, setPreviewReportType] = useState<'monthly' | 'summary' | null>(
     null
@@ -247,12 +233,7 @@ function LayoutContentInner() {
     }
   }, [loading, pathname, router, user]);
 
-  const shouldShowNotificationBell = pathname
-    ? !hiddenTopBarPaths.some((path) => pathname.startsWith(path))
-    : true;
   const insets = useSafeAreaInsets();
-  const { height: windowHeight } = useWindowDimensions();
-  const { unreadCount } = useNotifications();
   const { theme } = useTheme();
   const reportThemeOptions = useMemo<Record<'default' | 'soft', [string, string]>>(
     () => ({
@@ -298,26 +279,6 @@ function LayoutContentInner() {
       console.log('Push token registered', pushToken);
     }
   }, [pushToken]);
-
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      const { status } = await Calendar.requestCalendarPermissionsAsync();
-      if (status !== 'granted') {
-        if (mounted) {
-          setCalendars([]);
-        }
-        return;
-      }
-      const available = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
-      if (mounted) {
-        setCalendars(available);
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, []);
 
   const formatShiftTime = (shift: Shift) => {
     const start = new Date(shift.start);
@@ -1006,262 +967,6 @@ function LayoutContentInner() {
           </LinearGradient>
         </View>
       </Modal>
-        {shouldShowNotificationBell && (
-          <View style={[styles.topActions, { top: insets.top + 10 }]}>
-            <View style={styles.notificationWrapper}>
-              <NotificationBell />
-            </View>
-            <TouchableOpacity
-              style={[
-                styles.quickActionButton,
-                {
-                  backgroundColor: theme.surface,
-                  shadowColor: 'rgba(0, 0, 0, 0.5)',
-                },
-              ]}
-              onPress={() => setQuickActionMenuOpen((prev) => !prev)}
-            >
-              <Ionicons name="flash-outline" size={20} color={theme.primary} />
-            </TouchableOpacity>
-          </View>
-        )}
-        {quickActionMenuOpen && (
-          <>
-            <Pressable
-              style={[
-                StyleSheet.absoluteFillObject,
-                styles.menuBackdrop,
-                { backgroundColor: theme.overlay },
-              ]}
-              onPress={() => setQuickActionMenuOpen(false)}
-            />
-            <LinearGradient
-              key="quick-actions-gradient-dark"
-              colors={[theme.surfaceElevated, theme.surface]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={[
-                styles.quickActionMenu,
-                {
-                  top: insets.top + 60,
-                  maxHeight: windowHeight - insets.top - 80,
-                  borderColor: theme.border,
-                },
-              ]}
-              onStartShouldSetResponder={() => true}
-            >
-              <ScrollView
-                style={[styles.quickActionScroll, { maxHeight: windowHeight - insets.top - 120 }]}
-                contentContainerStyle={styles.quickActionScrollContent}
-                nestedScrollEnabled
-                showsVerticalScrollIndicator
-              >
-                <Text
-                  style={[
-                    styles.quickActionMenuTitle,
-                    { color: theme.textSecondary },
-                  ]}
-                >
-                  {t('quickActionsMenuTitle')}
-                </Text>
-                <View style={styles.quickActionCardStack}>
-                  {([
-                    {
-                      key: 'calendar',
-                      label: t('calendarMenuOpen'),
-                      icon: 'calendar-outline',
-                      onPress: () => {
-                        setQuickActionMenuOpen(false);
-                        router.push('/calendar');
-                      },
-                    },
-                    {
-                      key: 'sync',
-                      label: t('calendarMenuSync'),
-                      icon: 'sync-outline',
-                      onPress: () => setQuickActionMenuOpen(false),
-                    },
-                    {
-                      key: 'google',
-                      label: t('calendarMenuImportGoogle'),
-                      icon: 'logo-google',
-                      onPress: () => {
-                        setQuickActionMenuOpen(false);
-                        Linking.openURL('https://calendar.google.com');
-                      },
-                    },
-                    {
-                      key: 'outlook',
-                      label: t('calendarMenuImportOutlook'),
-                      icon: 'logo-microsoft',
-                      onPress: () => {
-                        setQuickActionMenuOpen(false);
-                        Linking.openURL('https://outlook.live.com/calendar/');
-                      },
-                    },
-                  ] as {
-                    key: string;
-                    label: string;
-                    icon: ComponentProps<typeof Ionicons>['name'];
-                    onPress: () => void;
-                  }[]).map((entry) => (
-                    <TouchableOpacity
-                      key={entry.key}
-                      style={[
-                        styles.quickActionCard,
-                        {
-                          backgroundColor: theme.surfaceElevated,
-                          borderColor: theme.borderSoft,
-                          shadowColor: '#000',
-                        },
-                      ]}
-                      onPress={entry.onPress}
-                    >
-                      <View
-                        style={[
-                          styles.quickActionCardIconWrapper,
-                          { backgroundColor: theme.surface },
-                        ]}
-                      >
-                        <Ionicons name={entry.icon} size={20} color={theme.primary} />
-                      </View>
-                      <View style={styles.quickActionCardContent}>
-                        <Text
-                          style={[
-                            styles.quickActionCardTitle,
-                            { color: theme.textPrimary },
-                          ]}
-                        >
-                          {entry.label}
-                        </Text>
-                      </View>
-                      <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
-                    </TouchableOpacity>
-                  ))}
-                </View>
-                <View
-                  style={[
-                    styles.sectionSeparator,
-                    { backgroundColor: theme.borderSoft },
-                  ]}
-                />
-                <Text
-                  style={[
-                    styles.quickActionListTitle,
-                    { color: theme.textSecondary },
-                  ]}
-                >
-                  {t('reportsTitle')}
-                </Text>
-                <TouchableOpacity
-                  style={styles.quickActionMenuItem}
-                  onPress={() => {
-                    setQuickActionMenuOpen(false);
-                    openReportPreview('monthly');
-                  }}
-                >
-                  <Text
-                    style={[
-                      styles.quickActionMenuItemText,
-                      { color: theme.textPrimary },
-                    ]}
-                  >
-                    {isGeneratingReport ? t('reportGenerating') : t('reportGeneratePdf')}
-                  </Text>
-                </TouchableOpacity>
-                <View
-                  style={[
-                    styles.quickActionList,
-                    { borderTopColor: theme.borderSoft },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.quickActionListTitle,
-                      { color: theme.textSecondary },
-                    ]}
-                  >
-                    {t('calendarMenuAvailable')}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.quickActionSelectionHint,
-                      { color: theme.textSecondary },
-                    ]}
-                  >
-                    {selectedCalendars.length
-                      ? t('calendarMenuSelectionCount', { count: selectedCalendars.length })
-                      : t('calendarMenuSelectionPrompt')}
-                  </Text>
-                  {calendars === null ? (
-                    <Text
-                      style={[
-                        styles.quickActionListEmpty,
-                        { color: theme.textSecondary },
-                      ]}
-                    >
-                      {t('calendarMenuLoading')}
-                    </Text>
-                  ) : calendars.length ? (
-                    calendars.map((cal) => {
-                      const isSelected = selectedCalendars.some((entry) => entry.id === cal.id);
-                      return (
-                        <TouchableOpacity
-                          key={cal.id}
-                          style={[
-                            styles.quickActionListItem,
-                            isSelected && styles.quickActionListItemSelected,
-                            isSelected && {
-                              backgroundColor: `${theme.primary}20`,
-                            },
-                          ]}
-                          onPress={() =>
-                            toggleCalendarSelection({
-                              id: cal.id,
-                              title: cal.title,
-                              sourceName: cal.source?.name ?? cal.source?.type,
-                            })
-                          }
-                        >
-                          <View>
-                            <Text
-                              style={[
-                                styles.quickActionListItemTitle,
-                                { color: theme.textPrimary },
-                              ]}
-                            >
-                              {cal.title}
-                            </Text>
-                            <Text
-                              style={[
-                                styles.quickActionListItemMeta,
-                                { color: theme.textSecondary },
-                              ]}
-                            >
-                              {cal.source?.name ?? cal.source?.type}
-                            </Text>
-                          </View>
-                          {isSelected && (
-                            <Ionicons name="checkmark-circle" size={20} color={theme.primary} />
-                          )}
-                        </TouchableOpacity>
-                      );
-                    })
-                  ) : (
-                    <Text
-                      style={[
-                        styles.quickActionListEmpty,
-                        { color: theme.textSecondary },
-                      ]}
-                    >
-                      {t('calendarMenuNoCalendars')}
-                    </Text>
-                  )}
-                </View>
-              </ScrollView>
-            </LinearGradient>
-          </>
-        )}
         <View style={styles.content}>
           <Slot />
         </View>
@@ -1283,21 +988,21 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <AppErrorBoundary>
-      <AuthProvider>
-        <NotificationProvider>
-          <SafeAreaProvider>
-            <LanguageProvider>
+    <AuthProvider>
+      <SafeAreaProvider>
+        <LanguageProvider>
+          <AppErrorBoundary>
+            <NotificationProvider>
               <ThemeProvider>
                 <CalendarSelectionProvider>
                   <LayoutContent />
                 </CalendarSelectionProvider>
               </ThemeProvider>
-            </LanguageProvider>
-          </SafeAreaProvider>
-        </NotificationProvider>
-      </AuthProvider>
-    </AppErrorBoundary>
+            </NotificationProvider>
+          </AppErrorBoundary>
+        </LanguageProvider>
+      </SafeAreaProvider>
+    </AuthProvider>
   );
 }
 
@@ -1308,150 +1013,6 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-  },
-  topActions: {
-    position: 'absolute',
-    right: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    zIndex: 20,
-  },
-  quickActionButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 8,
-    shadowColor: '#0f172a',
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 10,
-  },
-  notificationWrapper: {
-    width: 44,
-    height: 44,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  menuBackdrop: {
-    zIndex: 25,
-  },
-  quickActionMenu: {
-    position: 'absolute',
-    right: 8,
-    width: 320,
-    borderRadius: 24,
-    padding: 16,
-    zIndex: 30,
-    shadowColor: '#0f172a',
-    shadowOpacity: 0.28,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 20,
-    borderWidth: 1,
-  },
-  quickActionScroll: {
-    maxHeight: 320,
-  },
-  quickActionScrollContent: {
-    paddingBottom: 12,
-  },
-  sectionSeparator: {
-    height: 1,
-    backgroundColor: '#e5e7eb',
-    marginVertical: 8,
-  },
-  quickActionList: {
-    marginTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
-    paddingTop: 8,
-  },
-  quickActionListTitle: {
-    fontSize: 11,
-    letterSpacing: 0.3,
-    textTransform: 'uppercase',
-    color: '#6b7280',
-    marginBottom: 6,
-  },
-  quickActionListItem: {
-    paddingVertical: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  quickActionListItemTitle: {
-    fontSize: 14,
-    color: '#0f172a',
-  },
-  quickActionListItemMeta: {
-    fontSize: 11,
-    color: '#6b7280',
-  },
-  quickActionListEmpty: {
-    fontSize: 12,
-    color: '#6b7280',
-  },
-  quickActionSelectionHint: {
-    fontSize: 12,
-    color: '#475569',
-    marginBottom: 6,
-  },
-  quickActionListItemSelected: {
-    backgroundColor: '#2563eb10',
-    borderRadius: 10,
-    paddingHorizontal: 6,
-    paddingVertical: 8,
-  },
-  quickActionCardStack: {
-    marginBottom: 12,
-  },
-  quickActionCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 18,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    marginBottom: 10,
-    borderWidth: 1,
-    justifyContent: 'space-between',
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
-  },
-  quickActionCardIconWrapper: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  quickActionCardContent: {
-    flex: 1,
-    marginHorizontal: 10,
-  },
-  quickActionCardTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  quickActionMenuTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-    color: '#1f2937',
-    marginBottom: 8,
-  },
-  quickActionMenuItem: {
-    paddingVertical: 10,
-  },
-  quickActionMenuItemText: {
-    fontSize: 14,
-    color: '#1f2937',
   },
   previewModalBackdrop: {
     flex: 1,

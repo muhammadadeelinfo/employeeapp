@@ -1,5 +1,6 @@
 import React, { Component, type ErrorInfo, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { LanguageContext } from '@shared/context/LanguageContext';
 
 type AppErrorBoundaryProps = {
   children: ReactNode;
@@ -10,6 +11,8 @@ type AppErrorBoundaryState = {
 };
 
 export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorBoundaryState> {
+  static contextType = LanguageContext;
+
   state: AppErrorBoundaryState = {
     hasError: false,
   };
@@ -27,16 +30,19 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
   };
 
   render() {
+    const t = (this.context as React.ContextType<typeof LanguageContext> | undefined)?.t;
     if (this.state.hasError) {
       return (
         <View style={styles.container}>
           <View style={styles.card}>
-            <Text style={styles.title}>Something went wrong</Text>
+            <Text style={styles.title}>{t ? t('appErrorTitle') : 'Something went wrong'}</Text>
             <Text style={styles.body}>
-              The app caught an unexpected error. Please retry. If this keeps happening, restart the app.
+              {t
+                ? t('appErrorBody')
+                : 'The app caught an unexpected error. Please retry. If this keeps happening, restart the app.'}
             </Text>
             <Pressable style={styles.button} onPress={this.handleRetry}>
-              <Text style={styles.buttonLabel}>Retry</Text>
+              <Text style={styles.buttonLabel}>{t ? t('retry') : 'Retry'}</Text>
             </Pressable>
           </View>
         </View>

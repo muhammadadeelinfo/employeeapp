@@ -1,19 +1,21 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-const readmeSummary = [
-  'Employee Portal is an Expo app backed by Supabase for shift data plus shared Prisma/Next.js tooling.',
-  'Copy .env.example to .env, fill SUPABASE_URL and keys, and run npm run check-db-config before starting Metro.',
-  'Use npm run start / android / ios / web to preview the app, and keep the Supabase project aligned with the Next.js config.',
-  'Location access is intentionally disabled in Expo dev builds unless ENABLE_LOCATION_IN_DEV=true to avoid simulator issues.',
-  'Magic-link auth is planned; the README captures how the key-sharing works across mobile and web.',
-];
+import { useLanguage } from '@shared/context/LanguageContext';
 
 export default function NotFoundScreen() {
+  const { t } = useLanguage();
+  const readmeSummary = [
+    t('notFoundSummaryOne'),
+    t('notFoundSummaryTwo'),
+    t('notFoundSummaryThree'),
+    t('notFoundSummaryFour'),
+    t('notFoundSummaryFive'),
+  ];
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.heading}>Employee Portal</Text>
+        <Text style={styles.heading}>{t('notFoundHeading')}</Text>
         {readmeSummary.map((line) => (
           <View key={line} style={styles.row}>
             <Text style={styles.bullet}>{'\u2022'}</Text>

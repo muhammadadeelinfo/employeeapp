@@ -3,9 +3,11 @@ import { useEffect, useRef } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNotifications } from '@shared/context/NotificationContext';
+import { useLanguage } from '@shared/context/LanguageContext';
 
 export const NotificationBell = () => {
   const { toggle, unreadCount, open } = useNotifications();
+  const { t } = useLanguage();
   const glow = useRef(new Animated.Value(0)).current;
   const animationRef = useRef<Animated.CompositeAnimation | null>(null);
 
@@ -48,7 +50,7 @@ export const NotificationBell = () => {
       style={styles.button}
       onPress={toggle}
       activeOpacity={0.85}
-      accessibilityLabel="Notifications"
+      accessibilityLabel={t('notificationBellLabel')}
     >
       <Animated.View style={[styles.glow, glowStyle]} />
       <LinearGradient

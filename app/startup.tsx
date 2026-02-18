@@ -613,7 +613,9 @@ export default function StartupScreen() {
         {runningHealthChecks ? (
           <View style={[styles.statusCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             <ActivityIndicator color={theme.primary} />
-            <Text style={[styles.helperText, { color: theme.textSecondary }]}>Running startup health checks...</Text>
+            <Text style={[styles.helperText, { color: theme.textSecondary }]}>
+              {t('startupHealthChecksRunning')}
+            </Text>
           </View>
         ) : null}
 
@@ -627,7 +629,7 @@ export default function StartupScreen() {
           >
             <View style={styles.healthHeaderRow}>
               <Ionicons name="warning-outline" size={18} color={theme.fail} />
-              <Text style={[styles.errorText, { color: theme.fail }]}>System checks found issues:</Text>
+              <Text style={[styles.errorText, { color: theme.fail }]}>{t('startupHealthChecksIssues')}</Text>
             </View>
             {runtimeIssues.map((issue) => (
               <Text key={issue} style={[styles.healthIssueText, { color: theme.fail }]}>

@@ -97,9 +97,13 @@ const formatDuration = (start: string, end: string) => {
   return `${hoursText}${minutesText}`.trim() || '—';
 };
 
-const formatCountdownLabel = (minutes: number) => {
+const formatCountdownLabel = (
+  minutes: number,
+  liveNowLabel: string,
+  lessThanMinuteLabel: string
+) => {
   if (minutes <= 0) {
-    return 'Live now';
+    return liveNowLabel;
   }
   const days = Math.floor(minutes / 1440);
   const hours = Math.floor((minutes % 1440) / 60);
@@ -108,7 +112,7 @@ const formatCountdownLabel = (minutes: number) => {
   if (days) parts.push(`${days}d`);
   if (hours) parts.push(`${hours}h`);
   if (mins) parts.push(`${mins}m`);
-  return parts.length ? parts.join(' ') : 'Less than 1m';
+  return parts.length ? parts.join(' ') : lessThanMinuteLabel;
 };
 
 export default function ShiftDetailsScreen() {
@@ -126,11 +130,13 @@ export default function ShiftDetailsScreen() {
   });
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { t } = useLanguage();
+  const { theme } = useTheme();
 
   if (!shiftId) {
     return (
       <View style={styles.center}>
-        <Text style={styles.error}>Unable to determine which shift to load.</Text>
+        <Text style={styles.error}>{t('shiftDetailsMissingId')}</Text>
       </View>
     );
   }
@@ -141,8 +147,6 @@ export default function ShiftDetailsScreen() {
         ?.find((item) => item.id === shiftId)
     : undefined;
   const shiftToShow = shift ?? cachedShift;
-  const { t } = useLanguage();
-  const { theme } = useTheme();
 
   if (isLoading && !shiftToShow) {
     return (
@@ -162,7 +166,7 @@ export default function ShiftDetailsScreen() {
   }
 
   const status = statusStyles[shiftToShow.status] ?? statusStyles.scheduled;
-  const locationLabel = shiftToShow.objectName ?? shiftToShow.location ?? 'TBD';
+  const locationLabel = shiftToShow.objectName ?? shiftToShow.location ?? t('locationTbd');
   const locationSubtext = shiftToShow.objectAddress ?? shiftToShow.location;
   const duration = formatDuration(shiftToShow.start, shiftToShow.end);
   const startLabel = formatTime(shiftToShow.start);
@@ -178,8 +182,10 @@ export default function ShiftDetailsScreen() {
     Math.round((shiftStart.getTime() - now.getTime()) / 60000)
   );
   const countdownLabel =
-    minutesUntilStart <= 0 ? t('liveNow') : formatCountdownLabel(minutesUntilStart);
-  const opsContact = shiftToShow.objectName ?? 'Operations team';
+    minutesUntilStart <= 0
+      ? t('liveNow')
+      : formatCountdownLabel(minutesUntilStart, t('liveNow'), t('shiftCountdownLessThanMinute'));
+  const opsContact = shiftToShow.objectName ?? t('shiftOpsTeam');
   const contactEmail = 'ops@company.com';
   const contactPhone = '+1 (415) 555-0101';
   const handleOpenMaps = () => {

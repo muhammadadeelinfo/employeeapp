@@ -1,5 +1,12 @@
-import { LayoutChangeEvent, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  LayoutChangeEvent,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ShiftCard } from '@shared/components/ShiftCard';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
 import { useShiftFeed } from '@features/shifts/useShiftFeed';
@@ -8,7 +15,8 @@ import { getShiftPhase } from '@shared/utils/shiftPhase';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@shared/themeContext';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { layoutTokens } from '@shared/theme/layout';
 
 const getMonthLabel = (date: Date) => date.toLocaleDateString([], { month: 'long', year: 'numeric' });
 
@@ -27,7 +35,6 @@ export default function MyShiftsScreen() {
   const router = useRouter();
   const { t } = useLanguage();
   const { theme } = useTheme();
-  const insets = useSafeAreaInsets();
   const { orderedShifts, isLoading, error, refetch } = useShiftFeed();
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [layoutTick, setLayoutTick] = useState(0);
@@ -43,6 +50,22 @@ export default function MyShiftsScreen() {
   const referenceShift = orderedShifts.find((shift) => shift.id === focusedShiftId) ?? orderedShifts[0];
   const referenceMonth = referenceShift ? new Date(referenceShift.start) : now;
   const monthLabel = getMonthLabel(referenceMonth);
+  const nextShiftLabel = useMemo(() => {
+    if (!nextShift) {
+      return t('noUpcomingShifts');
+    }
+    const start = new Date(nextShift.start);
+    if (Number.isNaN(start.getTime())) {
+      return t('nextShift');
+    }
+    const dateText = start.toLocaleDateString([], {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+    });
+    const timeText = start.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    return `${t('nextShift')}: ${dateText} · ${timeText}`;
+  }, [nextShift, t]);
 
   const showSkeletons = isLoading && !orderedShifts.length && !error;
 
@@ -104,18 +127,23 @@ export default function MyShiftsScreen() {
     styles.container,
     {
       backgroundColor: theme.background,
-      paddingTop: 12 + insets.top,
+      paddingTop: layoutTokens.screenTop,
     },
   ];
   const listContentStyle = [styles.list, { backgroundColor: theme.background }];
 
   return (
-    <SafeAreaView style={containerStyle} edges={['top']}>
+    <SafeAreaView style={containerStyle} edges={['left', 'right']}>
+      <View style={[styles.pageHeader, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+        <Text style={[styles.pageHeaderTitle, { color: theme.textPrimary }]}>{t('shiftOverview')}</Text>
+        <Text style={[styles.pageHeaderSubtitle, { color: theme.textSecondary }]}>{nextShiftLabel}</Text>
+      </View>
       {errorView}
       <ScrollView
         ref={listScrollRef}
         contentContainerStyle={listContentStyle}
         style={[styles.scrollView, { backgroundColor: theme.background }]}
+        contentInsetAdjustmentBehavior="never"
         refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => refetch()} />}
       >
         {showSkeletons && renderSkeletons()}
@@ -150,24 +178,41 @@ export default function MyShiftsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: 16,
+    paddingHorizontal: layoutTokens.screenHorizontal,
     paddingTop: 0,
     paddingBottom: 0,
   },
   list: {
     paddingBottom: 24,
-    paddingTop: 2,
+    paddingTop: 0,
     flexGrow: 1,
   },
+  pageHeader: {
+    borderWidth: 1,
+    borderRadius: layoutTokens.cardRadiusMd,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: layoutTokens.sectionGap,
+  },
+  pageHeaderTitle: {
+    fontSize: 19,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+  },
+  pageHeaderSubtitle: {
+    fontSize: 12,
+    marginTop: 4,
+    fontWeight: '500',
+  },
   scrollView: {
-    borderTopLeftRadius: 26,
-    borderTopRightRadius: 26,
+    borderTopLeftRadius: layoutTokens.cardRadiusLg,
+    borderTopRightRadius: layoutTokens.cardRadiusLg,
   },
   errorCard: {
     backgroundColor: 'rgba(239, 68, 68, 0.15)',
     borderRadius: 16,
     padding: 16,
-    marginBottom: 12,
+    marginBottom: layoutTokens.sectionGap,
     borderWidth: 1,
     borderColor: 'rgba(239, 68, 68, 0.4)',
   },
