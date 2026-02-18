@@ -170,23 +170,8 @@ export default function CalendarScreen() {
     outputRange: ['-90deg', '0deg', '90deg'],
   });
   const now = new Date();
-  const liveShift = orderedShifts.find((shift) => getShiftPhase(shift.start, shift.end, now) === 'live');
-  const nextShift = orderedShifts.find((shift) => new Date(shift.start) > now);
-  const focusedShiftId = liveShift?.id ?? nextShift?.id;
-  const focusedDayKey = orderedShifts.find((shift) => shift.id === focusedShiftId)?.start.split('T')[0];
+  const focusedDayKey = dayKey(now);
   const monthLabel = getMonthLabel(visibleMonth);
-  const nextShiftSummary = useMemo(() => {
-    if (!nextShift) return t('noUpcomingShifts');
-    const start = new Date(nextShift.start);
-    if (Number.isNaN(start.getTime())) return t('nextShift');
-    const dateText = start.toLocaleDateString([], {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-    });
-    const timeText = start.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-    return `${t('nextShift')}: ${dateText} · ${timeText}`;
-  }, [nextShift, t]);
   const { selectedCalendars } = useCalendarSelection();
   const [importedEventsByDay, setImportedEventsByDay] = useState<
     Record<string, ImportedCalendarEvent[]>
@@ -401,21 +386,6 @@ export default function CalendarScreen() {
   );
 
   useEffect(() => {
-    if (hasManuallyChangedMonth.current) return;
-    if (!orderedShifts.length) return;
-    const nowRef = new Date();
-    const live = orderedShifts.find((shift) => getShiftPhase(shift.start, shift.end, nowRef) === 'live');
-    const upcoming = orderedShifts.find((shift) => new Date(shift.start) > nowRef);
-    const shiftToFocus = live ?? upcoming;
-    if (!shiftToFocus) return;
-    const focusDate = new Date(shiftToFocus.start);
-    if (Number.isNaN(focusDate.getTime())) return;
-    const targetMonth = startOfMonth(focusDate);
-    if (targetMonth.getTime() === visibleMonth.getTime()) return;
-    setVisibleMonth(targetMonth);
-  }, [orderedShifts, visibleMonth]);
-
-  useEffect(() => {
     let isMounted = true;
     if (!selectedCalendars.length) {
       setImportedEventsByDay({});
@@ -514,8 +484,7 @@ export default function CalendarScreen() {
     styles.container,
     {
       backgroundColor: theme.background,
-      paddingTop: layoutTokens.screenTop,
-      paddingHorizontal: layoutTokens.screenHorizontal,
+      paddingTop: 0,
     },
   ];
   const heroGradientColors: [string, string, ...string[]] = [
@@ -526,20 +495,20 @@ export default function CalendarScreen() {
   const monthCardGradientColors: [string, string] = [theme.heroGradientStart, theme.heroGradientEnd];
   const dayChipBaseStyle = {
     backgroundColor: theme.surface,
-    borderColor: theme.borderSoft,
-    borderWidth: 1,
+    borderColor: 'transparent',
+    borderWidth: 0,
   };
   const dayChipFocusedStyle = {
     backgroundColor: theme.surfaceElevated,
-    borderColor: theme.primaryAccent,
-    borderWidth: 1.5,
+    borderColor: `${theme.primaryAccent}66`,
+    borderWidth: 1,
     shadowColor: theme.primaryAccent,
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
   };
   const dayChipActiveStyle = {
-    borderColor: theme.primary,
+    borderColor: 'transparent',
   };
   const dayChipPressedStyle = {
     opacity: 0.7,
@@ -570,25 +539,11 @@ export default function CalendarScreen() {
       >
         <View
           style={[
-            styles.summaryCard,
-            { backgroundColor: theme.surface, borderColor: theme.borderSoft },
-          ]}
-        >
-          <View style={styles.summaryTopRow}>
-            <Text style={[styles.summaryTitle, { color: theme.textPrimary }]}>{t('calendarView')}</Text>
-            <View style={[styles.summaryCountPill, { backgroundColor: theme.surfaceMuted }]}>
-              <Text style={[styles.summaryCountText, { color: theme.textPrimary }]}>{monthShifts.length}</Text>
-            </View>
-          </View>
-          <Text style={[styles.summarySubtitle, { color: theme.textSecondary }]}>{nextShiftSummary}</Text>
-        </View>
-        <View
-          style={[
             styles.monthCard,
             {
               backgroundColor: theme.surfaceElevated,
               borderColor: theme.borderSoft,
-              paddingVertical: isIOS ? 18 : 16,
+              paddingVertical: isIOS ? 8 : 6,
             },
             isIOS && styles.monthCardIOS,
           ]}
@@ -602,7 +557,7 @@ export default function CalendarScreen() {
                 {
                   backgroundColor: theme.surface,
                   shadowColor: theme.primary,
-                  padding: isIOS ? 8 : 6,
+                  padding: isIOS ? 5 : 4,
                 },
               ]}
             >
@@ -617,45 +572,38 @@ export default function CalendarScreen() {
             >
               {monthLabel}
             </Text>
-            <Pressable
-              onPress={() => handleMonthChange(1)}
-              style={[
-                styles.monthNavButton,
-                {
-                  backgroundColor: theme.surface,
-                  shadowColor: theme.primary,
-                  padding: isIOS ? 8 : 6,
-                },
-              ]}
-            >
-              <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
-            </Pressable>
+            <View style={styles.monthNavRightGroup}>
+              <Pressable
+                onPress={() => handleMonthChange(1)}
+                style={[
+                  styles.monthNavButton,
+                  {
+                    backgroundColor: theme.surface,
+                    shadowColor: theme.primary,
+                    padding: isIOS ? 5 : 4,
+                  },
+                ]}
+              >
+                <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
+              </Pressable>
+            </View>
           </View>
         </View>
         {errorView}
         {showSkeletons && renderSkeletons()}
         {!error && (
-          <View
+          <Animated.View
+            {...calendarPanResponder.panHandlers}
             style={[
-              styles.calendarCard,
+              styles.calendarWrapper,
               {
-                backgroundColor: theme.surface,
+                transform: [{ perspective: 1000 }, { rotateY: rotateY }],
+                backgroundColor: theme.surfaceElevated,
                 borderColor: theme.borderSoft,
               },
-              isIOS && styles.calendarCardIOS,
+              isIOS && styles.calendarWrapperIOS,
             ]}
           >
-              <Animated.View
-                {...calendarPanResponder.panHandlers}
-                style={[
-                  styles.calendarWrapper,
-                  {
-                    transform: [{ perspective: 1000 }, { rotateY: rotateY }],
-                    backgroundColor: theme.surfaceElevated,
-                  },
-                  isIOS && styles.calendarWrapperIOS,
-                ]}
-              >
               <View style={styles.calendarHeader}>
                 {WEEKDAY_LABELS.map((label) => (
                   <Text key={label} style={[styles.calendarHeaderLabel, { color: theme.textSecondary }]}>
@@ -742,17 +690,13 @@ export default function CalendarScreen() {
                               )}
                             </View>
                           )}
-                          {isFocusedDay && (
-                            <View style={[styles.dayHalo, styles.dayHaloActive]} />
-                          )}
                         </Pressable>
                       );
                     })}
                   </View>
                 ))}
               </View>
-            </Animated.View>
-          </View>
+          </Animated.View>
         )}
         <View
           style={[
@@ -1031,14 +975,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#eef1ff',
-    paddingHorizontal: layoutTokens.screenHorizontal,
   },
   monthCard: {
     backgroundColor: '#fff',
-    borderRadius: 36,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    marginBottom: layoutTokens.sectionGap,
+    borderRadius: 0,
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    marginBottom: 8,
     shadowColor: '#0f172a',
     shadowOpacity: 0.1,
     shadowOffset: { width: 0, height: 10 },
@@ -1048,49 +991,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   monthCardIOS: {
-    borderRadius: 40,
-    paddingVertical: 18,
-    marginBottom: 14,
+    borderRadius: 0,
+    paddingVertical: 8,
+    marginBottom: 8,
     marginTop: 0,
-  },
-  summaryCard: {
-    borderWidth: 1,
-    borderRadius: layoutTokens.cardRadiusMd,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    marginBottom: layoutTokens.sectionGap - 2,
-    shadowColor: '#050914',
-    shadowOpacity: 0.16,
-    shadowOffset: { width: 0, height: 6 },
-    shadowRadius: 10,
-    elevation: 6,
-  },
-  summaryTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  summaryTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    letterSpacing: 0.2,
-  },
-  summaryCountPill: {
-    minWidth: 34,
-    borderRadius: 999,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  summaryCountText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  summarySubtitle: {
-    marginTop: 6,
-    fontSize: 13,
-    fontWeight: '500',
   },
   monthCardGradient: {
     ...StyleSheet.absoluteFillObject,
@@ -1100,52 +1004,48 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  monthNavRightGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   monthLabel: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '800',
     color: '#0f172a',
     flex: 1,
     textAlign: 'center',
   },
   monthLabelIOS: {
-    fontSize: 24,
+    fontSize: 22,
     letterSpacing: 0.2,
   },
   monthNavButton: {
-    padding: 6,
+    padding: 4,
     borderRadius: 999,
     backgroundColor: '#eef1ff',
-    marginHorizontal: 8,
+    marginHorizontal: 4,
     shadowColor: '#0f172a',
     shadowOpacity: 0.1,
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 10,
     elevation: 4,
   },
-  calendarCard: {
-    borderRadius: 36,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    backgroundColor: '#fff',
+  calendarWrapper: {
+    borderRadius: 24,
+    backgroundColor: '#f4f5ff',
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    borderWidth: 1,
     shadowColor: '#0f172a',
     shadowOpacity: 0.08,
     shadowOffset: { width: 0, height: 10 },
     shadowRadius: 20,
     elevation: 10,
   },
-  calendarCardIOS: {
-    borderRadius: 40,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-  },
-  calendarWrapper: {
-    borderRadius: 32,
-    backgroundColor: '#f4f5ff',
-    padding: 8,
-  },
   calendarWrapperIOS: {
-    borderRadius: 34,
-    padding: 10,
+    borderRadius: 26,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
   },
   calendarHeader: {
     flexDirection: 'row',
@@ -1162,30 +1062,32 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   calendarGrid: {
-    marginTop: 18,
+    marginTop: 10,
   },
   calendarWeekRow: {
     flexDirection: 'row',
   },
   dayChip: {
     flex: 1,
-    margin: 3,
-    minHeight: 70,
-    borderRadius: 22,
+    margin: 1,
+    minHeight: 88,
+    borderRadius: 10,
     backgroundColor: '#eef1ff',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
+    paddingTop: 12,
     position: 'relative',
   },
   dayChipIOS: {
-    margin: 4,
-    minHeight: 74,
-    borderRadius: 24,
+    margin: 1,
+    minHeight: 94,
+    borderRadius: 12,
+    paddingTop: 14,
   },
   dayChipFocused: {
-    backgroundColor: '#fff',
-    borderWidth: 2,
-    borderColor: '#2563eb',
+    backgroundColor: '#ffffff08',
+    borderWidth: 1,
+    borderColor: 'rgba(148,163,184,0.25)',
   },
   dayChipMuted: {
     opacity: 0.45,
@@ -1197,7 +1099,7 @@ const styles = StyleSheet.create({
     opacity: 0.75,
   },
   dayChipLabel: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
     color: '#0f172a',
   },
@@ -1495,17 +1397,6 @@ const styles = StyleSheet.create({
   dayDetailDescription: {
     fontSize: 12,
     color: '#475569',
-  },
-  dayHalo: {
-    position: 'absolute',
-    width: '90%',
-    height: '90%',
-    borderRadius: 24,
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  dayHaloActive: {
-    borderColor: '#2563eb',
   },
   background: {
     ...StyleSheet.absoluteFillObject,
