@@ -40,7 +40,8 @@ const isMissingColumnError = (error: unknown) =>
 
 const fetchEmployeeProfile = async (
   employeeId: string,
-  email?: string | null
+  email?: string | null,
+  metadata?: Record<string, unknown>
 ): Promise<EmployeeProfile | null> => {
   if (!supabase) {
     console.warn('Supabase client not configured; skipping employee profile fetch.');
@@ -61,8 +62,25 @@ const fetchEmployeeProfile = async (
   if (email) {
     candidateLookups.push({ column: 'email', value: email });
   }
+  const metadataEmployeeIdCandidates = [
+    getStringField(metadata, 'employee_id'),
+    getStringField(metadata, 'employeeId'),
+    getStringField(metadata, 'profile_id'),
+    getStringField(metadata, 'profileId'),
+  ].filter((value): value is string => Boolean(value));
+  metadataEmployeeIdCandidates.forEach((value) => {
+    candidateLookups.push({ column: 'id', value });
+    candidateLookups.push({ column: 'employee_id', value });
+    candidateLookups.push({ column: 'employeeId', value });
+  });
 
+  const seenLookups = new Set<string>();
   for (const lookup of candidateLookups) {
+    const dedupeKey = `${lookup.column}:${lookup.value}`;
+    if (seenLookups.has(dedupeKey)) {
+      continue;
+    }
+    seenLookups.add(dedupeKey);
     const { data, error } = await supabase
       .from('employees')
       .select('*')
@@ -233,37 +251,35 @@ export default function ProfileScreen() {
   const tabBarHeight = useBottomTabBarHeight();
   const isIOS = Platform.OS === 'ios';
   const employeeId = user?.id;
+  const metadata = user?.user_metadata;
+  const metadataRecord =
+    metadata && typeof metadata === 'object' ? (metadata as Record<string, unknown>) : undefined;
   const {
     data: employeeRecord,
-    isLoading: isEmployeeProfileLoading,
-    error: employeeProfileError,
   } = useQuery({
-    queryKey: ['employeeProfile', employeeId],
-    queryFn: () => (employeeId ? fetchEmployeeProfile(employeeId, user?.email) : null),
+    queryKey: [
+      'employeeProfile',
+      employeeId,
+      user?.email,
+      metadataRecord?.employee_id,
+      metadataRecord?.employeeId,
+      metadataRecord?.profile_id,
+      metadataRecord?.profileId,
+    ],
+    queryFn: () =>
+      employeeId ? fetchEmployeeProfile(employeeId, user?.email, metadataRecord) : null,
     enabled: !!employeeId,
     staleTime: 60_000,
   });
   const provider = user?.identities?.[0]?.provider ?? 'email';
   const status = shiftStatus(user?.user_metadata);
   const translatedStatus = status === 'Active' ? t('statusActive') : status;
-  const metadata = user?.user_metadata;
   const contactPhone =
     normalizeContactString(getProfilePhone(employeeRecord)) ??
     normalizeContactString(user?.phone) ??
     getMetadataPhoneDeep(metadata);
   const contactAddress =
     normalizeContactString(getProfileAddress(employeeRecord)) ?? getMetadataAddressDeep(metadata);
-  const debugPhoneFromEmployee = normalizeContactString(getProfilePhone(employeeRecord));
-  const debugPhoneFromAuth = normalizeContactString(user?.phone);
-  const debugPhoneFromMetadata = getMetadataPhoneDeep(metadata);
-  const debugAddressFromEmployee = normalizeContactString(getProfileAddress(employeeRecord));
-  const debugAddressFromMetadata = getMetadataAddressDeep(metadata);
-  const employeeProfileErrorMessage =
-    employeeProfileError instanceof Error
-      ? employeeProfileError.message
-      : employeeProfileError
-      ? String(employeeProfileError)
-      : null;
   const handleSignOut = () => {
     signOut();
   };
@@ -417,34 +433,6 @@ export default function ProfileScreen() {
                     </View>
                   </View>
                 ))}
-                {__DEV__ ? (
-                  <View style={[styles.debugCard, { backgroundColor: theme.surfaceMuted, borderColor: theme.borderSoft }]}>
-                    <Text style={[styles.debugTitle, { color: theme.textPrimary }]}>Debug contact sources</Text>
-                    <Text style={[styles.debugLine, { color: theme.textSecondary }]}>
-                      employee query: {isEmployeeProfileLoading ? 'loading' : employeeRecord ? 'row found' : 'no row'}
-                    </Text>
-                    {employeeProfileErrorMessage ? (
-                      <Text style={[styles.debugLine, { color: theme.fail }]}>
-                        employee query error: {employeeProfileErrorMessage}
-                      </Text>
-                    ) : null}
-                    <Text style={[styles.debugLine, { color: theme.textSecondary }]}>
-                      phone.employee: {debugPhoneFromEmployee ?? '-'}
-                    </Text>
-                    <Text style={[styles.debugLine, { color: theme.textSecondary }]}>
-                      phone.auth: {debugPhoneFromAuth ?? '-'}
-                    </Text>
-                    <Text style={[styles.debugLine, { color: theme.textSecondary }]}>
-                      phone.metadata: {debugPhoneFromMetadata ?? '-'}
-                    </Text>
-                    <Text style={[styles.debugLine, { color: theme.textSecondary }]}>
-                      address.employee: {debugAddressFromEmployee ?? '-'}
-                    </Text>
-                    <Text style={[styles.debugLine, { color: theme.textSecondary }]}>
-                      address.metadata: {debugAddressFromMetadata ?? '-'}
-                    </Text>
-                  </View>
-                ) : null}
               </View>
             </View>
             <View
@@ -860,22 +848,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     marginTop: 2,
-  },
-  debugCard: {
-    marginTop: 12,
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 10,
-    gap: 3,
-  },
-  debugTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  debugLine: {
-    fontSize: 11,
-    lineHeight: 15,
   },
   preferenceGroup: {
     marginBottom: 16,
