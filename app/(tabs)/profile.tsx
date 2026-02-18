@@ -30,11 +30,7 @@ const formatDate = (iso?: string) => {
 const normalizeContactString = (value?: unknown) =>
   typeof value === 'string' && value.trim() ? value.trim() : undefined;
 
-type EmployeeProfile = {
-  mobile?: string | null;
-  phone?: string | null;
-  address?: string | null;
-};
+type EmployeeProfile = Record<string, unknown>;
 
 const isMissingColumnError = (error: unknown) =>
   typeof error === 'object' &&
@@ -42,19 +38,36 @@ const isMissingColumnError = (error: unknown) =>
   'code' in error &&
   (error as { code?: string }).code === '42703';
 
-const fetchEmployeeProfile = async (employeeId: string): Promise<EmployeeProfile | null> => {
+const fetchEmployeeProfile = async (
+  employeeId: string,
+  email?: string | null
+): Promise<EmployeeProfile | null> => {
   if (!supabase) {
     console.warn('Supabase client not configured; skipping employee profile fetch.');
     return null;
   }
 
-  const candidateColumns = ['id', 'employeeId', 'employee_id', 'userId', 'user_id'] as const;
-  for (const column of candidateColumns) {
+  const candidateLookups: Array<{ column: string; value: string }> = [
+    { column: 'id', value: employeeId },
+    { column: 'employeeId', value: employeeId },
+    { column: 'employee_id', value: employeeId },
+    { column: 'userId', value: employeeId },
+    { column: 'user_id', value: employeeId },
+    { column: 'auth_user_id', value: employeeId },
+    { column: 'authUserId', value: employeeId },
+    { column: 'profile_id', value: employeeId },
+    { column: 'profileId', value: employeeId },
+  ];
+  if (email) {
+    candidateLookups.push({ column: 'email', value: email });
+  }
+
+  for (const lookup of candidateLookups) {
     const { data, error } = await supabase
       .from('employees')
-      .select('mobile,phone,address')
-      .eq(column, employeeId)
-      .maybeSingle();
+      .select('*')
+      .eq(lookup.column, lookup.value)
+      .limit(1);
 
     if (error) {
       if (isMissingColumnError(error)) {
@@ -64,8 +77,8 @@ const fetchEmployeeProfile = async (employeeId: string): Promise<EmployeeProfile
       return null;
     }
 
-    if (data) {
-      return data;
+    if (Array.isArray(data) && data.length > 0) {
+      return data[0] as EmployeeProfile;
     }
   }
 
@@ -123,6 +136,75 @@ const getPhoneNumber = (metadata?: Record<string, unknown>) =>
   getStringField(metadata, 'mobile') ??
   getStringField(metadata, 'phoneNumber');
 
+const getNestedString = (source: unknown, path: string[]): string | undefined => {
+  let cursor: unknown = source;
+  for (const key of path) {
+    if (!cursor || typeof cursor !== 'object' || !(key in (cursor as Record<string, unknown>))) {
+      return undefined;
+    }
+    cursor = (cursor as Record<string, unknown>)[key];
+  }
+  return typeof cursor === 'string' && cursor.trim() ? cursor.trim() : undefined;
+};
+
+const getProfilePhone = (profile?: EmployeeProfile | null) => {
+  if (!profile) return undefined;
+  const direct = [
+    'mobile',
+    'phone',
+    'phone_number',
+    'phoneNumber',
+    'telephone',
+    'contact_phone',
+    'contactPhone',
+  ]
+    .map((key) => getStringField(profile, key))
+    .find(Boolean);
+  return direct ?? undefined;
+};
+
+const getProfileAddress = (profile?: EmployeeProfile | null) => {
+  if (!profile) return undefined;
+  const direct = [
+    'address',
+    'full_address',
+    'fullAddress',
+    'location',
+    'street_address',
+    'streetAddress',
+  ]
+    .map((key) => getStringField(profile, key))
+    .find(Boolean);
+  if (direct) return direct;
+
+  const composed = [
+    'line1',
+    'line2',
+    'street',
+    'city',
+    'state',
+    'postal_code',
+    'postalCode',
+    'country',
+  ]
+    .map((key) => getStringField(profile, key))
+    .filter((part): part is string => Boolean(part));
+  return composed.length ? composed.join(', ') : undefined;
+};
+
+const getMetadataPhoneDeep = (metadata?: Record<string, unknown>) =>
+  getPhoneNumber(metadata) ??
+  getNestedString(metadata, ['contact', 'phone']) ??
+  getNestedString(metadata, ['contact', 'mobile']) ??
+  getNestedString(metadata, ['profile', 'phone']) ??
+  getNestedString(metadata, ['profile', 'mobile']);
+
+const getMetadataAddressDeep = (metadata?: Record<string, unknown>) =>
+  formatMetadataAddress(metadata) ??
+  getNestedString(metadata, ['contact', 'address']) ??
+  getNestedString(metadata, ['profile', 'address']) ??
+  getNestedString(metadata, ['address', 'formatted']);
+
 const profileName = (user: ReturnType<typeof useAuth>['user'] | null) => {
   if (!user) return 'Guest';
   const metadataName = user.user_metadata?.full_name;
@@ -151,9 +233,13 @@ export default function ProfileScreen() {
   const tabBarHeight = useBottomTabBarHeight();
   const isIOS = Platform.OS === 'ios';
   const employeeId = user?.id;
-  const { data: employeeRecord } = useQuery({
+  const {
+    data: employeeRecord,
+    isLoading: isEmployeeProfileLoading,
+    error: employeeProfileError,
+  } = useQuery({
     queryKey: ['employeeProfile', employeeId],
-    queryFn: () => (employeeId ? fetchEmployeeProfile(employeeId) : null),
+    queryFn: () => (employeeId ? fetchEmployeeProfile(employeeId, user?.email) : null),
     enabled: !!employeeId,
     staleTime: 60_000,
   });
@@ -162,11 +248,22 @@ export default function ProfileScreen() {
   const translatedStatus = status === 'Active' ? t('statusActive') : status;
   const metadata = user?.user_metadata;
   const contactPhone =
-    normalizeContactString(employeeRecord?.mobile) ??
-    normalizeContactString(employeeRecord?.phone) ??
-    getPhoneNumber(metadata);
+    normalizeContactString(getProfilePhone(employeeRecord)) ??
+    normalizeContactString(user?.phone) ??
+    getMetadataPhoneDeep(metadata);
   const contactAddress =
-    normalizeContactString(employeeRecord?.address) ?? formatMetadataAddress(metadata);
+    normalizeContactString(getProfileAddress(employeeRecord)) ?? getMetadataAddressDeep(metadata);
+  const debugPhoneFromEmployee = normalizeContactString(getProfilePhone(employeeRecord));
+  const debugPhoneFromAuth = normalizeContactString(user?.phone);
+  const debugPhoneFromMetadata = getMetadataPhoneDeep(metadata);
+  const debugAddressFromEmployee = normalizeContactString(getProfileAddress(employeeRecord));
+  const debugAddressFromMetadata = getMetadataAddressDeep(metadata);
+  const employeeProfileErrorMessage =
+    employeeProfileError instanceof Error
+      ? employeeProfileError.message
+      : employeeProfileError
+      ? String(employeeProfileError)
+      : null;
   const handleSignOut = () => {
     signOut();
   };
@@ -320,6 +417,34 @@ export default function ProfileScreen() {
                     </View>
                   </View>
                 ))}
+                {__DEV__ ? (
+                  <View style={[styles.debugCard, { backgroundColor: theme.surfaceMuted, borderColor: theme.borderSoft }]}>
+                    <Text style={[styles.debugTitle, { color: theme.textPrimary }]}>Debug contact sources</Text>
+                    <Text style={[styles.debugLine, { color: theme.textSecondary }]}>
+                      employee query: {isEmployeeProfileLoading ? 'loading' : employeeRecord ? 'row found' : 'no row'}
+                    </Text>
+                    {employeeProfileErrorMessage ? (
+                      <Text style={[styles.debugLine, { color: theme.fail }]}>
+                        employee query error: {employeeProfileErrorMessage}
+                      </Text>
+                    ) : null}
+                    <Text style={[styles.debugLine, { color: theme.textSecondary }]}>
+                      phone.employee: {debugPhoneFromEmployee ?? '-'}
+                    </Text>
+                    <Text style={[styles.debugLine, { color: theme.textSecondary }]}>
+                      phone.auth: {debugPhoneFromAuth ?? '-'}
+                    </Text>
+                    <Text style={[styles.debugLine, { color: theme.textSecondary }]}>
+                      phone.metadata: {debugPhoneFromMetadata ?? '-'}
+                    </Text>
+                    <Text style={[styles.debugLine, { color: theme.textSecondary }]}>
+                      address.employee: {debugAddressFromEmployee ?? '-'}
+                    </Text>
+                    <Text style={[styles.debugLine, { color: theme.textSecondary }]}>
+                      address.metadata: {debugAddressFromMetadata ?? '-'}
+                    </Text>
+                  </View>
+                ) : null}
               </View>
             </View>
             <View
@@ -735,6 +860,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     marginTop: 2,
+  },
+  debugCard: {
+    marginTop: 12,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 10,
+    gap: 3,
+  },
+  debugTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  debugLine: {
+    fontSize: 11,
+    lineHeight: 15,
   },
   preferenceGroup: {
     marginBottom: 16,
