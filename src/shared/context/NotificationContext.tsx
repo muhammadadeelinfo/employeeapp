@@ -29,6 +29,12 @@ import {
   getRelativeTimeLabel,
   isMissingNotificationsTableError,
 } from '@shared/utils/notificationViewUtils';
+import {
+  countUnreadNotifications,
+  getUnreadNotificationIds,
+  markAllNotificationsReadInList,
+  markNotificationReadInList,
+} from '@shared/utils/notificationStateUtils';
 
 type NotificationItem = NotificationRecord;
 
@@ -187,9 +193,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     }, []);
 
   const markNotificationRead = useCallback(async (notificationId: string) => {
-    setNotifications((prev) =>
-      prev.map((item) => (item.id === notificationId ? { ...item, read: true } : item))
-    );
+    setNotifications((prev) => markNotificationReadInList(prev, notificationId));
 
     if (!supabase || notificationsTableUnavailableRef.current) return;
 
@@ -211,9 +215,9 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const markAllAsRead = useCallback(async () => {
-    const unreadIds = notifications.filter((item) => !item.read).map((item) => item.id);
+    const unreadIds = getUnreadNotificationIds(notifications);
     if (!unreadIds.length) return;
-    setNotifications((prev) => prev.map((item) => ({ ...item, read: true })));
+    setNotifications((prev) => markAllNotificationsReadInList(prev));
 
     if (!supabase || notificationsTableUnavailableRef.current) return;
 
@@ -271,7 +275,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [employeeId, loadNotifications]);
 
-  const unreadCount = useMemo(() => notifications.filter((item) => !item.read).length, [notifications]);
+  const unreadCount = useMemo(() => countUnreadNotifications(notifications), [notifications]);
 
   const value = useMemo(
     () => ({
