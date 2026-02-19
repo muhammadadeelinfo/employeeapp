@@ -840,9 +840,21 @@ export default function CalendarScreen() {
                   const phaseLabel = t(PHASE_TRANSLATION_KEYS[shiftPhase]);
                   const locationLabel = buildShiftLocation(shift);
                   return (
-                    <View
+                    <Pressable
                       key={shift.id}
-                      style={[styles.dayDetailShiftCard, { backgroundColor: theme.surfaceElevated }]}
+                      style={({ pressed }) => [
+                        styles.dayDetailShiftCard,
+                        { backgroundColor: theme.surfaceElevated },
+                        pressed && styles.dayDetailShiftCardPressed,
+                      ]}
+                      onPress={() => {
+                        closeDayDetailModal();
+                        router.push({
+                          pathname: `/shift-details/${shift.id}`,
+                          params: { from: 'calendar' },
+                        });
+                      }}
+                      accessibilityRole="button"
                     >
                       <View style={styles.dayDetailShiftHeader}>
                       <Text style={[styles.dayDetailShiftTitle, { color: theme.textPrimary }]}>{shift.title}</Text>
@@ -880,7 +892,10 @@ export default function CalendarScreen() {
                               },
                               pressed && styles.dayDetailMapButtonPressed,
                             ]}
-                            onPress={() => openAddressInMaps(locationLabel)}
+                            onPress={(event) => {
+                              event.stopPropagation();
+                              openAddressInMaps(locationLabel);
+                            }}
                             accessibilityRole="button"
                             accessibilityLabel={t('openInMaps')}
                             hitSlop={8}
@@ -894,7 +909,7 @@ export default function CalendarScreen() {
                           {shift.description}
                         </Text>
                       ) : null}
-                    </View>
+                    </Pressable>
                   );
                 })
               ) : (
@@ -1374,6 +1389,10 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 12,
     marginBottom: 10,
+  },
+  dayDetailShiftCardPressed: {
+    opacity: 0.9,
+    transform: [{ scale: 0.995 }],
   },
   dayDetailShiftHeader: {
     flexDirection: 'row',
