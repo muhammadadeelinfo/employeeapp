@@ -20,15 +20,14 @@ import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { layoutTokens } from '@shared/theme/layout';
 import { useRouter } from 'expo-router';
 
-const formatDate = (iso?: string) => {
-  if (!iso) return '—';
-  const parsed = new Date(iso);
-  if (Number.isNaN(parsed.getTime())) return '—';
-  return parsed.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
-};
-
 const normalizeContactString = (value?: unknown) =>
   typeof value === 'string' && value.trim() ? value.trim() : undefined;
+
+const capitalizeFirstLetter = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) return value;
+  return `${trimmed.charAt(0).toUpperCase()}${trimmed.slice(1)}`;
+};
 
 type EmployeeProfile = Record<string, unknown>;
 
@@ -227,9 +226,9 @@ const profileName = (user: ReturnType<typeof useAuth>['user'] | null) => {
   if (!user) return 'Guest';
   const metadataName = user.user_metadata?.full_name;
   if (typeof metadataName === 'string' && metadataName.trim()) {
-    return metadataName;
+    return capitalizeFirstLetter(metadataName);
   }
-  return user.email?.split('@')[0] ?? 'Employee';
+  return capitalizeFirstLetter(user.email?.split('@')[0] ?? 'Employee');
 };
 
 const shiftStatus = (metadata?: Record<string, unknown> | null) => {
@@ -271,7 +270,6 @@ export default function ProfileScreen() {
     enabled: !!employeeId,
     staleTime: 60_000,
   });
-  const provider = user?.identities?.[0]?.provider ?? 'email';
   const status = shiftStatus(user?.user_metadata);
   const translatedStatus = status === 'Active' ? t('statusActive') : status;
   const contactPhone =
@@ -353,27 +351,10 @@ export default function ProfileScreen() {
                     <Text style={[styles.profileGreeting, { color: theme.textPrimary }, isIOS && styles.profileGreetingIOS]}>
                       {t('profileGreeting', { name: profileName(user) })}
                     </Text>
-                    <Text style={[styles.profileSubtext, { color: theme.textSecondary }, isIOS && styles.profileSubtextIOS]}>
-                      {t('profileSettingsSync')}
-                    </Text>
                   </View>
                 </View>
                 <View style={[styles.statusBadge, { backgroundColor: theme.primaryAccent }, isIOS && styles.statusBadgeIOS]}>
                   <Text style={styles.statusBadgeText}>{translatedStatus}</Text>
-                </View>
-              </View>
-              <View style={styles.heroMetrics}>
-                <View style={styles.heroMetricBlock}>
-                  <Text style={[styles.profileMetricLabel, { color: theme.textSecondary }]}>
-                    {t('memberSinceLabel')}
-                  </Text>
-                  <Text style={[styles.profileMetricValue, { color: theme.textPrimary }]}>
-                    {formatDate(user?.created_at)}
-                  </Text>
-                </View>
-                <View style={styles.heroMetricBlock}>
-                  <Text style={[styles.profileMetricLabel, { color: theme.textSecondary }]}>{t('providerLabel')}</Text>
-                  <Text style={[styles.profileMetricValue, { color: theme.textPrimary }]}>{provider.toUpperCase()}</Text>
                 </View>
               </View>
             </View>
@@ -392,7 +373,6 @@ export default function ProfileScreen() {
               <View style={styles.infoGrid}>
                 {[
                   { label: t('emailVerifiedLabel'), value: user?.email_confirmed_at ? t('yes') : t('pending') },
-                  { label: t('statusActive'), value: translatedStatus },
                 ].map((stat) => (
                   <View
                     key={stat.label}
@@ -607,15 +587,6 @@ const styles = StyleSheet.create({
     fontSize: 26,
     letterSpacing: 0.2,
   },
-  profileSubtext: {
-    fontSize: 15,
-    marginTop: 4,
-    maxWidth: 230,
-  },
-  profileSubtextIOS: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
   statusBadge: {
     borderRadius: 999,
     paddingVertical: 6,
@@ -653,19 +624,6 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     marginTop: -2,
   },
-  heroMetrics: {
-    marginTop: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  heroMetricBlock: {
-    flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    borderRadius: 14,
-    backgroundColor: 'rgba(0,0,0,0.2)',
-  },
   profileInfo: {
     marginTop: 20,
     flexDirection: 'row',
@@ -683,16 +641,6 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 16,
     backgroundColor: 'rgba(255,255,255,0.08)',
-  },
-  profileMetricLabel: {
-    fontSize: 11,
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-    marginBottom: 4,
-  },
-  profileMetricValue: {
-    fontSize: 16,
-    fontWeight: '700',
   },
   heroMeta: {
     flex: 1,
