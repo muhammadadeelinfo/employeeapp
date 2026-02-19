@@ -39,6 +39,12 @@ const testCases: TestCase[] = [
     end: 'invalid',
     expectedEnd: 'invalid',
   },
+  {
+    name: 'equal start and end rolls to next day',
+    start: '2026-01-26T18:00:00Z',
+    end: '2026-01-26T18:00:00Z',
+    expectedEnd: '2026-01-27T18:00:00.000Z',
+  },
 ];
 
 testCases.forEach((test) => {

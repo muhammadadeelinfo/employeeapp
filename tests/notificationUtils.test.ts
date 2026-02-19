@@ -3,6 +3,7 @@ import {
   determineNotificationCategory,
   groupNotificationsByRecency,
   normalizeNotificationRow,
+  parseIsoDate,
   resolveTargetPath,
   type NotificationRecord,
 } from '../src/shared/utils/notificationUtils';
@@ -29,8 +30,13 @@ assert.strictEqual(
 );
 
 assert.strictEqual(resolveTargetPath({ target: '/calendar' }), '/calendar');
+assert.strictEqual(resolveTargetPath({ deepLink: '  /notifications  ' }), '/notifications');
 assert.strictEqual(resolveTargetPath({ shiftId: 'abc123' }), '/shift-details/abc123');
 assert.strictEqual(resolveTargetPath(undefined), undefined);
+
+assert.strictEqual(parseIsoDate('2026-03-10T10:00:00Z'), '2026-03-10T10:00:00Z');
+assert.strictEqual(parseIsoDate(new Date('2026-03-10T10:00:00Z')), '2026-03-10T10:00:00.000Z');
+assert.strictEqual(parseIsoDate(1_770_000_000_000), '2026-02-02T02:40:00.000Z');
 
 const normalized = normalizeNotificationRow(
   {
@@ -51,6 +57,30 @@ assert.strictEqual(normalized?.detail, 'Starts at 8:00');
 assert.strictEqual(normalized?.read, false);
 assert.strictEqual(normalized?.targetPath, '/shift-details/shift-42');
 assert.strictEqual(normalized?.category, 'shift-schedule');
+
+const normalizedWithFallbacks = normalizeNotificationRow(
+  {
+    notification_id: 'abc',
+    description: 'Fallback detail from description',
+    status: 'read',
+    timestamp: '2026-03-10T12:00:00Z',
+    payload: { deepLink: '/calendar-day/2026-03-10' },
+  },
+  { title: 'Fallback title', detail: 'Fallback detail' }
+);
+
+assert.ok(normalizedWithFallbacks, 'row with fallback fields should normalize');
+assert.strictEqual(normalizedWithFallbacks?.id, 'abc');
+assert.strictEqual(normalizedWithFallbacks?.title, 'Fallback title');
+assert.strictEqual(normalizedWithFallbacks?.detail, 'Fallback detail from description');
+assert.strictEqual(normalizedWithFallbacks?.read, true);
+assert.strictEqual(normalizedWithFallbacks?.targetPath, '/calendar-day/2026-03-10');
+
+const invalidRow = normalizeNotificationRow(
+  { title: 'Missing id notification' },
+  { title: 'Fallback title', detail: 'Fallback detail' }
+);
+assert.strictEqual(invalidRow, null);
 
 const now = new Date('2026-03-10T12:00:00Z');
 const notifications: NotificationRecord[] = [

@@ -23,6 +23,12 @@ assert.strictEqual(
 );
 
 assert.strictEqual(
+  getShiftPhase(start, end, new Date('2026-03-10T16:00:00Z')),
+  'live',
+  'exact shift end is still live with current logic'
+);
+
+assert.strictEqual(
   getShiftPhase(start, end, new Date('2026-03-10T16:00:01Z')),
   'past',
   'after shift end should be past'

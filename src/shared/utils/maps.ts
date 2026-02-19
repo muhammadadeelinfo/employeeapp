@@ -1,8 +1,8 @@
 import { Linking } from 'react-native';
+import { buildMapsSearchUrl } from './mapUrl';
 
 export const openAddressInMaps = (address?: string | null) => {
-  const normalizedAddress = address?.trim();
-  if (!normalizedAddress) return;
-  const query = encodeURIComponent(normalizedAddress);
-  void Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${query}`);
+  const url = buildMapsSearchUrl(address);
+  if (!url) return;
+  void Linking.openURL(url);
 };
