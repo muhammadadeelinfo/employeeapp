@@ -32,6 +32,7 @@ import {
 } from '@shared/utils/responsiveLayout';
 import Constants from 'expo-constants';
 import {
+  getBiometricLabel,
   isBiometricAvailable,
   loadBiometricUnlockPreference,
   requestBiometricUnlock,
@@ -275,6 +276,7 @@ export default function AccountScreen() {
   const [biometricEnabled, setBiometricEnabled] = useState(false);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [isBiometricLoading, setIsBiometricLoading] = useState(true);
+  const [biometricLabel, setBiometricLabel] = useState('Biometrics');
   const metadataRecord =
     metadata && typeof metadata === 'object' ? (metadata as Record<string, unknown>) : undefined;
   const {
@@ -427,8 +429,10 @@ export default function AccountScreen() {
   const biometricStatusLabel = useMemo(() => {
     if (isBiometricLoading) return t('biometricStatusChecking');
     if (!biometricAvailable) return t('biometricStatusUnavailable');
-    return biometricEnabled ? t('biometricStatusEnabled') : t('biometricStatusDisabled');
-  }, [biometricAvailable, biometricEnabled, isBiometricLoading, t]);
+    return biometricEnabled
+      ? t('biometricStatusEnabled', { biometric: biometricLabel })
+      : t('biometricStatusDisabled');
+  }, [biometricAvailable, biometricEnabled, biometricLabel, isBiometricLoading, t]);
   const initials = profileName(user)
     .split(' ')
     .filter(Boolean)
@@ -464,6 +468,12 @@ export default function AccountScreen() {
 
       setBiometricEnabled(enabled && available);
       setBiometricAvailable(available);
+      if (available) {
+        const nextBiometricLabel = await getBiometricLabel().catch(() => 'Biometrics');
+        if (isMounted) {
+          setBiometricLabel(nextBiometricLabel);
+        }
+      }
       setIsBiometricLoading(false);
     })();
 
@@ -493,8 +503,11 @@ export default function AccountScreen() {
         return;
       }
 
+      const nextBiometricLabel = await getBiometricLabel().catch(() => 'Biometrics');
+      setBiometricLabel(nextBiometricLabel);
+
       const result = await requestBiometricUnlock(
-        t('biometricEnablePrompt'),
+        t('biometricEnablePrompt', { biometric: nextBiometricLabel }),
         t('biometricUsePasscode')
       );
       if (!result.success) {
@@ -758,11 +771,19 @@ export default function AccountScreen() {
               <View style={styles.toolsList}>
                 <View style={[styles.toolsRow, { borderColor: theme.borderSoft }]}>
                   <View style={[styles.toolsIconWrap, { backgroundColor: theme.surfaceMuted }]}>
-                    <Ionicons name="finger-print-outline" size={16} color={theme.primary} />
+                    <Ionicons
+                      name={
+                        biometricLabel.includes('Face')
+                          ? 'scan-outline'
+                          : ('finger-print-outline' as const)
+                      }
+                      size={16}
+                      color={theme.primary}
+                    />
                   </View>
                   <View style={styles.biometricMeta}>
                     <Text style={[styles.toolsLabel, { color: theme.textPrimary }]}>
-                      {t('biometricUnlockSetting')}
+                      {t('biometricUnlockSetting', { biometric: biometricLabel })}
                     </Text>
                     <Text style={[styles.biometricStatusText, { color: theme.textSecondary }]}>
                       {biometricStatusLabel}

@@ -22,6 +22,8 @@ import {
   ActivityIndicator,
   Animated,
   Easing,
+  AppState,
+  type AppStateStatus,
 } from 'react-native';
 import { AuthProvider } from '@hooks/useSupabaseAuth';
 import { queryClient } from '@lib/queryClient';
@@ -45,6 +47,7 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 import {
+  getBiometricLabel,
   isBiometricAvailable,
   loadBiometricUnlockPreference,
   requestBiometricUnlock,
@@ -80,6 +83,7 @@ const formatHourValue = (hours: number) => {
 
 const REPORT_FOLDER_NAME = 'EmployeePortalReports';
 const BRAND_LAUNCH_MS = 2000;
+const RESUME_BIOMETRIC_LOCK_THRESHOLD_MS = 15_000;
 
 const buildReportDestination = async (reportType: 'monthly' | 'summary') => {
   const baseDirectory = FileSystem.documentDirectory ?? FileSystem.cacheDirectory;
@@ -129,16 +133,19 @@ function LayoutContentInner() {
   const [isBiometricGateVisible, setIsBiometricGateVisible] = useState(false);
   const [isBiometricUnlocking, setIsBiometricUnlocking] = useState(false);
   const [biometricError, setBiometricError] = useState<string | null>(null);
+  const [biometricLabel, setBiometricLabel] = useState('Biometrics');
   const brandFade = useRef(new Animated.Value(0)).current;
   const brandScale = useRef(new Animated.Value(0.94)).current;
   const brandGlowOpacity = useRef(new Animated.Value(0.55)).current;
   const hasAttemptedBiometricUnlock = useRef(false);
+  const appStateRef = useRef<AppStateStatus>(AppState.currentState);
+  const wentBackgroundAtRef = useRef<number | null>(null);
   const formatShiftKey = useCallback(
     (shift: Shift) => shift.id ?? `${shift.start}-${shift.end}`,
     []
   );
   const includedShiftSet = useMemo(() => new Set(includedShiftKeys), [includedShiftKeys]);
-  const { user, loading } = useAuth();
+  const { user, loading, signOut } = useAuth();
   const userId = user?.id;
   const { data: quickShifts = [] } = useQuery({
     queryKey: ['quickActionsShifts', userId],
@@ -351,6 +358,9 @@ function LayoutContentInner() {
         return;
       }
 
+      const nextBiometricLabel = await getBiometricLabel().catch(() => 'Biometrics');
+      if (!isMounted) return;
+      setBiometricLabel(nextBiometricLabel);
       hasAttemptedBiometricUnlock.current = false;
       setBiometricError(null);
       setIsBiometricGateVisible(true);
@@ -373,7 +383,7 @@ function LayoutContentInner() {
     setBiometricError(null);
     try {
       const result = await requestBiometricUnlock(
-        t('biometricUnlockPrompt'),
+        t('biometricUnlockPrompt', { biometric: biometricLabel }),
         t('biometricUsePasscode')
       );
 
@@ -409,7 +419,7 @@ function LayoutContentInner() {
     } finally {
       setIsBiometricUnlocking(false);
     }
-  }, [t, user?.id]);
+  }, [biometricLabel, t, user?.id]);
 
   useEffect(() => {
     if (!isBiometricGateVisible || isBiometricGateResolved || isBiometricUnlocking) {
@@ -426,6 +436,50 @@ function LayoutContentInner() {
     isBiometricGateVisible,
     isBiometricUnlocking,
   ]);
+
+  useEffect(() => {
+    if (!isBrandLaunchDone || loading || !user?.id) {
+      return;
+    }
+
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      const previousState = appStateRef.current;
+      appStateRef.current = nextState;
+
+      if (nextState === 'background' || nextState === 'inactive') {
+        wentBackgroundAtRef.current = Date.now();
+        return;
+      }
+
+      if (nextState !== 'active' || previousState === 'active') {
+        return;
+      }
+
+      const inactiveDuration = Date.now() - (wentBackgroundAtRef.current ?? Date.now());
+      if (inactiveDuration < RESUME_BIOMETRIC_LOCK_THRESHOLD_MS) {
+        return;
+      }
+
+      void (async () => {
+        const enabled = await loadBiometricUnlockPreference(user.id);
+        if (!enabled) return;
+
+        const available = await isBiometricAvailable().catch(() => false);
+        if (!available) return;
+
+        const nextBiometricLabel = await getBiometricLabel().catch(() => 'Biometrics');
+        setBiometricLabel(nextBiometricLabel);
+        hasAttemptedBiometricUnlock.current = false;
+        setBiometricError(null);
+        setIsBiometricGateVisible(true);
+        setIsBiometricGateResolved(false);
+      })();
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [isBrandLaunchDone, loading, user?.id]);
 
   useEffect(() => {
     if (Constants.appOwnership === 'expo') {
@@ -819,19 +873,32 @@ function LayoutContentInner() {
               {isBiometricGateVisible ? t('biometricUnlockTitle') : t('rootCheckingSession')}
             </Text>
             <Text style={styles.biometricGateBody}>
-              {isBiometricGateVisible ? t('biometricUnlockBody') : t('biometricUnlockPreparing')}
+              {isBiometricGateVisible
+                ? t('biometricUnlockBody', { biometric: biometricLabel })
+                : t('biometricUnlockPreparing')}
             </Text>
             {biometricError ? <Text style={styles.biometricGateError}>{biometricError}</Text> : null}
             {isBiometricGateVisible ? (
-              <TouchableOpacity
-                style={styles.biometricUnlockButton}
-                onPress={() => void handleBiometricUnlock()}
-                disabled={isBiometricUnlocking}
-              >
-                <Text style={styles.biometricUnlockButtonText}>
-                  {isBiometricUnlocking ? t('biometricUnlocking') : t('biometricUnlockAction')}
-                </Text>
-              </TouchableOpacity>
+              <View style={styles.biometricActionRow}>
+                <TouchableOpacity
+                  style={styles.biometricUnlockButton}
+                  onPress={() => void handleBiometricUnlock()}
+                  disabled={isBiometricUnlocking}
+                >
+                  <Text style={styles.biometricUnlockButtonText}>
+                    {isBiometricUnlocking
+                      ? t('biometricUnlocking')
+                      : t('biometricUnlockAction', { biometric: biometricLabel })}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.biometricSignOutButton}
+                  onPress={() => void signOut()}
+                  disabled={isBiometricUnlocking}
+                >
+                  <Text style={styles.biometricSignOutButtonText}>{t('signOut')}</Text>
+                </TouchableOpacity>
+              </View>
             ) : null}
             {isBiometricUnlocking || !isBiometricGateVisible ? (
               <ActivityIndicator color="#93c5fd" style={styles.brandSpinner} />
@@ -1372,10 +1439,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
   },
-  biometricUnlockButton: {
+  biometricActionRow: {
+    width: '100%',
     marginTop: 14,
+    gap: 10,
+  },
+  biometricUnlockButton: {
     minHeight: 42,
-    minWidth: 170,
     borderRadius: 999,
     paddingHorizontal: 16,
     alignItems: 'center',
@@ -1388,6 +1458,21 @@ const styles = StyleSheet.create({
     color: '#F8FAFC',
     fontSize: 14,
     fontWeight: '700',
+  },
+  biometricSignOutButton: {
+    minHeight: 40,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(148, 163, 184, 0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(15, 23, 42, 0.45)',
+  },
+  biometricSignOutButtonText: {
+    color: '#e2e8f0',
+    fontSize: 13,
+    fontWeight: '600',
   },
   content: {
     flex: 1,

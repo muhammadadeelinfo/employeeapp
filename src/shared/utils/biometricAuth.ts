@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as LocalAuthentication from 'expo-local-authentication';
+import { Platform } from 'react-native';
 
 const BIOMETRIC_UNLOCK_STORAGE_KEY_BASE = 'shiftor-employee-biometric-unlock';
 
@@ -36,6 +37,20 @@ export const isBiometricAvailable = async () => {
     LocalAuthentication.isEnrolledAsync(),
   ]);
   return hasHardware && isEnrolled;
+};
+
+export const getBiometricLabel = async () => {
+  const supported = await LocalAuthentication.supportedAuthenticationTypesAsync();
+  if (supported.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)) {
+    return Platform.OS === 'ios' ? 'Face ID' : 'Face Unlock';
+  }
+  if (supported.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)) {
+    return Platform.OS === 'ios' ? 'Touch ID' : 'Fingerprint';
+  }
+  if (supported.includes(LocalAuthentication.AuthenticationType.IRIS)) {
+    return 'Iris';
+  }
+  return 'Biometrics';
 };
 
 export const requestBiometricUnlock = async (
