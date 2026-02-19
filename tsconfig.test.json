@@ -19,6 +19,7 @@
     "outDir": "tmp-test"
   },
   "include": [
+    "src/lib/shiftConfirmationStatus.ts",
     "src/shared/utils/timeUtils.ts",
     "src/shared/utils/shiftPhase.ts",
     "src/shared/utils/notificationUtils.ts",
@@ -26,6 +27,7 @@
     "tests/timeUtils.test.ts",
     "tests/shiftPhase.test.ts",
     "tests/notificationUtils.test.ts",
-    "tests/maps.test.ts"
+    "tests/maps.test.ts",
+    "tests/shiftConfirmationStatus.test.ts"
   ]
 }
