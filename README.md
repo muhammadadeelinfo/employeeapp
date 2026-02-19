@@ -110,3 +110,10 @@ npm run test
   - `AUTH_REDIRECT_URL` in `.env`
   - Auth redirect allowlists in Supabase/auth provider settings
   - Any shared links that include the old Expo slug
+
+## Release docs
+
+- `docs/release-safety-checklist.md` - full go-live checklist
+- `docs/release-day-runbook.md` - command order for build and submit day
+- `docs/app-store-metadata-template.md` - App Store listing text template
+- `docs/app-store-privacy-draft.md` - App Privacy questionnaire draft
