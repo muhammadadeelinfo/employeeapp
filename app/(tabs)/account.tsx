@@ -362,10 +362,16 @@ export default function AccountScreen() {
       `mailto:${supportEmail}?subject=${encodeURIComponent('Help request')}`
     );
   };
-  const handleLegal = async () => {
-    const legalUrl =
-      `${((Constants.expoConfig?.extra?.apiBaseUrl as string | undefined)?.trim() || 'https://shiftorapp.com').replace(/\/+$/, '')}/legal`;
-    await openExternalUrl(t('supportLegal'), legalUrl);
+  const baseSiteUrl =
+    ((Constants.expoConfig?.extra?.apiBaseUrl as string | undefined)?.trim() || 'https://shiftorapp.com').replace(
+      /\/+$/,
+      ''
+    );
+  const handlePrivacyPolicy = async () => {
+    await openExternalUrl(t('aboutPrivacyPolicy'), `${baseSiteUrl}/privacy`);
+  };
+  const handleTerms = async () => {
+    await openExternalUrl(t('aboutTerms'), `${baseSiteUrl}/terms`);
   };
   const handleDeleteAccount = async () => {
     const email = user?.email?.trim() || '';
@@ -397,6 +403,16 @@ export default function AccountScreen() {
     theme.heroGradientEnd,
     theme.surfaceMuted,
   ];
+  const appName =
+    ((Constants.expoConfig?.name as string | undefined)?.trim() || 'Shiftor Employee');
+  const appVersion = ((Constants.expoConfig?.version as string | undefined)?.trim() || '1.0.0');
+  const iosBuildNumber = ((Constants.expoConfig?.ios?.buildNumber as string | undefined)?.trim() || '');
+  const androidBuildCode =
+    typeof Constants.expoConfig?.android?.versionCode === 'number'
+      ? String(Constants.expoConfig.android.versionCode)
+      : '';
+  const appBuild = iosBuildNumber || androidBuildCode;
+  const appVersionLabel = appBuild ? `${appVersion} (${appBuild})` : appVersion;
   const initials = profileName(user)
     .split(' ')
     .filter(Boolean)
@@ -595,6 +611,58 @@ export default function AccountScreen() {
               ]}
             >
               <Text style={[styles.sectionHeading, { color: theme.textPrimary }]}>
+                {t('aboutSectionTitle')}
+              </Text>
+              <Text style={[styles.sectionHint, { color: theme.textSecondary }]}>
+                {t('aboutSectionHint')}
+              </Text>
+              <View style={styles.aboutMetaList}>
+                {[
+                  { label: t('aboutAppName'), value: appName },
+                  { label: t('aboutVersion'), value: appVersionLabel },
+                ].map((entry) => (
+                  <View key={entry.label} style={[styles.aboutMetaRow, { borderColor: theme.borderSoft }]}>
+                    <Text style={[styles.aboutMetaLabel, { color: theme.textSecondary }]}>{entry.label}</Text>
+                    <Text style={[styles.aboutMetaValue, { color: theme.textPrimary }]}>{entry.value}</Text>
+                  </View>
+                ))}
+              </View>
+              <View style={styles.toolsList}>
+                <TouchableOpacity
+                  style={[styles.toolsRow, { borderColor: theme.borderSoft }]}
+                  onPress={() => void handlePrivacyPolicy()}
+                >
+                  <View style={[styles.toolsIconWrap, { backgroundColor: theme.surfaceMuted }]}>
+                    <Ionicons name="shield-outline" size={16} color={theme.primary} />
+                  </View>
+                  <Text style={[styles.toolsLabel, { color: theme.textPrimary }]}>
+                    {t('aboutPrivacyPolicy')}
+                  </Text>
+                  <Ionicons name="chevron-forward" size={16} color={theme.textSecondary} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.toolsRow, { borderColor: theme.borderSoft }]}
+                  onPress={() => void handleTerms()}
+                >
+                  <View style={[styles.toolsIconWrap, { backgroundColor: theme.surfaceMuted }]}>
+                    <Ionicons name="document-text-outline" size={16} color={theme.primary} />
+                  </View>
+                  <Text style={[styles.toolsLabel, { color: theme.textPrimary }]}>
+                    {t('aboutTerms')}
+                  </Text>
+                  <Ionicons name="chevron-forward" size={16} color={theme.textSecondary} />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View
+              style={[
+                styles.sectionCard,
+                { backgroundColor: theme.surface, borderColor: theme.borderSoft },
+                isIOS && styles.sectionCardIOS,
+              ]}
+            >
+              <Text style={[styles.sectionHeading, { color: theme.textPrimary }]}>
                 {t('securitySectionTitle')}
               </Text>
               <View style={styles.toolsList}>
@@ -746,27 +814,12 @@ export default function AccountScreen() {
                   </Text>
                   <Ionicons name="chevron-forward" size={16} color={theme.textSecondary} />
                 </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.toolsRow, { borderColor: theme.borderSoft }]}
-                  onPress={() => void handleLegal()}
-                >
-                  <View style={[styles.toolsIconWrap, { backgroundColor: theme.surfaceMuted }]}>
-                    <Ionicons name="document-text-outline" size={16} color={theme.primary} />
-                  </View>
-                  <Text style={[styles.toolsLabel, { color: theme.textPrimary }]}>
-                    {t('supportLegal')}
-                  </Text>
-                  <Ionicons name="chevron-forward" size={16} color={theme.textSecondary} />
-                </TouchableOpacity>
               </View>
               <PrimaryButton
                 title={t('signOut')}
                 onPress={handleSignOut}
                 style={[styles.button, isIOS && styles.buttonIOS]}
               />
-              <TouchableOpacity onPress={handleSignOut}>
-                <Text style={[styles.link, { color: theme.primary }]}>{t('switchAccount')}</Text>
-              </TouchableOpacity>
               <TouchableOpacity onPress={() => void handleDeleteAccount()}>
                 <Text style={[styles.link, styles.destructiveLink, { color: theme.fail }]}>
                   {t('supportDeleteAccount')}
@@ -1094,6 +1147,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
     marginLeft: 10,
+  },
+  aboutMetaList: {
+    borderTopWidth: 1,
+    marginTop: 2,
+  },
+  aboutMetaRow: {
+    borderBottomWidth: 1,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  aboutMetaLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  aboutMetaValue: {
+    fontSize: 13,
+    fontWeight: '700',
   },
   preferenceGroup: {
     marginBottom: 16,
