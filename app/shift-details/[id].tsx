@@ -1,6 +1,5 @@
 import {
   ActivityIndicator,
-  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -20,6 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getShiftPhase, phaseMeta, ShiftPhase } from '@shared/utils/shiftPhase';
 import { useTheme } from '@shared/themeContext';
 import { useLanguage, type TranslationKey } from '@shared/context/LanguageContext';
+import { openAddressInMaps } from '@shared/utils/maps';
 
 const statusStyles: Record<
   Shift['status'],
@@ -189,9 +189,7 @@ export default function ShiftDetailsScreen() {
   const contactEmail = 'ops@company.com';
   const contactPhone = '+1 (415) 555-0101';
   const handleOpenMaps = () => {
-    if (!locationSubtext) return;
-    const query = encodeURIComponent(locationSubtext);
-    Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${query}`);
+    openAddressInMaps(locationSubtext);
   };
 
   const shiftEnd = new Date(shiftToShow.end);
@@ -390,9 +388,22 @@ export default function ShiftDetailsScreen() {
           </Text>
         ) : null}
         {locationSubtext ? (
-          <Text style={[styles.mapLink, { color: mapLinkColor }]} onPress={handleOpenMaps}>
-            {t('openInMaps')}
-          </Text>
+          <Pressable
+            style={({ pressed }) => [
+              styles.mapActionButton,
+              {
+                backgroundColor: theme.surfaceMuted,
+                borderColor: theme.borderSoft,
+              },
+              pressed && styles.mapActionButtonPressed,
+            ]}
+            onPress={handleOpenMaps}
+            accessibilityRole="button"
+            accessibilityLabel={t('openInMaps')}
+          >
+            <Ionicons name="map-outline" size={16} color={mapLinkColor} />
+            <Text style={[styles.mapActionLabel, { color: mapLinkColor }]}>{t('openInMaps')}</Text>
+          </Pressable>
         ) : null}
       </View>
 
@@ -694,11 +705,23 @@ const styles = StyleSheet.create({
     marginTop: 24,
     marginBottom: 16,
   },
-  mapLink: {
-    color: '#0ea5e9',
+  mapActionButton: {
+    marginTop: 10,
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    columnGap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  mapActionButtonPressed: {
+    opacity: 0.75,
+  },
+  mapActionLabel: {
     fontSize: 14,
-    marginTop: 8,
-    textDecorationLine: 'underline',
+    fontWeight: '600',
   },
   tabLabel: {
     textTransform: 'uppercase',

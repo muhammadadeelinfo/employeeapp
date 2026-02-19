@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useState } from 'react';
 import type { ComponentProps } from 'react';
+import type { GestureResponderEvent } from 'react-native';
 import type { Shift } from '@features/shifts/shiftsService';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
 import { useLanguage, type TranslationKey } from '@shared/context/LanguageContext';
@@ -11,6 +12,7 @@ import {
   normalizeShiftConfirmationStatus,
 } from '@lib/shiftConfirmationStatus';
 import { getShiftPhase, phaseMeta } from '@shared/utils/shiftPhase';
+import { openAddressInMaps } from '@shared/utils/maps';
 import { useTheme } from '@shared/themeContext';
 
 const statusColors: Record<string, string> = {
@@ -129,6 +131,10 @@ export const ShiftCard = ({
     statusColor,
   ];
   const statusIcon = statusIconMap[shift.status];
+  const handleOpenMaps = (event: GestureResponderEvent) => {
+    event.stopPropagation();
+    openAddressInMaps(locationSubtext);
+  };
 
   return (
     <Pressable
@@ -243,11 +249,26 @@ export const ShiftCard = ({
             </Text>
           </View>
           {locationSubtext && (
-            <Ionicons
-              name={showFullAddress ? 'chevron-up-outline' : 'chevron-down-outline'}
-              size={18}
-              color={theme.textSecondary}
-            />
+            <View style={styles.locationActions}>
+              <Pressable
+                onPress={handleOpenMaps}
+                accessibilityRole="button"
+                accessibilityLabel={t('openInMaps')}
+                style={({ pressed }) => [
+                  styles.mapIconButton,
+                  { backgroundColor: theme.surface },
+                  pressed && styles.mapIconButtonPressed,
+                ]}
+                hitSlop={8}
+              >
+                <Ionicons name="map-outline" size={16} color={theme.info} />
+              </Pressable>
+              <Ionicons
+                name={showFullAddress ? 'chevron-up-outline' : 'chevron-down-outline'}
+                size={18}
+                color={theme.textSecondary}
+              />
+            </View>
           )}
         </Pressable>
 
@@ -452,6 +473,21 @@ const styles = StyleSheet.create({
   },
   locationText: {
     flex: 1,
+  },
+  locationActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    columnGap: 8,
+  },
+  mapIconButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mapIconButtonPressed: {
+    opacity: 0.75,
   },
   locationLabel: {
     fontSize: 14,

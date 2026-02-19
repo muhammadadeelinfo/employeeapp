@@ -26,6 +26,7 @@ import * as Calendar from 'expo-calendar';
 import { useTheme } from '@shared/themeContext';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { layoutTokens } from '@shared/theme/layout';
+import { openAddressInMaps } from '@shared/utils/maps';
 
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -866,9 +867,27 @@ export default function CalendarScreen() {
                         {startLabel} — {endLabel}
                       </Text>
                       {locationLabel ? (
-                        <Text style={[styles.dayDetailLocation, { color: theme.textSecondary }]}>
-                          {locationLabel}
-                        </Text>
+                        <View style={styles.dayDetailLocationRow}>
+                          <Text style={[styles.dayDetailLocation, { color: theme.textSecondary }]}>
+                            {locationLabel}
+                          </Text>
+                          <Pressable
+                            style={({ pressed }) => [
+                              styles.dayDetailMapButton,
+                              {
+                                backgroundColor: theme.surfaceMuted,
+                                borderColor: theme.borderSoft,
+                              },
+                              pressed && styles.dayDetailMapButtonPressed,
+                            ]}
+                            onPress={() => openAddressInMaps(locationLabel)}
+                            accessibilityRole="button"
+                            accessibilityLabel={t('openInMaps')}
+                            hitSlop={8}
+                          >
+                            <Ionicons name="map-outline" size={15} color={theme.info} />
+                          </Pressable>
+                        </View>
                       ) : null}
                       {shift.description ? (
                         <Text style={[styles.dayDetailDescription, { color: theme.textSecondary }]}>
@@ -1392,7 +1411,25 @@ const styles = StyleSheet.create({
   dayDetailLocation: {
     fontSize: 12,
     color: '#475569',
+    flex: 1,
+    marginRight: 8,
+  },
+  dayDetailLocationRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
     marginBottom: 4,
+  },
+  dayDetailMapButton: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    marginTop: -2,
+  },
+  dayDetailMapButtonPressed: {
+    opacity: 0.75,
   },
   dayDetailDescription: {
     fontSize: 12,

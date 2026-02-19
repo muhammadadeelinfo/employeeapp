@@ -19,6 +19,7 @@ import { supabase } from '@lib/supabaseClient';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { layoutTokens } from '@shared/theme/layout';
 import { useRouter } from 'expo-router';
+import { openAddressInMaps } from '@shared/utils/maps';
 
 const normalizeContactString = (value?: unknown) =>
   typeof value === 'string' && value.trim() ? value.trim() : undefined;
@@ -285,10 +286,16 @@ export default function ProfileScreen() {
     styles.content,
     { paddingBottom: 28 + insets.bottom + tabBarHeight },
   ];
+  const noValueLabel = t('notProvided');
   const contactFields = [
-    { label: t('emailLabel'), value: user?.email ?? t('notProvided'), icon: 'mail-outline' as const },
-    { label: t('phoneLabel'), value: contactPhone ?? t('notProvided'), icon: 'call-outline' as const },
-    { label: t('addressLabel'), value: contactAddress ?? t('notProvided'), icon: 'location-outline' as const },
+    { label: t('emailLabel'), value: user?.email ?? noValueLabel, icon: 'mail-outline' as const },
+    { label: t('phoneLabel'), value: contactPhone ?? noValueLabel, icon: 'call-outline' as const },
+    {
+      label: t('addressLabel'),
+      value: contactAddress ?? noValueLabel,
+      icon: 'location-outline' as const,
+      mapAddress: contactAddress,
+    },
   ];
   const heroGradientColors: [string, string, ...string[]] = [
     theme.heroGradientStart,
@@ -411,6 +418,22 @@ export default function ProfileScreen() {
                       <Text style={[styles.contactLabel, { color: theme.textSecondary }]}>{field.label}</Text>
                       <Text style={[styles.contactValue, { color: theme.textPrimary }]}>{field.value}</Text>
                     </View>
+                    {field.mapAddress ? (
+                      <TouchableOpacity
+                        style={[
+                          styles.contactMapButton,
+                          {
+                            backgroundColor: theme.surfaceMuted,
+                            borderColor: theme.borderSoft,
+                          },
+                        ]}
+                        onPress={() => openAddressInMaps(field.mapAddress)}
+                        accessibilityRole="button"
+                        accessibilityLabel={t('openInMaps')}
+                      >
+                        <Ionicons name="map-outline" size={15} color={theme.info} />
+                      </TouchableOpacity>
+                    ) : null}
                   </View>
                 ))}
               </View>
@@ -796,6 +819,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     marginTop: 2,
+  },
+  contactMapButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    marginLeft: 10,
   },
   preferenceGroup: {
     marginBottom: 16,

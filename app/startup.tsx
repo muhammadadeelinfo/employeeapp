@@ -25,6 +25,7 @@ import {
   getRuntimeConfigIssues,
   shouldRunNotificationsTableHealthCheck,
 } from '@shared/utils/runtimeHealth';
+import { openAddressInMaps } from '@shared/utils/maps';
 
 type StartupJob = {
   id: string;
@@ -708,6 +709,20 @@ export default function StartupScreen() {
                       <View style={styles.cardMetaRow}>
                         <Ionicons name="location-outline" size={14} color={theme.textSecondary} />
                         <Text style={[styles.cardBody, { color: theme.textSecondary }]}>{job.location}</Text>
+                        <TouchableOpacity
+                          onPress={() => openAddressInMaps(job.location)}
+                          accessibilityRole="button"
+                          accessibilityLabel={t('openInMaps')}
+                          style={[
+                            styles.metaMapButton,
+                            {
+                              backgroundColor: theme.surface,
+                              borderColor: theme.borderSoft,
+                            },
+                          ]}
+                        >
+                          <Ionicons name="map-outline" size={14} color={theme.info} />
+                        </TouchableOpacity>
                       </View>
                     ) : null}
                     {job.employmentType ? (
@@ -917,6 +932,14 @@ const styles = StyleSheet.create({
   cardBody: {
     fontSize: 14,
     flex: 1,
+  },
+  metaMapButton: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
   },
   applyButton: {
     marginTop: 10,
