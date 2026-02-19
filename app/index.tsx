@@ -2,21 +2,25 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@hooks/useSupabaseAuth';
+import { useLanguage } from '@shared/context/LanguageContext';
+import { getStartupRoute } from '@shared/utils/startupRoute';
 
 export default function RootIndex() {
   const { user, loading } = useAuth();
+  const { t } = useLanguage();
   const router = useRouter();
 
   useEffect(() => {
     if (loading) return;
-
-    router.replace(user ? '(tabs)/my-shifts' : '/startup');
+    router.replace(getStartupRoute(Boolean(user)));
   }, [loading, router, user]);
 
   return (
     <View style={styles.container}>
-      <ActivityIndicator />
-      <Text style={styles.text}>{loading ? 'Checking your session...' : 'Preparing your workspace…'}</Text>
+      <ActivityIndicator color="#93c5fd" />
+      <Text style={styles.text}>
+        {loading ? t('rootCheckingSession') : t('rootPreparingWorkspace')}
+      </Text>
     </View>
   );
 }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Stack, usePathname, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -18,6 +18,10 @@ import {
   Modal,
   Switch,
   TextInput,
+  Image,
+  ActivityIndicator,
+  Animated,
+  Easing,
 } from 'react-native';
 import { AuthProvider } from '@hooks/useSupabaseAuth';
 import { queryClient } from '@lib/queryClient';
@@ -69,6 +73,7 @@ const formatHourValue = (hours: number) => {
 };
 
 const REPORT_FOLDER_NAME = 'EmployeePortalReports';
+const BRAND_LAUNCH_MS = 2000;
 
 const buildReportDestination = async (reportType: 'monthly' | 'summary') => {
   const baseDirectory = FileSystem.documentDirectory ?? FileSystem.cacheDirectory;
@@ -113,6 +118,10 @@ function LayoutContentInner() {
   const [customReportDescription, setCustomReportDescription] = useState(() => t('reportSummaryDescribe'));
   const [reportNote, setReportNote] = useState('');
   const [reportThemeSelection, setReportThemeSelection] = useState<'default' | 'soft'>('default');
+  const [isBrandLaunchDone, setIsBrandLaunchDone] = useState(false);
+  const brandFade = useRef(new Animated.Value(0)).current;
+  const brandScale = useRef(new Animated.Value(0.94)).current;
+  const brandGlowOpacity = useRef(new Animated.Value(0.55)).current;
   const formatShiftKey = useCallback(
     (shift: Shift) => shift.id ?? `${shift.start}-${shift.end}`,
     []
@@ -246,6 +255,51 @@ function LayoutContentInner() {
   const statusBarBgColor = theme.surface;
   const previewTitle = customReportTitle;
   const previewDescription = customReportDescription;
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsBrandLaunchDone(true);
+    }, BRAND_LAUNCH_MS);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(brandFade, {
+        toValue: 1,
+        duration: 480,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(brandScale, {
+        toValue: 1,
+        duration: 560,
+        easing: Easing.out(Easing.back(1.1)),
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(brandGlowOpacity, {
+          toValue: 0.9,
+          duration: 1100,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(brandGlowOpacity, {
+          toValue: 0.55,
+          duration: 1100,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    pulse.start();
+    return () => {
+      pulse.stop();
+    };
+  }, [brandFade, brandGlowOpacity, brandScale]);
 
   useEffect(() => {
     if (Constants.appOwnership === 'expo') {
@@ -602,6 +656,28 @@ function LayoutContentInner() {
       </html>
     `;
   };
+
+  if (!isBrandLaunchDone) {
+    return (
+      <View style={styles.brandGateRoot}>
+        <LinearGradient colors={['#050A14', '#0A1426', '#0F1F3A']} style={styles.brandGateBackground}>
+          <View style={styles.brandBackdropOrbTop} />
+          <View style={styles.brandBackdropOrbBottom} />
+          <Animated.View style={[styles.brandIntro, { opacity: brandFade }]}>
+            <Animated.View style={[styles.brandGlow, { opacity: brandGlowOpacity }]} />
+            <Animated.View style={{ transform: [{ scale: brandScale }] }}>
+              <View style={styles.brandLogoCard}>
+                <Image source={require('../assets/icon.png')} style={styles.brandLogo} resizeMode="contain" />
+              </View>
+            </Animated.View>
+            <Text style={styles.brandTitle}>Shiftor Employee</Text>
+            <Text style={styles.brandSubtitle}>{t('rootCheckingSession')}</Text>
+            <ActivityIndicator color="#93c5fd" style={styles.brandSpinner} />
+          </Animated.View>
+        </LinearGradient>
+      </View>
+    );
+  }
   const handleGeneratePDF = async (reportType: 'monthly' | 'summary') => {
     if (isGeneratingReport) return;
     setIsGeneratingReport(true);
@@ -1015,6 +1091,82 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     width: '100%',
+  },
+  brandGateRoot: {
+    flex: 1,
+  },
+  brandGateBackground: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+    overflow: 'hidden',
+  },
+  brandIntro: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  brandBackdropOrbTop: {
+    position: 'absolute',
+    width: 340,
+    height: 340,
+    borderRadius: 170,
+    backgroundColor: 'rgba(37, 99, 235, 0.22)',
+    top: -120,
+    right: -120,
+  },
+  brandBackdropOrbBottom: {
+    position: 'absolute',
+    width: 290,
+    height: 290,
+    borderRadius: 145,
+    backgroundColor: 'rgba(45, 154, 86, 0.16)',
+    bottom: -95,
+    left: -80,
+  },
+  brandGlow: {
+    position: 'absolute',
+    width: 190,
+    height: 190,
+    borderRadius: 95,
+    backgroundColor: 'rgba(59, 130, 246, 0.16)',
+    top: -28,
+  },
+  brandLogoCard: {
+    width: 132,
+    height: 132,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+    borderWidth: 1,
+    borderColor: 'rgba(148, 163, 184, 0.28)',
+    shadowColor: '#020617',
+    shadowOpacity: 0.45,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 10,
+  },
+  brandLogo: {
+    width: 104,
+    height: 104,
+  },
+  brandTitle: {
+    marginTop: 20,
+    color: '#F8FAFC',
+    fontSize: 28,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+    textAlign: 'center',
+  },
+  brandSubtitle: {
+    marginTop: 8,
+    color: '#BFDBFE',
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  brandSpinner: {
+    marginTop: 14,
   },
   content: {
     flex: 1,
