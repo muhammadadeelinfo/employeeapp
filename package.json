@@ -8,7 +8,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "check-db-config": "node scripts/check-db-config.js",
-    "test": "tsc -p tsconfig.test.json && node tmp-test/tests/timeUtils.test.js && node tmp-test/tests/shiftPhase.test.js && node tmp-test/tests/notificationUtils.test.js && node tmp-test/tests/notificationStateUtils.test.js && node tmp-test/tests/notificationViewUtils.test.js && node tmp-test/tests/shiftNotificationUtils.test.js && node tmp-test/tests/maps.test.js && node tmp-test/tests/shiftConfirmationStatus.test.js && node tmp-test/tests/runtimeHealthUtils.test.js && node tmp-test/tests/shiftMapping.test.js && node tmp-test/tests/calendarSelectionUtils.test.js && node tmp-test/tests/languageUtils.test.js"
+    "test": "tsc -p tsconfig.test.json && node tmp-test/tests/timeUtils.test.js && node tmp-test/tests/shiftPhase.test.js && node tmp-test/tests/notificationUtils.test.js && node tmp-test/tests/notificationStateUtils.test.js && node tmp-test/tests/notificationViewUtils.test.js && node tmp-test/tests/shiftNotificationUtils.test.js && node tmp-test/tests/maps.test.js && node tmp-test/tests/shiftConfirmationStatus.test.js && node tmp-test/tests/runtimeHealthUtils.test.js && node tmp-test/tests/shiftMapping.test.js && node tmp-test/tests/calendarSelectionUtils.test.js && node tmp-test/tests/languageUtils.test.js",
+    "health:ios-sim": "./scripts/check-ios-sim-expo.sh"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.2.0",

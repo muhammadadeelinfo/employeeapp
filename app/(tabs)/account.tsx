@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
@@ -13,7 +14,8 @@ import { PrimaryButton } from '@shared/components/PrimaryButton';
 import { useTheme } from '@shared/themeContext';
 import { useAuth } from '@hooks/useSupabaseAuth';
 import { useNotifications } from '@shared/context/NotificationContext';
-import { languageDefinitions, useLanguage } from '@shared/context/LanguageContext';
+import { useLanguage } from '@shared/context/LanguageContext';
+import { languageDefinitions } from '@shared/utils/languageUtils';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -252,7 +254,10 @@ export default function AccountScreen() {
   const { t, language, setLanguage } = useLanguage();
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
+  const { width } = useWindowDimensions();
   const isIOS = Platform.OS === 'ios';
+  const shouldStackHeroHeader = width < 430;
+  const contentMaxWidth = width >= 1200 ? 960 : width >= 768 ? 820 : undefined;
   const employeeId = user?.id;
   const metadata = user?.user_metadata;
   const metadataRecord =
@@ -420,44 +425,66 @@ export default function AccountScreen() {
         keyExtractor={(item) => item.key}
         ListHeaderComponentStyle={styles.headerSpacing}
         ListHeaderComponent={
-          <LinearGradient
-            colors={heroGradientColors}
-            style={[
-              styles.headerGradient,
-              styles.headerGlass,
-              { paddingTop: isIOS ? 14 : 16 },
-            ]}
-            start={[0, 0]}
-            end={[1, 1]}
-          >
-            <View style={styles.heroGlow} />
-            <View
+          <View style={[styles.constrained, contentMaxWidth ? { maxWidth: contentMaxWidth } : null]}>
+            <LinearGradient
+              colors={heroGradientColors}
               style={[
-                styles.heroCard,
-                { backgroundColor: 'rgba(255,255,255,0.06)' },
-                isIOS && styles.heroCardIOS,
+                styles.headerGradient,
+                styles.headerGlass,
+                { paddingTop: isIOS ? 14 : 16 },
               ]}
+              start={[0, 0]}
+              end={[1, 1]}
             >
-              <View style={styles.heroHeader}>
-                <View style={styles.heroIdentity}>
-                  <View style={[styles.avatar, { backgroundColor: theme.primary }, isIOS && styles.avatarIOS]}>
-                    <Text style={styles.avatarText}>{initials}</Text>
+              <View style={styles.heroGlow} />
+              <View
+                style={[
+                  styles.heroCard,
+                  { backgroundColor: 'rgba(255,255,255,0.06)' },
+                  isIOS && styles.heroCardIOS,
+                ]}
+              >
+                <View style={[styles.heroHeader, shouldStackHeroHeader ? styles.heroHeaderCompact : null]}>
+                  <View style={styles.heroIdentity}>
+                    <View style={[styles.avatar, { backgroundColor: theme.primary }, isIOS && styles.avatarIOS]}>
+                      <Text style={styles.avatarText}>{initials}</Text>
+                    </View>
+                    <View>
+                      <Text
+                        style={[
+                          styles.profileGreeting,
+                          { color: theme.textPrimary },
+                          isIOS && styles.profileGreetingIOS,
+                        ]}
+                      >
+                        {t('profileGreeting', { name: profileName(user) })}
+                      </Text>
+                    </View>
                   </View>
-                  <View>
-                    <Text style={[styles.profileGreeting, { color: theme.textPrimary }, isIOS && styles.profileGreetingIOS]}>
-                      {t('profileGreeting', { name: profileName(user) })}
-                    </Text>
+                  <View
+                    style={[
+                      styles.statusBadge,
+                      { backgroundColor: theme.primaryAccent },
+                      isIOS && styles.statusBadgeIOS,
+                      shouldStackHeroHeader ? styles.statusBadgeCompact : null,
+                    ]}
+                  >
+                    <Text style={styles.statusBadgeText}>{translatedStatus}</Text>
                   </View>
-                </View>
-                <View style={[styles.statusBadge, { backgroundColor: theme.primaryAccent }, isIOS && styles.statusBadgeIOS]}>
-                  <Text style={styles.statusBadgeText}>{translatedStatus}</Text>
                 </View>
               </View>
-            </View>
-          </LinearGradient>
+            </LinearGradient>
+          </View>
         }
         renderItem={() => (
-          <View style={[styles.body, isIOS && styles.bodyIOS]}>
+          <View
+            style={[
+              styles.body,
+              styles.constrained,
+              contentMaxWidth ? { maxWidth: contentMaxWidth } : null,
+              isIOS && styles.bodyIOS,
+            ]}
+          >
             <View
               style={[
                 styles.sectionCard,
@@ -756,6 +783,10 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
+  constrained: {
+    width: '100%',
+    alignSelf: 'center',
+  },
   headerGradient: {
     paddingHorizontal: layoutTokens.screenHorizontal + 8,
     paddingTop: 18,
@@ -787,6 +818,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
+    gap: 12,
+  },
+  heroHeaderCompact: {
+    flexDirection: 'column',
+    alignItems: 'stretch',
   },
   heroIdentity: {
     flex: 1,
@@ -830,6 +866,9 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingVertical: 6,
     paddingHorizontal: 16,
+  },
+  statusBadgeCompact: {
+    alignSelf: 'flex-start',
   },
   statusBadgeIOS: {
     paddingVertical: 7,
@@ -959,6 +998,8 @@ const styles = StyleSheet.create({
   },
   toolsLabel: {
     flex: 1,
+    minWidth: 0,
+    flexShrink: 1,
     fontSize: 14,
     fontWeight: '600',
   },

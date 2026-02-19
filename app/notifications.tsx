@@ -1,5 +1,13 @@
 import { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useNotifications } from '@shared/context/NotificationContext';
@@ -36,9 +44,13 @@ type NotificationSection = {
 export default function NotificationsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const { theme } = useTheme();
   const { t } = useLanguage();
   const { notifications, unreadCount, markAllAsRead, markNotificationRead } = useNotifications();
+  const isCompact = width < 390;
+  const shouldStackHeader = width < 430;
+  const contentMaxWidth = width >= 1200 ? 960 : width >= 768 ? 820 : undefined;
 
   const sections = useMemo<NotificationSection[]>(() => {
     const now = new Date();
@@ -60,29 +72,47 @@ export default function NotificationsScreen() {
   }, [notifications, t]);
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]} edges={['left', 'right']}>
       <View style={[styles.header, { borderColor: theme.borderSoft }]}>
-        <View style={styles.headerRow}>
-          <View style={styles.headerText}>
-            <Text style={[styles.title, { color: theme.textPrimary }]}>{t('notificationsPanelTitle')}</Text>
-            <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-              {unreadCount > 0
-                ? t('notificationsPanelWaiting', { count: unreadCount })
-                : t('notificationsPanelAllCaughtUp')}
-            </Text>
+        <View
+          style={[
+            styles.headerInner,
+            contentMaxWidth ? styles.constrained : null,
+            contentMaxWidth ? { maxWidth: contentMaxWidth } : null,
+          ]}
+        >
+          <View style={[styles.headerRow, shouldStackHeader ? styles.headerRowCompact : null]}>
+            <View style={styles.headerText}>
+              <Text style={[styles.title, { color: theme.textPrimary }]}>
+                {t('notificationsPanelTitle')}
+              </Text>
+              <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
+                {unreadCount > 0
+                  ? t('notificationsPanelWaiting', { count: unreadCount })
+                  : t('notificationsPanelAllCaughtUp')}
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={[
+                styles.readAllButton,
+                shouldStackHeader ? styles.readAllButtonCompact : styles.readAllButtonInline,
+                { borderColor: theme.borderSoft, opacity: notifications.length ? 1 : 0.5 },
+              ]}
+              onPress={() => void markAllAsRead()}
+              disabled={!notifications.length}
+            >
+              <Text
+                style={[
+                  styles.readAllText,
+                  isCompact ? styles.readAllTextCompact : null,
+                  { color: theme.textPrimary },
+                ]}
+                numberOfLines={shouldStackHeader ? 2 : 1}
+              >
+                {t('notificationsMarkAllRead')}
+              </Text>
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity
-            style={[
-              styles.readAllButton,
-              { borderColor: theme.borderSoft, opacity: notifications.length ? 1 : 0.5 },
-            ]}
-            onPress={() => void markAllAsRead()}
-            disabled={!notifications.length}
-          >
-            <Text style={[styles.readAllText, { color: theme.textPrimary }]}>
-              {t('notificationsMarkAllRead')}
-            </Text>
-          </TouchableOpacity>
         </View>
       </View>
 
@@ -90,6 +120,8 @@ export default function NotificationsScreen() {
         style={styles.scroll}
         contentContainerStyle={[
           styles.content,
+          contentMaxWidth ? styles.constrained : null,
+          contentMaxWidth ? { maxWidth: contentMaxWidth } : null,
           { paddingBottom: Math.max(20, insets.bottom + 20) },
         ]}
         showsVerticalScrollIndicator={false}
@@ -151,12 +183,26 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 12,
   },
+  headerInner: {
+    width: '100%',
+  },
+  constrained: {
+    alignSelf: 'center',
+    width: '100%',
+  },
   headerRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  headerRowCompact: {
+    flexDirection: 'column',
+    alignItems: 'stretch',
   },
   headerText: {
     flex: 1,
+    minWidth: 0,
   },
   title: {
     fontSize: 20,
@@ -169,14 +215,27 @@ const styles = StyleSheet.create({
   readAllButton: {
     borderWidth: 1,
     borderRadius: 12,
-    paddingHorizontal: 10,
-    height: 34,
+    paddingHorizontal: 12,
+    minHeight: 36,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
+  },
+  readAllButtonInline: {
+    maxWidth: '56%',
+  },
+  readAllButtonCompact: {
+    width: '100%',
+    maxWidth: '100%',
+    minHeight: 38,
   },
   readAllText: {
     fontSize: 12,
     fontWeight: '600',
+    textAlign: 'center',
+  },
+  readAllTextCompact: {
+    fontSize: 13,
   },
   scroll: {
     flex: 1,
