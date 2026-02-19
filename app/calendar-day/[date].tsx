@@ -214,7 +214,7 @@ export default function CalendarDayDetailsScreen() {
                   onPress={() =>
                     router.push({
                       pathname: `/shift-details/${shift.id}`,
-                      params: { from: 'calendar' },
+                      params: { from: 'calendar-day', date: dateParam },
                     })
                   }
                 >

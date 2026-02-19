@@ -116,9 +116,10 @@ const formatCountdownLabel = (
 };
 
 export default function ShiftDetailsScreen() {
-  const { id, from } = useLocalSearchParams();
+  const { id, from, date } = useLocalSearchParams();
   const shiftId = Array.isArray(id) ? id[0] : id;
   const fromParam = Array.isArray(from) ? from[0] : from;
+  const dateParam = Array.isArray(date) ? date[0] : date;
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const userId = user?.id;
@@ -232,6 +233,14 @@ export default function ShiftDetailsScreen() {
   ];
 
   const handleBack = () => {
+    if (fromParam === 'calendar-day') {
+      if (dateParam) {
+        router.replace(`/calendar-day/${dateParam}`);
+        return;
+      }
+      router.replace('/calendar');
+      return;
+    }
     if (fromParam === 'calendar') {
       router.replace('/calendar');
       return;
