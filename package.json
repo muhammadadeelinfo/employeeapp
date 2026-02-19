@@ -7,7 +7,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "check-db-config": "node scripts/check-db-config.js"
+    "check-db-config": "node scripts/check-db-config.js",
+    "test": "tsc -p tsconfig.test.json && node tmp-test/tests/timeUtils.test.js && node tmp-test/tests/shiftPhase.test.js && node tmp-test/tests/notificationUtils.test.js"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.2.0",
