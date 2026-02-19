@@ -49,9 +49,21 @@ else
   fail "xcode-select has no active developer directory."
 fi
 
-BOOTED_UDID="$(xcrun simctl list devices 2>/dev/null | sed -n 's/.*(\([0-9A-F-]\{36\}\)) (Booted).*/\1/p' | head -n 1)"
+BOOTED_UDID="$(xcrun simctl list devices available | sed -n 's/.*(\([0-9A-Fa-f-]*\)) (Booted).*/\1/p' | head -n 1)"
 if [ -z "${BOOTED_UDID}" ]; then
-  fail "No booted simulator device found."
+  CANDIDATE_UDID="$(xcrun simctl list devices available | sed -n 's/.*iPhone.*(\([0-9A-Fa-f-]*\)) (Shutdown).*/\1/p' | head -n 1)"
+  if [ -n "${CANDIDATE_UDID}" ]; then
+    if xcrun simctl boot "${CANDIDATE_UDID}" >/dev/null 2>&1; then
+      # Ensure the boot sequence is complete before checking apps/openurl.
+      xcrun simctl bootstatus "${CANDIDATE_UDID}" -b >/dev/null 2>&1 || true
+      BOOTED_UDID="${CANDIDATE_UDID}"
+      pass "Booted simulator automatically: ${BOOTED_UDID}"
+    else
+      fail "No booted simulator found and failed to boot ${CANDIDATE_UDID}."
+    fi
+  else
+    fail "No booted simulator device found."
+  fi
 else
   pass "Booted simulator UDID: ${BOOTED_UDID}"
 fi

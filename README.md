@@ -90,6 +90,8 @@ npx expo start -c
 - `npm run web` - run web target
 - `npm run test` - run full test suite
 - `npm run check-db-config` - validate DB/env wiring
+- `npm run release:check` - release preflight (tests + env/db config + Expo config parse)
+- `npm run release:check:ios` - release preflight plus iOS simulator health check
 - `npm run health:ios-sim` - iOS simulator health check
 
 ## Testing

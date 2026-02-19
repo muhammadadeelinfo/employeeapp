@@ -5,6 +5,21 @@ export type NotificationCategory =
   | 'admin'
   | 'general';
 
+export const notificationCategoryLabelKeys: Record<
+  NotificationCategory,
+  | 'notificationCategoryShiftPublished'
+  | 'notificationCategoryShiftRemoved'
+  | 'notificationCategoryScheduleChanged'
+  | 'notificationCategoryAdminMessage'
+  | 'notificationCategoryGeneral'
+> = {
+  'shift-published': 'notificationCategoryShiftPublished',
+  'shift-removed': 'notificationCategoryShiftRemoved',
+  'shift-schedule': 'notificationCategoryScheduleChanged',
+  admin: 'notificationCategoryAdminMessage',
+  general: 'notificationCategoryGeneral',
+};
+
 export type NotificationRecord = {
   id: string;
   title: string;
@@ -19,6 +34,56 @@ export type NotificationRecord = {
 const normalizeString = (value?: unknown): string | undefined =>
   typeof value === 'string' && value.trim() ? value.trim() : undefined;
 
+const decodeRepeatedly = (value: string, maxIterations = 3): string => {
+  let current = value;
+  for (let i = 0; i < maxIterations; i += 1) {
+    try {
+      const decoded = decodeURIComponent(current);
+      if (decoded === current) break;
+      current = decoded;
+    } catch {
+      break;
+    }
+  }
+  return current;
+};
+
+const normalizeRoutePath = (value: string): string => {
+  let candidate = decodeRepeatedly(value.trim());
+
+  // Expo links can look like exp://host:port/--/path
+  const expoPathMarker = '/--/';
+  const markerIndex = candidate.indexOf(expoPathMarker);
+  if (markerIndex >= 0) {
+    candidate = candidate.slice(markerIndex + expoPathMarker.length);
+  }
+
+  // Plain URLs should be reduced to path/query/hash so router.push can consume them.
+  if (/^[a-z][a-z0-9+\-.]*:\/\//i.test(candidate)) {
+    try {
+      const parsed = new URL(candidate);
+      candidate = `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    } catch {
+      // keep original candidate when URL parsing fails
+    }
+  }
+
+  if (!candidate.startsWith('/')) {
+    candidate = `/${candidate}`;
+  }
+
+  // Route groups like /(tabs)/account are internal and should not appear in public paths.
+  candidate = candidate.replace(/\/\([^/]+?\)(?=\/|$)/g, '');
+
+  // Collapse duplicate slashes and remove trailing slash (except root).
+  candidate = candidate.replace(/\/{2,}/g, '/');
+  if (candidate.length > 1) {
+    candidate = candidate.replace(/\/+$/g, '');
+  }
+
+  return candidate;
+};
+
 export const determineNotificationCategory = (
   title: string,
   detail: string
@@ -27,21 +92,30 @@ export const determineNotificationCategory = (
   if (
     normalized.includes('published') ||
     normalized.includes('assigned') ||
-    normalized.includes('new shift')
+    normalized.includes('new shift') ||
+    normalized.includes('veröffentlicht') ||
+    normalized.includes('zugewiesen') ||
+    normalized.includes('neue schicht')
   ) {
     return 'shift-published';
   }
   if (
     normalized.includes('removed') ||
     normalized.includes('canceled') ||
-    normalized.includes('cancelled')
+    normalized.includes('cancelled') ||
+    normalized.includes('entfernt') ||
+    normalized.includes('abgesagt') ||
+    normalized.includes('storniert')
   ) {
     return 'shift-removed';
   }
   if (
     normalized.includes('schedule') ||
     normalized.includes('updated') ||
-    normalized.includes('changed')
+    normalized.includes('changed') ||
+    normalized.includes('plan') ||
+    normalized.includes('aktualisiert') ||
+    normalized.includes('geändert')
   ) {
     return 'shift-schedule';
   }
@@ -49,7 +123,10 @@ export const determineNotificationCategory = (
     normalized.includes('admin') ||
     normalized.includes('policy') ||
     normalized.includes('message') ||
-    normalized.includes('announcement')
+    normalized.includes('announcement') ||
+    normalized.includes('richtlinie') ||
+    normalized.includes('nachricht') ||
+    normalized.includes('ankündigung')
   ) {
     return 'admin';
   }
@@ -59,7 +136,7 @@ export const determineNotificationCategory = (
 export const resolveTargetPath = (metadata?: Record<string, unknown>) => {
   if (!metadata) return undefined;
   const directTarget = normalizeString(metadata.target ?? metadata.url ?? metadata.deepLink);
-  if (directTarget) return directTarget;
+  if (directTarget) return normalizeRoutePath(directTarget);
   const shiftId = normalizeString(
     metadata.shiftId ?? metadata.shift_id ?? metadata.assignmentId ?? metadata.assignment_id
   );
