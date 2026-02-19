@@ -1,78 +1,110 @@
-# Employee Portal
-A cross-platform Expo app that lets employees interact with internal services, leveraging Supabase for data and React Query for caching.
+# Shiftor Employee
+Companion mobile app for the Shiftor platform. This Expo/React Native app is used by employees and connects to the same Supabase backend as Shiftor Admin (`shiftorapp.com`).
 
-## Getting started
+## Product naming
 
-1. **Prerequisites**
-   - Node.js (currently supported version 18+ and npm bundled with it).
-   - Expo CLI (`npm install -g expo-cli`) if you want the global command shortcuts.
-   - A Supabase project and credentials (see `Environment` below).
+- Web app: **Shiftor Admin**
+- Mobile app (this repository): **Shiftor Employee**
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+## Requirements
 
-3. **Configure environment**
-   - Copy `.env.example` to `.env` (e.g., `cp .env.example .env`).
-   - Fill in `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and any other values required by `app.config.ts`.
-   - Confirm the file is loaded in your shell/session before running Expo (`cat .env` or `source .env` if you load it manually).
+- Node.js `>=20`
+- npm
+- Xcode (for iOS simulator/device builds on macOS)
+- Android Studio (for Android emulator/device builds)
 
-4. **Run locally**
-   - `npm run start` to launch Expo Dev Tools and the Metro bundler.
-     - From the browser UI you can scan the QR code with Expo Go on Android/iOS or trigger a platform run using the `a`, `i`, or `w` shortcuts in the terminal.
-     - If you already have an emulator/simulator ready, pressing `a` (Android) or `i` (iOS) in the Dev Tools terminal will start the app there automatically.
-   - Alternatively, run platform-specific scripts while Dev Tools is open:
-     - `npm run android` – starts Metro and immediately deploys to an attached Android device or running emulator (ensure USB debugging or a virtual device is ready).
-     - `npm run ios` – same as above for iOS (requires a macOS host with Xcode).
-     - `npm run web` – launches the app in your default browser with live reload enabled.
-   - For physical devices, install Expo Go from the Play/App Store, open it, and scan the QR code shown in Dev Tools after `npm run start`.
-   - When making code changes, Metro automatically reloads the running experience; use `r` in the terminal for a manual refresh if needed.
+## Quick start
+
+1. Install dependencies:
+```bash
+npm install
+```
+
+2. Copy env file and fill real values:
+```bash
+cp .env.example .env
+```
+
+3. Start Metro:
+```bash
+npm run start
+```
+
+4. Run app targets:
+```bash
+npm run ios
+npm run android
+npm run web
+```
 
 ## Environment
 
-- `.env` (not committed) should contain:
-  ```env
-  SUPABASE_URL=
-  SUPABASE_ANON_KEY=
-  ```
-- After you add the real keys, restart Expo (`npx expo start -c`) so `app.config.ts` re-reads them and populates `Constants.expoConfig.extra`.
-- Additional runtime configuration is controlled through `app.config.ts` and `app.json`.
-- Both this Expo app and the Next.js web app share the same Supabase PostgreSQL project (`https://ritalqlveknouvojxfgt.supabase.co`). Mirror the Next.js `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `NEXT_PUBLIC_SUPABASE_SERVICE_KEY` settings here so both clients hit the same instance.
-- Prisma is the ORM on top of that database: `schema.prisma` sets `provider = "postgresql"` and `prisma.config.js` loads `DATABASE_URL` (and optionally `DIRECT_URL`) from the environment. Use the same Supabase connection string for those vars so Prisma and both apps work against a single backend.
- - Run `npm run check-db-config` after you copy the env vars to confirm every connection string exists and references the shared Supabase project. The script exits with a warning (non-zero status) if keys are missing or still point elsewhere.
+Minimum required values in `.env`:
 
-### Location handling during development
+```env
+SUPABASE_URL=
+SUPABASE_ANON_KEY=
+API_BASE_URL=
+```
 
-- The shared location hook intentionally disables permission requests while Expo is running in development because unsatisfied device settings in the simulator/emulator can lead to the `Location request failed due to unsatisfied device settings` runtime error. This guard is only active when `EXPO_STAGE=development` (or whenever `__DEV__` is `true`), and production builds automatically re-enable the real location flow.
-- If you need to test location access while still iterating, set `ENABLE_LOCATION_IN_DEV=true` in your `.env` before restarting Metro so the hook performs the normal permission and `Location.getCurrentPositionAsync` calls. Remember to leave that flag unset (or `false`) once development is finished so the production behavior mirrors the deployed experience.
+Important optional release/runtime values:
 
-### Magic-link authentication (placeholder)
+```env
+APP_VERSION=1.0.0
+IOS_BUNDLE_IDENTIFIER=com.shiftor.employeeportal
+IOS_BUILD_NUMBER=1
+EXPO_SCHEME=employeeportal
+AUTH_REDIRECT_URL=https://expo.dev/@your-account/shiftor-employee
+EAS_PROJECT_ID=
+EXPO_STAGE=development
+ENABLE_LOCATION_IN_DEV=false
+```
 
-- Magic-link sign-in is still pending; note in this README that once development wraps up the actual `supabase.auth.signInWithOtp` flow should be wired up so employees can log in using email links. Keep this section here so the eventual implementation has a place to document how to configure and use it once it ships.
+Notes:
 
-### Notifications
+- Expo config comes from `app.config.ts` with base values in `app.json`.
+- Current Expo slug is `shiftor-employee`.
+- This app should point to the same Supabase project used by Shiftor Admin.
+- After env changes, restart Metro with cache clear:
+```bash
+npx expo start -c
+```
 
-- The app relies on a `public.notifications` table (see `supabase/notifications-table.sql`) so `NotificationContext` can fetch the most recent rows, mark them read, and stay subscribed to Supabase Realtime changes without `PGRST205`. Apply that SQL in the Supabase SQL editor or `supabase db query`.
-- Startup only enforces this table check when `extra.requireNotificationsTableHealthCheck=true` is set in Expo config; otherwise the app falls back to seeded in-app notifications if the table is absent.
-- A new `useShiftNotifications` hook watches your assigned `shift_assignments` plus the matching `shifts` rows. When a shift is published/removed or its window/location changes, the client automatically writes a descriptive row into `public.notifications`, keeping the bell badge current without you having to emit those specific rows from your backend.
-- Each notification carries optional JSON `metadata` (e.g., `{ shiftId, target: '/shift-details/<id>' }`) so the bell can deep-link into the updated shift or admin screen when the user taps the row.
-- Insert rows into this table whenever real events happen (shifts assigned, policy updates, etc.); the client already listens on `notifications` filtered by `employeeId`, so each new row immediately updates the bell, badge, and modal without additional work.
-- For native push alerts, run a development build (`eas build --profile development` or `expo run:android/ios`) so Expo can register push tokens (Expo Go with SDK 53+ cannot). Save that token alongside the user and send push messages whenever you write a notification row so users receive both the server-side push and the in-app bell.
+## i18n
 
-## Project structure
+- Translations are split into dedicated files:
+  - `src/shared/i18n/translations/en.ts`
+  - `src/shared/i18n/translations/de.ts`
+- Language state and translation resolution live in `src/shared/context/LanguageContext.tsx`.
 
-- `app/` – Expo Router layouts and screens, with `(tabs)`/`(auth)` folders providing the stack + tab organization for production flows.
-- `src/features/` – feature modules that encapsulate services, selectors, and feature-specific components (e.g., `shifts`).
-- `src/shared/components` – reusable UI primitives such as `PrimaryButton`, `ShiftCard`, and `TopBar`.
-- `src/shared/context` – cross-cutting contexts (notifications, theming, etc.).
-- `src/shared/hooks` – shared hooks, including authentication helpers and location/push utilities.
-- `src/lib` – low-level clients/helpers (`supabaseClient`, `queryClient`) consumed by the rest of the app.
-- `assets/` – fonts, images, and other static resources that ship with the bundle.
+## Notifications
 
-## Testing & maintenance
+- The app expects `public.notifications` in Supabase for realtime notification feed and read-state handling.
+- Shift-related notification generation is handled in shared notification utilities/hooks and consumed by the in-app notifications UI.
 
-- There are no automated tests defined yet; rely on Expo's manual device previews for now.
-- Keep dependencies current via `npm outdated` and `npm install` once you bump `package-lock.json`.
+## Scripts
 
-Feel free to add more docs or contribute guidelines as the project grows.
+- `npm run start` - start Expo/Metro
+- `npm run ios` - run iOS target
+- `npm run android` - run Android target
+- `npm run web` - run web target
+- `npm run test` - run full test suite
+- `npm run check-db-config` - validate DB/env wiring
+- `npm run health:ios-sim` - iOS simulator health check
+
+## Testing
+
+Automated tests are available and should pass before release:
+
+```bash
+npm run test
+```
+
+## Release notes
+
+- App display name: `Shiftor Employee`
+- Expo slug: `shiftor-employee`
+- If slug/redirects change, update:
+  - `AUTH_REDIRECT_URL` in `.env`
+  - Auth redirect allowlists in Supabase/auth provider settings
+  - Any shared links that include the old Expo slug
