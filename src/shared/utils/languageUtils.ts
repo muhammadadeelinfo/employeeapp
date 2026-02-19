@@ -9,11 +9,34 @@ type TranslationVars = Record<string, string | number>;
 
 const LANGUAGE_STORAGE_KEY_BASE = 'employee-portal-language';
 
+type StorageLike = {
+  getItem: (key: string) => Promise<string | null>;
+};
+
 export const getLanguageStorageKey = (employeeId?: string | null) =>
   employeeId ? `${LANGUAGE_STORAGE_KEY_BASE}:${employeeId}` : null;
 
 export const isValidLanguage = (value: string | null): value is LanguageCode =>
   languageDefinitions.some((definition) => definition.code === value);
+
+export const resolveStoredLanguage = (
+  value: string | null,
+  fallback: LanguageCode = 'en'
+): LanguageCode => (isValidLanguage(value) ? value : fallback);
+
+export const loadStoredLanguage = async (
+  storage: StorageLike,
+  key: string | null,
+  fallback: LanguageCode = 'en'
+): Promise<LanguageCode> => {
+  if (!key) return fallback;
+  try {
+    const stored = await storage.getItem(key);
+    return resolveStoredLanguage(stored, fallback);
+  } catch {
+    return fallback;
+  }
+};
 
 export const interpolate = (value: string, vars?: TranslationVars) => {
   if (!vars) return value;

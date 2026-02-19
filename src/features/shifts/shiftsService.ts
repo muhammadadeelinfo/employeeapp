@@ -6,6 +6,7 @@ import {
   mapShiftArray,
   mapShiftRecord,
 } from './shiftMapping';
+export type { Shift } from './shiftMapping';
 
 const fallbackShifts: Shift[] = [
   {

@@ -5,7 +5,7 @@ Use this template in App Store Connect before first submission.
 ## App identity
 
 - App Name: `Shiftor Employee`
-- Bundle ID: `com.shiftor.employeeportal`
+- Bundle ID: `com.shiftor.employee`
 - SKU (example): `shiftor-employee-ios`
 - Primary language: `English (U.S.)`
 - Category (recommended): `Business`
@@ -68,4 +68,3 @@ Use this template in App Store Connect before first submission.
 
 - Version string in app config: `1.0.0`
 - Build number source: `remote (EAS auto increment)`
-

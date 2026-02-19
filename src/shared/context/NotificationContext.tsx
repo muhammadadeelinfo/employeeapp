@@ -19,12 +19,14 @@ import { useLanguage } from '@shared/context/LanguageContext';
 import {
   determineNotificationCategory,
   groupNotificationsByRecency,
+  notificationCategoryLabelKeys,
   normalizeNotificationRow,
   resolveTargetPath,
   type NotificationCategory,
   type NotificationRecord,
   type NotificationSectionKey,
 } from '@shared/utils/notificationUtils';
+import { getNotificationsSummaryTranslationKey } from '@shared/utils/notificationsViewModel';
 import {
   getRelativeTimeLabel,
   isMissingNotificationsTableError,
@@ -88,21 +90,6 @@ const categoryMeta: Record<
     color: '#94a3b8',
     background: 'rgba(148,163,184,0.12)',
   },
-};
-
-const categoryLabelKeys: Record<
-  NotificationCategory,
-  | 'notificationCategoryShiftPublished'
-  | 'notificationCategoryShiftRemoved'
-  | 'notificationCategoryScheduleChanged'
-  | 'notificationCategoryAdminMessage'
-  | 'notificationCategoryGeneral'
-> = {
-  'shift-published': 'notificationCategoryShiftPublished',
-  'shift-removed': 'notificationCategoryShiftRemoved',
-  'shift-schedule': 'notificationCategoryScheduleChanged',
-  admin: 'notificationCategoryAdminMessage',
-  general: 'notificationCategoryGeneral',
 };
 
 const NotificationContext = createContext<NotificationContextValue | undefined>(undefined);
@@ -333,9 +320,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
               <View>
                 <Text style={styles.panelTitle}>{t('notificationsPanelTitle')}</Text>
                 <Text style={styles.panelMeta}>
-                  {unreadCount > 0
-                    ? t('notificationsPanelWaiting', { count: unreadCount })
-                    : t('notificationsPanelAllCaughtUp')}
+                  {t(getNotificationsSummaryTranslationKey(unreadCount), { count: unreadCount })}
                 </Text>
               </View>
             </View>
@@ -372,7 +357,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
                               ]}
                               numberOfLines={1}
                             >
-                              {t(categoryLabelKeys[item.category])}
+                              {t(notificationCategoryLabelKeys[item.category])}
                             </Text>
                           </View>
                         </View>

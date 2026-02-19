@@ -51,9 +51,9 @@ Important optional release/runtime values:
 
 ```env
 APP_VERSION=1.0.0
-IOS_BUNDLE_IDENTIFIER=com.shiftor.employeeportal
+IOS_BUNDLE_IDENTIFIER=com.shiftor.employee
 IOS_BUILD_NUMBER=1
-EXPO_SCHEME=employeeportal
+EXPO_SCHEME=shiftoremployee
 AUTH_REDIRECT_URL=https://expo.dev/@your-account/shiftor-employee
 EAS_PROJECT_ID=
 EXPO_STAGE=development

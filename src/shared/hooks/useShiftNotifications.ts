@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { supabase } from '@lib/supabaseClient';
 import { useAuth } from '@hooks/useSupabaseAuth';
+import { useLanguage } from '@shared/context/LanguageContext';
 import { getShiftById, type Shift } from '@features/shifts/shiftsService';
+import { type ShiftNotificationI18nCopy } from '@shared/utils/shiftNotificationI18n';
+import { buildShiftNotificationInsertPayload } from '@shared/utils/shiftNotificationPayload';
+import { persistNotificationRow } from '@shared/utils/notificationPersistence';
 import {
   SHIFT_END_KEYS,
   SHIFT_LOCATION_KEYS,
@@ -42,7 +46,11 @@ const formatShiftWindow = (shift?: Shift) => {
   return `${dateLabel} · ${range}`;
 };
 
-const buildShiftDetail = (shift?: Shift, fallbackRow?: Record<string, unknown>) => {
+const buildShiftDetail = (
+  shift: Shift | undefined,
+  fallbackRow: Record<string, unknown> | undefined,
+  fallbackDetail: string
+) => {
   const location = shift?.objectName ?? shift?.location ?? readRowValue(fallbackRow, SHIFT_LOCATION_KEYS);
   const windowLabel = formatShiftWindow(shift);
   const detailParts: string[] = [];
@@ -64,7 +72,7 @@ const buildShiftDetail = (shift?: Shift, fallbackRow?: Record<string, unknown>) 
   if (location) {
     fallbackParts.push(location);
   }
-  return fallbackParts.filter(Boolean).join(' · ') || 'Recent shift update';
+  return fallbackParts.filter(Boolean).join(' · ') || fallbackDetail;
 };
 
 const insertNotificationRow = async (
@@ -75,15 +83,11 @@ const insertNotificationRow = async (
 ) => {
   if (!supabase) return;
   try {
-    const { error } = await supabase.from('notifications').insert({
-      employee_id: employeeId,
+    await persistNotificationRow(supabase, employeeId, {
       title,
       detail,
-      metadata: metadata && Object.keys(metadata).length ? metadata : undefined,
+      metadata,
     });
-    if (error) {
-      throw error;
-    }
   } catch (error) {
     console.warn('Failed to create shift notification', error);
   }
@@ -91,8 +95,18 @@ const insertNotificationRow = async (
 
 export const useShiftNotifications = (shiftIds: string[]) => {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const employeeId = user?.id;
   const shiftFilterValue = useMemo(() => buildShiftFilterValue(shiftIds), [shiftIds]);
+  const notificationCopy = useMemo<ShiftNotificationI18nCopy>(
+    () => ({
+      shiftPublished: t('notificationCategoryShiftPublished'),
+      shiftRemoved: t('notificationCategoryShiftRemoved'),
+      shiftScheduleChanged: t('notificationCategoryScheduleChanged'),
+      recentShiftUpdate: t('notificationRecentShiftUpdate'),
+    }),
+    [t]
+  );
   const assignmentCache = useRef(new Map<string, string>());
   const shiftCache = useRef(new Map<string, string>());
 
@@ -128,13 +142,23 @@ export const useShiftNotifications = (shiftIds: string[]) => {
         return;
       }
 
-      const title = normalizedEvent === 'DELETE' ? 'Shift removed' : 'Shift published';
-      const detail = buildShiftDetail(await getShiftById(shiftId), payload.new ?? payload.old);
-      await insertNotificationRow(employeeId, title, detail, {
+      const detail = buildShiftDetail(
+        await getShiftById(shiftId),
+        payload.new ?? payload.old,
+        notificationCopy.recentShiftUpdate
+      );
+      const insertPayload = buildShiftNotificationInsertPayload(
+        normalizedEvent,
         shiftId,
-        target: `/shift-details/${shiftId}`,
-        event: normalizedEvent,
-      });
+        detail,
+        notificationCopy
+      );
+      await insertNotificationRow(
+        employeeId,
+        insertPayload.title,
+        insertPayload.detail,
+        insertPayload.metadata
+      );
     };
 
     const handleShiftChangeEvent = async (payload: PostgresRealtimePayload) => {
@@ -159,12 +183,23 @@ export const useShiftNotifications = (shiftIds: string[]) => {
       }
       shiftCache.current.set(shiftId, eventKey);
 
-      const detail = buildShiftDetail(await getShiftById(shiftId), payload.new ?? payload.old);
-      await insertNotificationRow(employeeId, 'Shift schedule updated', detail, {
+      const detail = buildShiftDetail(
+        await getShiftById(shiftId),
+        payload.new ?? payload.old,
+        notificationCopy.recentShiftUpdate
+      );
+      const insertPayload = buildShiftNotificationInsertPayload(
+        'UPDATE',
         shiftId,
-        target: `/shift-details/${shiftId}`,
-        event: 'UPDATE',
-      });
+        detail,
+        notificationCopy
+      );
+      await insertNotificationRow(
+        employeeId,
+        insertPayload.title,
+        insertPayload.detail,
+        insertPayload.metadata
+      );
     };
 
     const assignmentChannel = supabase.channel(`shift-assignments-notifications:${employeeId}`);
@@ -206,5 +241,5 @@ export const useShiftNotifications = (shiftIds: string[]) => {
       assignmentChannel.unsubscribe();
       shiftChannel?.unsubscribe();
     };
-  }, [employeeId, shiftFilterValue]);
+  }, [employeeId, notificationCopy, shiftFilterValue]);
 };

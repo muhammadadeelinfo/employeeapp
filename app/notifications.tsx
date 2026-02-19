@@ -14,6 +14,11 @@ import { useNotifications } from '@shared/context/NotificationContext';
 import { useTheme } from '@shared/themeContext';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { layoutTokens } from '@shared/theme/layout';
+import {
+  getContentMaxWidth,
+  shouldStackForCompactWidth,
+} from '@shared/utils/responsiveLayout';
+import { getNotificationsSummaryTranslationKey } from '@shared/utils/notificationsViewModel';
 
 const isSameDay = (a: Date, b: Date) =>
   a.getFullYear() === b.getFullYear() &&
@@ -49,8 +54,8 @@ export default function NotificationsScreen() {
   const { t } = useLanguage();
   const { notifications, unreadCount, markAllAsRead, markNotificationRead } = useNotifications();
   const isCompact = width < 390;
-  const shouldStackHeader = width < 430;
-  const contentMaxWidth = width >= 1200 ? 960 : width >= 768 ? 820 : undefined;
+  const shouldStackHeader = shouldStackForCompactWidth(width);
+  const contentMaxWidth = getContentMaxWidth(width);
 
   const sections = useMemo<NotificationSection[]>(() => {
     const now = new Date();
@@ -86,11 +91,9 @@ export default function NotificationsScreen() {
               <Text style={[styles.title, { color: theme.textPrimary }]}>
                 {t('notificationsPanelTitle')}
               </Text>
-              <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-                {unreadCount > 0
-                  ? t('notificationsPanelWaiting', { count: unreadCount })
-                  : t('notificationsPanelAllCaughtUp')}
-              </Text>
+            <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
+              {t(getNotificationsSummaryTranslationKey(unreadCount), { count: unreadCount })}
+            </Text>
             </View>
             <TouchableOpacity
               style={[

@@ -32,7 +32,7 @@ npx eas submit --platform ios
 ```
 
 If prompted, select:
-- Existing App Store Connect app for bundle ID `com.shiftor.employeeportal`
+- Existing App Store Connect app for bundle ID `com.shiftor.employee`
 
 ## 4) App Store Connect completion
 
@@ -50,4 +50,3 @@ If prompted, select:
 - Verify app status changes (`Waiting for Review` / `In Review`).
 - Monitor crashes and backend errors after approval.
 - Keep release notes and rollback plan ready.
-

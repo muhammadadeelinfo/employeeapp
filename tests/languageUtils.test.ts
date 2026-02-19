@@ -4,6 +4,7 @@ import {
   interpolate,
   isValidLanguage,
   languageDefinitions,
+  resolveStoredLanguage,
 } from '../src/shared/utils/languageUtils';
 
 assert.strictEqual(languageDefinitions.length, 2);
@@ -18,6 +19,9 @@ assert.strictEqual(isValidLanguage('en'), true);
 assert.strictEqual(isValidLanguage('de'), true);
 assert.strictEqual(isValidLanguage('fr'), false);
 assert.strictEqual(isValidLanguage(null), false);
+assert.strictEqual(resolveStoredLanguage('de'), 'de');
+assert.strictEqual(resolveStoredLanguage('fr' as never), 'en');
+assert.strictEqual(resolveStoredLanguage(null), 'en');
 
 assert.strictEqual(interpolate('Hello world'), 'Hello world');
 assert.strictEqual(interpolate('Hello {name}', { name: 'Adeel' }), 'Hello Adeel');

@@ -24,6 +24,10 @@ import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { layoutTokens } from '@shared/theme/layout';
 import { useRouter } from 'expo-router';
 import { openAddressInMaps } from '@shared/utils/maps';
+import {
+  getContentMaxWidth,
+  shouldStackForCompactWidth,
+} from '@shared/utils/responsiveLayout';
 import Constants from 'expo-constants';
 
 const normalizeContactString = (value?: unknown) =>
@@ -256,8 +260,8 @@ export default function AccountScreen() {
   const tabBarHeight = useBottomTabBarHeight();
   const { width } = useWindowDimensions();
   const isIOS = Platform.OS === 'ios';
-  const shouldStackHeroHeader = width < 430;
-  const contentMaxWidth = width >= 1200 ? 960 : width >= 768 ? 820 : undefined;
+  const shouldStackHeroHeader = shouldStackForCompactWidth(width);
+  const contentMaxWidth = getContentMaxWidth(width);
   const employeeId = user?.id;
   const metadata = user?.user_metadata;
   const metadataRecord =
@@ -297,7 +301,7 @@ export default function AccountScreen() {
       return;
     }
     if (!supabase) {
-      Alert.alert(t('securityResetPassword'), 'Auth client is unavailable right now.');
+      Alert.alert(t('securityResetPassword'), t('authClientUnavailable'));
       return;
     }
     const redirectUrl =
@@ -309,11 +313,11 @@ export default function AccountScreen() {
       Alert.alert(t('securityResetPassword'), error.message);
       return;
     }
-    Alert.alert(t('securityResetPassword'), `Password reset link sent to ${email}.`);
+    Alert.alert(t('securityResetPassword'), t('securityResetLinkSent', { email }));
   };
   const handleManageSessions = async () => {
     if (!supabase) {
-      Alert.alert(t('securityManageSessions'), 'Auth client is unavailable right now.');
+      Alert.alert(t('securityManageSessions'), t('authClientUnavailable'));
       return;
     }
     const { error } = await supabase.auth.signOut({ scope: 'others' });
@@ -321,11 +325,11 @@ export default function AccountScreen() {
       Alert.alert(t('securityManageSessions'), error.message);
       return;
     }
-    Alert.alert(t('securityManageSessions'), 'Signed out from other active sessions.');
+    Alert.alert(t('securityManageSessions'), t('securitySessionsSignedOutOthers'));
   };
   const handleCheckTwoFactor = async () => {
     if (!supabase) {
-      Alert.alert(t('securityEnable2fa'), 'Auth client is unavailable right now.');
+      Alert.alert(t('securityEnable2fa'), t('authClientUnavailable'));
       return;
     }
     try {
@@ -334,22 +338,19 @@ export default function AccountScreen() {
       const factors = [...(data?.all ?? [])];
       const verifiedCount = factors.filter((factor) => factor.status === 'verified').length;
       if (verifiedCount > 0) {
-        Alert.alert(t('securityEnable2fa'), `Two-factor authentication is enabled (${verifiedCount} factor(s)).`);
+        Alert.alert(t('securityEnable2fa'), t('security2faEnabled', { count: verifiedCount }));
         return;
       }
-      Alert.alert(
-        t('securityEnable2fa'),
-        'No verified 2FA factor found yet. Contact support to complete setup if required.'
-      );
+      Alert.alert(t('securityEnable2fa'), t('security2faNotVerified'));
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unable to check 2FA status.';
+      const message = error instanceof Error ? error.message : t('security2faStatusCheckFailed');
       Alert.alert(t('securityEnable2fa'), message);
     }
   };
   const openExternalUrl = async (title: string, url: string) => {
     const supported = await Linking.canOpenURL(url);
     if (!supported) {
-      Alert.alert(title, 'Unable to open this link on your device.');
+      Alert.alert(title, t('unableOpenLinkDevice'));
       return;
     }
     await Linking.openURL(url);

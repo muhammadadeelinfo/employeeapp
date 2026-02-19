@@ -6,7 +6,7 @@ Use this checklist for every iOS App Store release.
 
 - [ ] App name is `Shiftor Employee`.
 - [ ] Expo slug is `shiftor-employee`.
-- [ ] iOS bundle identifier is `com.shiftor.employeeportal` (or your final chosen production ID).
+- [ ] iOS bundle identifier is `com.shiftor.employee` (or your final chosen production ID).
 - [ ] `AUTH_REDIRECT_URL` uses the new slug path (`.../shiftor-employee`), not the old `employee-portal`.
 - [ ] `EAS_PROJECT_ID` is set in `.env` for the same EAS project you want to keep.
 

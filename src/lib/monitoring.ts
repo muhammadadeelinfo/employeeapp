@@ -1,5 +1,6 @@
 import Constants from 'expo-constants';
 import * as Sentry from '@sentry/react-native';
+import { initializeMissingTranslationMonitoring } from '@shared/utils/i18nUtils';
 
 let monitoringInitialized = false;
 
@@ -55,6 +56,7 @@ export const initializeMonitoring = () => {
 
   registerUnhandledPromiseTracking();
   registerGlobalJsHandler();
+  initializeMissingTranslationMonitoring((message) => console.warn(message));
 
   if (!dsn) {
     if (!__DEV__) {

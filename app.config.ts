@@ -6,13 +6,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   name: config.name ?? 'Shiftor Employee',
   slug: config.slug ?? 'shiftor-employee',
   sdkVersion: '54.0.0',
-  scheme: process.env.EXPO_SCHEME ?? 'employeeportal',
+  scheme: process.env.EXPO_SCHEME ?? 'shiftoremployee',
   version: process.env.APP_VERSION ?? config.version ?? '1.0.0',
   ios: {
     ...config.ios,
     supportsTablet: true,
     bundleIdentifier:
-      process.env.IOS_BUNDLE_IDENTIFIER ?? config.ios?.bundleIdentifier ?? 'com.shiftor.employeeportal',
+      process.env.IOS_BUNDLE_IDENTIFIER ?? config.ios?.bundleIdentifier ?? 'com.shiftor.employee',
     buildNumber: process.env.IOS_BUILD_NUMBER ?? config.ios?.buildNumber ?? '1',
     infoPlist: {
       ...config.ios?.infoPlist,
