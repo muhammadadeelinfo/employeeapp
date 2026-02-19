@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Slot, usePathname, useRouter } from 'expo-router';
+import { Stack, usePathname, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { QueryClientProvider } from '@tanstack/react-query';
 import Constants from 'expo-constants';
@@ -968,7 +968,12 @@ function LayoutContentInner() {
         </View>
       </Modal>
         <View style={styles.content}>
-          <Slot />
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              gestureEnabled: true,
+            }}
+          />
         </View>
       </SafeAreaView>
   );
