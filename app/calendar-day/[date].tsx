@@ -83,6 +83,17 @@ export default function CalendarDayDetailsScreen() {
   const { orderedShifts } = useShiftFeed();
   const { selectedCalendars } = useCalendarSelection();
   const [importedEvents, setImportedEvents] = useState<ImportedCalendarEvent[]>([]);
+  const selectedCalendarIds = useMemo(
+    () => selectedCalendars.map((calendar) => calendar.id),
+    [selectedCalendars]
+  );
+  const selectedCalendarTitleById = useMemo(() => {
+    const map = new Map<string, string | undefined>();
+    selectedCalendars.forEach((calendar) => {
+      map.set(calendar.id, calendar.title);
+    });
+    return map;
+  }, [selectedCalendars]);
 
   const parsedDate = useMemo(() => {
     if (!dateParam || typeof dateParam !== 'string') return null;
@@ -129,25 +140,22 @@ export default function CalendarDayDetailsScreen() {
         start.setHours(0, 0, 0, 0);
         const end = new Date(parsedDate);
         end.setHours(23, 59, 59, 999);
-        const calendarIds = selectedCalendars.map((calendar) => calendar.id);
-        const events = await Calendar.getEventsAsync(calendarIds, start, end);
+        const events = await Calendar.getEventsAsync(selectedCalendarIds, start, end);
         if (!isMounted) return;
         const colorMap = new Map<string, string>();
         const palette = ['#34d399', '#fb923c', '#38bdf8', '#a855f7', '#f472b6'];
         selectedCalendars.forEach((calendar, index) => {
           colorMap.set(calendar.id, palette[index % palette.length]);
         });
+        const resolveTimeValue = (value?: string) => (value ? new Date(value).getTime() : 0);
         const normalized = events.map((event) => ({
           title: event.title ?? undefined,
-          calendarTitle:
-            selectedCalendars.find((calendar) => calendar.id === event.calendarId)?.title ?? undefined,
+          calendarTitle: selectedCalendarTitleById.get(event.calendarId) ?? undefined,
           startDate: event.startDate ? new Date(event.startDate).toISOString() : undefined,
           color: colorMap.get(event.calendarId) ?? '#38bdf8',
         }));
         normalized.sort((a, b) => {
-          const aTime = a.startDate ? new Date(a.startDate).getTime() : 0;
-          const bTime = b.startDate ? new Date(b.startDate).getTime() : 0;
-          return aTime - bTime;
+          return resolveTimeValue(a.startDate) - resolveTimeValue(b.startDate);
         });
         setImportedEvents(normalized);
       } catch {
@@ -160,7 +168,7 @@ export default function CalendarDayDetailsScreen() {
     return () => {
       isMounted = false;
     };
-  }, [parsedDate, selectedCalendars]);
+  }, [parsedDate, selectedCalendars, selectedCalendarIds, selectedCalendarTitleById]);
 
   if (!parsedDate) {
     return (

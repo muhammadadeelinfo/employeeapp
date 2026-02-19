@@ -264,8 +264,10 @@ export default function CalendarScreen() {
       const key = shiftDate.toISOString().split('T')[0];
       const bucket = map.get(key) ?? [];
       bucket.push(shift);
-      bucket.sort((a, b) => Number(new Date(a.start)) - Number(new Date(b.start)));
       map.set(key, bucket);
+    });
+    map.forEach((bucket) => {
+      bucket.sort((a, b) => Number(new Date(a.start)) - Number(new Date(b.start)));
     });
     return map;
   }, [monthShifts]);
@@ -359,8 +361,13 @@ export default function CalendarScreen() {
         const start = startOfMonth(visibleMonth);
         const end = new Date(start);
         end.setMonth(end.getMonth() + 1);
+        const calendarIds = selectedCalendars.map((calendar) => calendar.id);
+        const calendarTitleById = new Map<string, string | undefined>();
+        selectedCalendars.forEach((calendar) => {
+          calendarTitleById.set(calendar.id, calendar.title);
+        });
         const events = await Calendar.getEventsAsync(
-          selectedCalendars.map((calendar) => calendar.id),
+          calendarIds,
           start,
           end
         );
@@ -370,13 +377,13 @@ export default function CalendarScreen() {
         const eventStart = new Date(event.startDate);
         if (Number.isNaN(eventStart.getTime())) return;
         const key = dayKey(eventStart);
-        const calendarMeta = selectedCalendars.find((cal) => cal.id === event.calendarId);
+        const calendarId = event.calendarId ?? '';
         const entry: ImportedCalendarEvent = {
           title: event.title ?? undefined,
-          calendarId: event.calendarId ?? '',
-          calendarTitle: calendarMeta?.title,
+          calendarId,
+          calendarTitle: calendarTitleById.get(calendarId),
           startDate: eventStart.toISOString(),
-          color: importedCalendarColorMap.get(event.calendarId ?? '') ?? '#facc15',
+          color: importedCalendarColorMap.get(calendarId) ?? '#facc15',
         };
         normalized[key] = normalized[key] ?? [];
         normalized[key].push(entry);
