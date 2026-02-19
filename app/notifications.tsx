@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
 import { useNotifications } from '@shared/context/NotificationContext';
 import { useTheme } from '@shared/themeContext';
@@ -64,12 +63,6 @@ export default function NotificationsScreen() {
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
       <View style={[styles.header, { borderColor: theme.borderSoft }]}>
         <View style={styles.headerRow}>
-          <TouchableOpacity
-            style={[styles.backButton, { backgroundColor: theme.surfaceMuted }]}
-            onPress={() => router.back()}
-          >
-            <Ionicons name="chevron-back" size={18} color={theme.textPrimary} />
-          </TouchableOpacity>
           <View style={styles.headerText}>
             <Text style={[styles.title, { color: theme.textPrimary }]}>{t('notificationsPanelTitle')}</Text>
             <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
@@ -161,14 +154,6 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  backButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
   },
   headerText: {
     flex: 1,

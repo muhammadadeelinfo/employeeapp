@@ -17,8 +17,6 @@ import { useAuth } from '@hooks/useSupabaseAuth';
 import { useRouter } from 'expo-router';
 import { useLanguage } from '@shared/context/LanguageContext';
 
-type TranslateFn = ReturnType<typeof useLanguage>['t'];
-
 type NotificationItem = {
   id: string;
   title: string;
@@ -150,41 +148,6 @@ const resolveTargetPath = (metadata?: Record<string, unknown>) => {
   return undefined;
 };
 
-const createFallbackNotifications = (
-  t: TranslateFn
-): NotificationItem[] => {
-  const now = Date.now();
-  const minutesAgo = (minutes: number) => new Date(now - minutes * 60 * 1000).toISOString();
-  return [
-    {
-      id: 'shift-reminder',
-      title: t('notificationFallbackShiftReminderTitle'),
-      detail: t('notificationFallbackShiftReminderDetail'),
-      createdAt: minutesAgo(2),
-      read: false,
-      category: 'shift-schedule',
-      metadata: { target: '/my-shifts' },
-      targetPath: '/my-shifts',
-    },
-    {
-      id: 'policy-update',
-      title: t('notificationFallbackNewQrPolicyTitle'),
-      detail: t('notificationFallbackNewQrPolicyDetail'),
-      createdAt: minutesAgo(40),
-      read: false,
-      category: 'admin',
-    },
-    {
-      id: 'weekend-rota',
-      title: t('notificationFallbackWeekendRotaTitle'),
-      detail: t('notificationFallbackWeekendRotaDetail'),
-      createdAt: minutesAgo(26 * 60),
-      read: true,
-      category: 'general',
-    },
-  ];
-};
-
 const parseIsoDate = (value?: unknown): string => {
   if (typeof value === 'string' && value.trim()) return value;
   if (typeof value === 'number') return new Date(value).toISOString();
@@ -305,20 +268,17 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   const router = useRouter();
   const employeeId = user?.id;
   const [open, setOpen] = useState(false);
-  const [notifications, setNotifications] = useState<NotificationItem[]>(() =>
-    createFallbackNotifications(t)
-  );
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const mountedRef = useRef(true);
   const notificationsTableUnavailableRef = useRef(false);
 
   const loadNotifications = useCallback(async () => {
     if (!mountedRef.current) return;
     if (!supabase) {
-      setNotifications(createFallbackNotifications(t));
       return;
     }
     if (notificationsTableUnavailableRef.current) {
-      setNotifications(createFallbackNotifications(t));
+      setNotifications([]);
       return;
     }
 
@@ -350,11 +310,6 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         )
         .filter((item): item is NotificationItem => Boolean(item));
 
-      if (!normalized.length) {
-        setNotifications(createFallbackNotifications(t));
-        return;
-      }
-
       setNotifications(normalized);
     } catch (error) {
       if (isMissingNotificationsTableError(error)) {
@@ -363,7 +318,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         console.warn('Failed to load notifications', error);
       }
       if (mountedRef.current) {
-        setNotifications(createFallbackNotifications(t));
+        setNotifications([]);
       }
     }
   }, [employeeId, t]);
