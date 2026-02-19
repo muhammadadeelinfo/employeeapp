@@ -372,6 +372,7 @@ export default function AccountScreen() {
             <View
               style={[
                 styles.sectionCard,
+                styles.sectionCardFirst,
                 { backgroundColor: theme.surface, borderColor: theme.borderSoft },
                 isIOS && styles.sectionCardIOS,
               ]}
@@ -446,6 +447,37 @@ export default function AccountScreen() {
               ]}
             >
               <Text style={[styles.sectionHeading, { color: theme.textPrimary }]}>
+                {t('notificationsSectionTitle')}
+              </Text>
+              <View style={styles.toolsList}>
+                <TouchableOpacity
+                  style={[styles.toolsRow, { borderColor: theme.borderSoft }]}
+                  onPress={() => router.push('/notifications')}
+                >
+                  <View style={[styles.toolsIconWrap, { backgroundColor: theme.surfaceMuted }]}>
+                    <Ionicons name="notifications-outline" size={16} color={theme.primary} />
+                  </View>
+                  <Text style={[styles.toolsLabel, { color: theme.textPrimary }]}>
+                    {t('notificationsPush')}
+                  </Text>
+                  {unreadCount > 0 ? (
+                    <View style={styles.toolsBadge}>
+                      <Text style={styles.toolsBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                    </View>
+                  ) : null}
+                  <Ionicons name="chevron-forward" size={16} color={theme.textSecondary} />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View
+              style={[
+                styles.sectionCard,
+                { backgroundColor: theme.surface, borderColor: theme.borderSoft },
+                isIOS && styles.sectionCardIOS,
+              ]}
+            >
+              <Text style={[styles.sectionHeading, { color: theme.textPrimary }]}>
                 {t('securitySectionTitle')}
               </Text>
               <View style={styles.toolsList}>
@@ -474,37 +506,6 @@ export default function AccountScreen() {
                   <Text style={[styles.toolsLabel, { color: theme.textPrimary }]}>
                     {t('securityEnable2fa')}
                   </Text>
-                  <Ionicons name="chevron-forward" size={16} color={theme.textSecondary} />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <View
-              style={[
-                styles.sectionCard,
-                { backgroundColor: theme.surface, borderColor: theme.borderSoft },
-                isIOS && styles.sectionCardIOS,
-              ]}
-            >
-              <Text style={[styles.sectionHeading, { color: theme.textPrimary }]}>
-                {t('notificationsSectionTitle')}
-              </Text>
-              <View style={styles.toolsList}>
-                <TouchableOpacity
-                  style={[styles.toolsRow, { borderColor: theme.borderSoft }]}
-                  onPress={() => router.push('/notifications')}
-                >
-                  <View style={[styles.toolsIconWrap, { backgroundColor: theme.surfaceMuted }]}>
-                    <Ionicons name="notifications-outline" size={16} color={theme.primary} />
-                  </View>
-                  <Text style={[styles.toolsLabel, { color: theme.textPrimary }]}>
-                    {t('notificationsPush')}
-                  </Text>
-                  {unreadCount > 0 ? (
-                    <View style={styles.toolsBadge}>
-                      <Text style={styles.toolsBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
-                    </View>
-                  ) : null}
                   <Ionicons name="chevron-forward" size={16} color={theme.textSecondary} />
                 </TouchableOpacity>
               </View>
@@ -805,7 +806,7 @@ const styles = StyleSheet.create({
   sectionCard: {
     borderRadius: 24,
     padding: 20,
-    marginTop: layoutTokens.sectionGap - 2,
+    marginTop: 12,
     borderWidth: 1,
     borderColor: '#27315a99',
     shadowColor: '#020617',
@@ -818,26 +819,29 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     padding: 22,
   },
+  sectionCardFirst: {
+    marginTop: 6,
+  },
   sectionHeading: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '700',
-    marginBottom: 14,
-    letterSpacing: -0.2,
+    marginBottom: 10,
+    letterSpacing: -0.1,
   },
   sectionHint: {
     fontSize: 12,
-    marginTop: -6,
+    marginTop: -2,
     marginBottom: 10,
   },
   toolsList: {
-    marginTop: 4,
+    marginTop: 2,
   },
   toolsRow: {
-    minHeight: 52,
+    minHeight: 50,
     borderWidth: 1,
     borderRadius: 14,
     paddingHorizontal: 12,
-    marginTop: 10,
+    marginTop: 8,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
@@ -893,7 +897,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   contactList: {
-    marginTop: 16,
+    marginTop: 12,
   },
   contactSectionTitle: {
     fontSize: 11,
@@ -1027,10 +1031,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   button: {
-    marginTop: 16,
+    marginTop: 12,
   },
   buttonIOS: {
-    marginTop: 18,
+    marginTop: 14,
   },
   link: {
     marginTop: 12,
