@@ -1,6 +1,7 @@
 import {
   Alert,
   FlatList,
+  Linking,
   Platform,
   StyleSheet,
   Text,
@@ -21,6 +22,7 @@ import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { layoutTokens } from '@shared/theme/layout';
 import { useRouter } from 'expo-router';
 import { openAddressInMaps } from '@shared/utils/maps';
+import Constants from 'expo-constants';
 
 const normalizeContactString = (value?: unknown) =>
   typeof value === 'string' && value.trim() ? value.trim() : undefined;
@@ -283,8 +285,91 @@ export default function AccountScreen() {
   const handleSignOut = () => {
     signOut();
   };
-  const handleComingSoon = (label: string) => {
-    Alert.alert(label, 'This feature is coming soon.');
+  const handleResetPassword = async () => {
+    const email = user?.email?.trim();
+    if (!email) {
+      Alert.alert(t('securityResetPassword'), t('notProvided'));
+      return;
+    }
+    if (!supabase) {
+      Alert.alert(t('securityResetPassword'), 'Auth client is unavailable right now.');
+      return;
+    }
+    const redirectUrl =
+      (Constants.expoConfig?.extra?.authRedirectUrl as string | undefined)?.trim() || undefined;
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: redirectUrl,
+    });
+    if (error) {
+      Alert.alert(t('securityResetPassword'), error.message);
+      return;
+    }
+    Alert.alert(t('securityResetPassword'), `Password reset link sent to ${email}.`);
+  };
+  const handleManageSessions = async () => {
+    if (!supabase) {
+      Alert.alert(t('securityManageSessions'), 'Auth client is unavailable right now.');
+      return;
+    }
+    const { error } = await supabase.auth.signOut({ scope: 'others' });
+    if (error) {
+      Alert.alert(t('securityManageSessions'), error.message);
+      return;
+    }
+    Alert.alert(t('securityManageSessions'), 'Signed out from other active sessions.');
+  };
+  const handleCheckTwoFactor = async () => {
+    if (!supabase) {
+      Alert.alert(t('securityEnable2fa'), 'Auth client is unavailable right now.');
+      return;
+    }
+    try {
+      const { data, error } = await supabase.auth.mfa.listFactors();
+      if (error) throw error;
+      const factors = [...(data?.all ?? [])];
+      const verifiedCount = factors.filter((factor) => factor.status === 'verified').length;
+      if (verifiedCount > 0) {
+        Alert.alert(t('securityEnable2fa'), `Two-factor authentication is enabled (${verifiedCount} factor(s)).`);
+        return;
+      }
+      Alert.alert(
+        t('securityEnable2fa'),
+        'No verified 2FA factor found yet. Contact support to complete setup if required.'
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to check 2FA status.';
+      Alert.alert(t('securityEnable2fa'), message);
+    }
+  };
+  const openExternalUrl = async (title: string, url: string) => {
+    const supported = await Linking.canOpenURL(url);
+    if (!supported) {
+      Alert.alert(title, 'Unable to open this link on your device.');
+      return;
+    }
+    await Linking.openURL(url);
+  };
+  const handleHelpCenter = async () => {
+    const supportEmail = 'support@shiftorapp.com';
+    await openExternalUrl(
+      t('supportHelpCenter'),
+      `mailto:${supportEmail}?subject=${encodeURIComponent('Help request')}`
+    );
+  };
+  const handleLegal = async () => {
+    const legalUrl =
+      `${((Constants.expoConfig?.extra?.apiBaseUrl as string | undefined)?.trim() || 'https://shiftorapp.com').replace(/\/+$/, '')}/legal`;
+    await openExternalUrl(t('supportLegal'), legalUrl);
+  };
+  const handleDeleteAccount = async () => {
+    const email = user?.email?.trim() || '';
+    const supportEmail = 'support@shiftorapp.com';
+    await openExternalUrl(
+      t('supportDeleteAccount'),
+      `mailto:${supportEmail}?subject=${encodeURIComponent('Delete my account')}&body=${encodeURIComponent(
+        `Please delete my account${email ? ` for ${email}` : ''}.`
+      )}`
+    );
   };
   const contentContainerStyle = [
     styles.content,
@@ -487,7 +572,7 @@ export default function AccountScreen() {
               <View style={styles.toolsList}>
                 <TouchableOpacity
                   style={[styles.toolsRow, { borderColor: theme.borderSoft }]}
-                  onPress={() => handleComingSoon(t('securityResetPassword'))}
+                  onPress={() => void handleResetPassword()}
                 >
                   <View style={[styles.toolsIconWrap, { backgroundColor: theme.surfaceMuted }]}>
                     <Ionicons name="key-outline" size={16} color={theme.primary} />
@@ -499,7 +584,7 @@ export default function AccountScreen() {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.toolsRow, { borderColor: theme.borderSoft }]}
-                  onPress={() => handleComingSoon(t('securityManageSessions'))}
+                  onPress={() => void handleManageSessions()}
                 >
                   <View style={[styles.toolsIconWrap, { backgroundColor: theme.surfaceMuted }]}>
                     <Ionicons name="phone-portrait-outline" size={16} color={theme.primary} />
@@ -511,7 +596,7 @@ export default function AccountScreen() {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.toolsRow, { borderColor: theme.borderSoft }]}
-                  onPress={() => handleComingSoon(t('securityEnable2fa'))}
+                  onPress={() => void handleCheckTwoFactor()}
                 >
                   <View style={[styles.toolsIconWrap, { backgroundColor: theme.surfaceMuted }]}>
                     <Ionicons name="shield-checkmark-outline" size={16} color={theme.primary} />
@@ -623,7 +708,7 @@ export default function AccountScreen() {
               <View style={styles.toolsList}>
                 <TouchableOpacity
                   style={[styles.toolsRow, { borderColor: theme.borderSoft }]}
-                  onPress={() => handleComingSoon(t('supportHelpCenter'))}
+                  onPress={() => void handleHelpCenter()}
                 >
                   <View style={[styles.toolsIconWrap, { backgroundColor: theme.surfaceMuted }]}>
                     <Ionicons name="help-circle-outline" size={16} color={theme.primary} />
@@ -635,7 +720,7 @@ export default function AccountScreen() {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.toolsRow, { borderColor: theme.borderSoft }]}
-                  onPress={() => handleComingSoon(t('supportLegal'))}
+                  onPress={() => void handleLegal()}
                 >
                   <View style={[styles.toolsIconWrap, { backgroundColor: theme.surfaceMuted }]}>
                     <Ionicons name="document-text-outline" size={16} color={theme.primary} />
@@ -654,7 +739,7 @@ export default function AccountScreen() {
               <TouchableOpacity onPress={handleSignOut}>
                 <Text style={[styles.link, { color: theme.primary }]}>{t('switchAccount')}</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => handleComingSoon(t('supportDeleteAccount'))}>
+              <TouchableOpacity onPress={() => void handleDeleteAccount()}>
                 <Text style={[styles.link, styles.destructiveLink, { color: theme.fail }]}>
                   {t('supportDeleteAccount')}
                 </Text>
