@@ -19,6 +19,11 @@ import { PrimaryButton } from '@shared/components/PrimaryButton';
 import { supabase } from '@lib/supabaseClient';
 import { useRouter } from 'expo-router';
 import { useLanguage } from '@shared/context/LanguageContext';
+import {
+  buildSupportMailto,
+  SUPPORT_EMAIL,
+  SUPPORT_FALLBACK_URL,
+} from '@shared/utils/support';
 
 const REMEMBER_KEY = 'employee-portal-remember-me';
 const EMAIL_KEY = 'employee-portal-remembered-email';
@@ -102,16 +107,21 @@ export default function LoginScreen() {
   };
 
   const handleSupportEmail = async () => {
-    const supportUrl = 'mailto:support@shiftorapp.com';
+    const supportUrl = buildSupportMailto('Help request');
     try {
       const supported = await Linking.canOpenURL(supportUrl);
-      if (!supported) {
-        Alert.alert(t('supportHelpCenter'), t('unableOpenLinkDevice'));
+      if (supported) {
+        await Linking.openURL(supportUrl);
         return;
       }
-      await Linking.openURL(supportUrl);
+      const fallbackSupported = await Linking.canOpenURL(SUPPORT_FALLBACK_URL);
+      if (fallbackSupported) {
+        await Linking.openURL(SUPPORT_FALLBACK_URL);
+        return;
+      }
+      Alert.alert(t('supportHelpCenter'), `${t('unableOpenLinkDevice')}\n${SUPPORT_EMAIL}`);
     } catch {
-      Alert.alert(t('supportHelpCenter'), t('unableOpenLinkDevice'));
+      Alert.alert(t('supportHelpCenter'), `${t('unableOpenLinkDevice')}\n${SUPPORT_EMAIL}`);
     }
   };
 

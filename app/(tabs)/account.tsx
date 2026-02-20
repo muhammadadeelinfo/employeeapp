@@ -29,6 +29,11 @@ import {
   getContentMaxWidth,
   shouldStackForCompactWidth,
 } from '@shared/utils/responsiveLayout';
+import {
+  buildSupportMailto,
+  SUPPORT_EMAIL,
+  SUPPORT_FALLBACK_URL,
+} from '@shared/utils/support';
 import Constants from 'expo-constants';
 
 const normalizeContactString = (value?: unknown) =>
@@ -348,19 +353,30 @@ export default function AccountScreen() {
       Alert.alert(t('securityEnable2fa'), message);
     }
   };
-  const openExternalUrl = async (title: string, url: string) => {
-    const supported = await Linking.canOpenURL(url);
-    if (!supported) {
-      Alert.alert(title, t('unableOpenLinkDevice'));
-      return;
+  const openExternalUrl = async (title: string, url: string, fallbackUrl?: string) => {
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (supported) {
+        await Linking.openURL(url);
+        return;
+      }
+      if (fallbackUrl) {
+        const fallbackSupported = await Linking.canOpenURL(fallbackUrl);
+        if (fallbackSupported) {
+          await Linking.openURL(fallbackUrl);
+          return;
+        }
+      }
+      Alert.alert(title, `${t('unableOpenLinkDevice')}\n${SUPPORT_EMAIL}`);
+    } catch {
+      Alert.alert(title, `${t('unableOpenLinkDevice')}\n${SUPPORT_EMAIL}`);
     }
-    await Linking.openURL(url);
   };
   const handleHelpCenter = async () => {
-    const supportEmail = 'support@shiftorapp.com';
     await openExternalUrl(
       t('supportHelpCenter'),
-      `mailto:${supportEmail}?subject=${encodeURIComponent('Help request')}`
+      buildSupportMailto('Help request'),
+      SUPPORT_FALLBACK_URL
     );
   };
   const baseSiteUrl =
@@ -380,12 +396,13 @@ export default function AccountScreen() {
   };
   const handleDeleteAccount = async () => {
     const email = user?.email?.trim() || '';
-    const supportEmail = 'support@shiftorapp.com';
     await openExternalUrl(
       t('supportDeleteAccount'),
-      `mailto:${supportEmail}?subject=${encodeURIComponent('Delete my account')}&body=${encodeURIComponent(
+      buildSupportMailto(
+        'Delete my account',
         `Please delete my account${email ? ` for ${email}` : ''}.`
-      )}`
+      ),
+      SUPPORT_FALLBACK_URL
     );
   };
   const contentContainerStyle = [
