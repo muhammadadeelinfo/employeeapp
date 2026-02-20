@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -21,6 +22,7 @@ import { useTheme } from '@shared/themeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { layoutTokens } from '@shared/theme/layout';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { getContentMaxWidth } from '@shared/utils/responsiveLayout';
 
 const getMonthLabel = (date: Date) => date.toLocaleDateString([], { month: 'long', year: 'numeric' });
 
@@ -39,6 +41,11 @@ export default function MyShiftsScreen() {
   const router = useRouter();
   const { t } = useLanguage();
   const { theme } = useTheme();
+  const { width, height } = useWindowDimensions();
+  const isLargeTablet = width >= 1024;
+  const isTabletLandscape = isLargeTablet && width > height;
+  const contentMaxWidth =
+    width >= 1366 ? 980 : width >= 1024 ? 920 : getContentMaxWidth(width);
   const { orderedShifts, isLoading, error, refetch } = useShiftFeed();
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [confirmingAll, setConfirmingAll] = useState(false);
@@ -174,85 +181,99 @@ export default function MyShiftsScreen() {
 
   return (
     <SafeAreaView style={containerStyle} edges={['left', 'right']}>
-      <View style={[styles.pageHeader, { backgroundColor: theme.surfaceElevated, borderColor: theme.border }]}>
-        <View style={styles.pageHeaderTopRow}>
-          <Text style={[styles.pageHeaderTitle, { color: theme.textPrimary }]}>{t('shiftOverview')}</Text>
+      <View style={[styles.contentFrame, contentMaxWidth ? { maxWidth: contentMaxWidth } : null]}>
+        <View
+          style={[
+            styles.pageHeader,
+            isLargeTablet && styles.pageHeaderTablet,
+            { backgroundColor: theme.surfaceElevated, borderColor: theme.border },
+          ]}
+        >
+          <View style={styles.pageHeaderTopRow}>
+            <Text style={[styles.pageHeaderTitle, { color: theme.textPrimary }]}>{t('shiftOverview')}</Text>
+          </View>
+          <View style={styles.pageHeaderMetaRow}>
+            <Text style={[styles.pageHeaderSubtitle, { color: theme.textSecondary }]} numberOfLines={1}>
+              {nextShiftLabel}
+            </Text>
+            {pendingAssignmentIds.length > 0 ? (
+              <TouchableOpacity
+                onPress={() => {
+                  void handleConfirmAll();
+                }}
+                disabled={confirmingAll}
+                activeOpacity={0.9}
+                style={[
+                  styles.confirmAllAction,
+                  {
+                    backgroundColor: theme.surfaceMuted,
+                    borderColor: theme.borderSoft,
+                  },
+                  confirmingAll && styles.confirmAllActionDisabled,
+                ]}
+              >
+                {confirmingAll ? (
+                  <ActivityIndicator color={theme.primary} />
+                ) : (
+                  <>
+                    <Ionicons name="checkmark-done-outline" size={13} color={theme.primary} />
+                    <Text
+                      style={[
+                        styles.confirmAllActionText,
+                        isTabletLandscape && styles.confirmAllActionTextTablet,
+                        { color: theme.textPrimary },
+                      ]}
+                    >
+                      {t('confirmAllShiftsShort')}
+                    </Text>
+                    <View style={[styles.confirmAllCountBadge, { backgroundColor: theme.primary }]}>
+                      <Text style={styles.confirmAllCountText}>{pendingAssignmentIds.length}</Text>
+                    </View>
+                  </>
+                )}
+              </TouchableOpacity>
+            ) : null}
+          </View>
         </View>
-        <View style={styles.pageHeaderMetaRow}>
-          <Text style={[styles.pageHeaderSubtitle, { color: theme.textSecondary }]} numberOfLines={1}>
-            {nextShiftLabel}
-          </Text>
-          {pendingAssignmentIds.length > 0 ? (
-            <TouchableOpacity
-              onPress={() => {
-                void handleConfirmAll();
-              }}
-              disabled={confirmingAll}
-              activeOpacity={0.9}
-              style={[
-                styles.confirmAllAction,
-                {
-                  backgroundColor: theme.surfaceMuted,
-                  borderColor: theme.borderSoft,
-                },
-                confirmingAll && styles.confirmAllActionDisabled,
-              ]}
-            >
-              {confirmingAll ? (
-                <ActivityIndicator color={theme.primary} />
-              ) : (
-                <>
-                  <Ionicons name="checkmark-done-outline" size={13} color={theme.primary} />
-                  <Text style={[styles.confirmAllActionText, { color: theme.textPrimary }]}>
-                    {t('confirmAllShiftsShort')}
-                  </Text>
-                  <View style={[styles.confirmAllCountBadge, { backgroundColor: theme.primary }]}>
-                    <Text style={styles.confirmAllCountText}>{pendingAssignmentIds.length}</Text>
-                  </View>
-                </>
-              )}
-            </TouchableOpacity>
-          ) : null}
-        </View>
+        {errorView}
+        <ScrollView
+          ref={listScrollRef}
+          contentContainerStyle={listContentStyle}
+          style={[styles.scrollView, { backgroundColor: theme.background }]}
+          contentInsetAdjustmentBehavior="never"
+          refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => refetch()} />}
+        >
+          {showSkeletons && renderSkeletons()}
+          {!error &&
+            orderedShifts.map((shift) => (
+              <View key={shift.id} onLayout={handleShiftLayout(shift.id)}>
+                {(() => {
+                  const assignmentId = shift.assignmentId;
+                  return (
+                <ShiftCard
+                  shift={shift}
+                  isPrimary={shift.id === focusedShiftId}
+                  onPress={() =>
+                    router.push({
+                      pathname: `/shift-details/${shift.id}`,
+                      params: { from: 'shifts' },
+                    })
+                  }
+                  onConfirm={assignmentId ? () => handleConfirm(assignmentId) : undefined}
+                  confirmLoading={
+                    assignmentId
+                      ? confirmingId === assignmentId ||
+                        (confirmingAll && pendingAssignmentIdSet.has(assignmentId))
+                      : false
+                  }
+                />
+                  );
+                })()}
+              </View>
+            ))}
+          {!error && !orderedShifts.length && !isLoading && renderListEmptyState()}
+        </ScrollView>
       </View>
-      {errorView}
-      <ScrollView
-        ref={listScrollRef}
-        contentContainerStyle={listContentStyle}
-        style={[styles.scrollView, { backgroundColor: theme.background }]}
-        contentInsetAdjustmentBehavior="never"
-        refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => refetch()} />}
-      >
-        {showSkeletons && renderSkeletons()}
-        {!error &&
-          orderedShifts.map((shift) => (
-            <View key={shift.id} onLayout={handleShiftLayout(shift.id)}>
-              {(() => {
-                const assignmentId = shift.assignmentId;
-                return (
-              <ShiftCard
-                shift={shift}
-                isPrimary={shift.id === focusedShiftId}
-                onPress={() =>
-                  router.push({
-                    pathname: `/shift-details/${shift.id}`,
-                    params: { from: 'shifts' },
-                  })
-                }
-                onConfirm={assignmentId ? () => handleConfirm(assignmentId) : undefined}
-                confirmLoading={
-                  assignmentId
-                    ? confirmingId === assignmentId ||
-                      (confirmingAll && pendingAssignmentIdSet.has(assignmentId))
-                    : false
-                }
-              />
-                );
-              })()}
-            </View>
-          ))}
-        {!error && !orderedShifts.length && !isLoading && renderListEmptyState()}
-      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -263,6 +284,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: layoutTokens.screenHorizontal,
     paddingTop: 0,
     paddingBottom: 0,
+    alignItems: 'center',
+  },
+  contentFrame: {
+    flex: 1,
+    width: '100%',
   },
   list: {
     paddingBottom: 24,
@@ -275,6 +301,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     marginBottom: layoutTokens.sectionGap,
+  },
+  pageHeaderTablet: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   pageHeaderTitle: {
     fontSize: 18,
@@ -317,6 +347,9 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 0.2,
+  },
+  confirmAllActionTextTablet: {
+    fontSize: 11,
   },
   confirmAllCountBadge: {
     minWidth: 16,

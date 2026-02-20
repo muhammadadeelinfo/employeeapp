@@ -267,7 +267,8 @@ export default function AccountScreen() {
   const { width } = useWindowDimensions();
   const isIOS = Platform.OS === 'ios';
   const shouldStackHeroHeader = shouldStackForCompactWidth(width);
-  const contentMaxWidth = getContentMaxWidth(width);
+  const contentMaxWidth =
+    width >= 1366 ? 980 : width >= 1024 ? 920 : getContentMaxWidth(width);
   const employeeId = user?.id;
   const metadata = user?.user_metadata;
   const metadataRecord =

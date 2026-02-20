@@ -7,6 +7,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
   Platform,
 } from 'react-native';
@@ -25,6 +26,7 @@ import * as Calendar from 'expo-calendar';
 import { useTheme } from '@shared/themeContext';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { layoutTokens } from '@shared/theme/layout';
+import { getContentMaxWidth } from '@shared/utils/responsiveLayout';
 
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -157,6 +159,14 @@ export default function CalendarScreen() {
   const router = useRouter();
   const { t } = useLanguage();
   const { theme } = useTheme();
+  const { width, height } = useWindowDimensions();
+  const isLargeTablet = width >= 1024;
+  const isTabletLandscape = isLargeTablet && width > height;
+  const contentMaxWidth =
+    width >= 1366 ? 980 : width >= 1024 ? 920 : getContentMaxWidth(width);
+  const contentFrameMaxWidth = contentMaxWidth
+    ? contentMaxWidth + layoutTokens.screenHorizontal * 2
+    : undefined;
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
   const isIOS = Platform.OS === 'ios';
@@ -484,6 +494,7 @@ export default function CalendarScreen() {
   return (
     <SafeAreaView style={containerStyle} edges={['left', 'right']}>
       <LinearGradient colors={heroGradientColors} style={styles.background} />
+      <View style={[styles.contentFrame, contentFrameMaxWidth ? { maxWidth: contentFrameMaxWidth } : null]}>
       <ScrollView
         contentContainerStyle={scrollContentStyle}
         refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => refetch()} />}
@@ -500,6 +511,7 @@ export default function CalendarScreen() {
         <View
           style={[
             styles.monthCard,
+            isLargeTablet && styles.monthCardTablet,
             {
               backgroundColor: theme.surfaceElevated,
               borderColor: theme.borderSoft,
@@ -556,6 +568,7 @@ export default function CalendarScreen() {
             {...calendarPanResponder.panHandlers}
             style={[
               styles.calendarWrapper,
+              isLargeTablet && styles.calendarWrapperTablet,
               {
                 transform: [{ perspective: 1000 }, { rotateY: rotateY }],
                 backgroundColor: theme.surfaceElevated,
@@ -590,6 +603,7 @@ export default function CalendarScreen() {
                           key={key}
                           style={({ pressed }) => [
                             styles.dayChip,
+                            isLargeTablet && styles.dayChipTablet,
                             isIOS && styles.dayChipIOS,
                             dayChipBaseStyle,
                             !isCurrentMonth && styles.dayChipMuted,
@@ -662,6 +676,7 @@ export default function CalendarScreen() {
         <View
           style={[
             styles.legendCard,
+            isTabletLandscape && styles.legendCardTabletLandscape,
             {
               backgroundColor: theme.surface,
               borderColor: theme.borderSoft,
@@ -742,6 +757,7 @@ export default function CalendarScreen() {
           ))}
         </View>
       </ScrollView>
+      </View>
       <Modal transparent visible={showEmptyModal} animationType="fade">
         <View style={styles.emptyModalBackdrop}>
           <LinearGradient
@@ -784,6 +800,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#eef1ff',
+    alignItems: 'center',
+  },
+  contentFrame: {
+    flex: 1,
+    width: '100%',
+    paddingHorizontal: layoutTokens.screenHorizontal,
   },
   monthCard: {
     backgroundColor: '#fff',
@@ -798,6 +820,10 @@ const styles = StyleSheet.create({
     elevation: 10,
     alignItems: 'center',
     overflow: 'hidden',
+  },
+  monthCardTablet: {
+    borderRadius: 12,
+    paddingHorizontal: 18,
   },
   monthCardIOS: {
     borderRadius: 0,
@@ -851,6 +877,10 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 10,
   },
+  calendarWrapperTablet: {
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+  },
   calendarWrapperIOS: {
     borderRadius: 26,
     paddingVertical: 12,
@@ -886,6 +916,9 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     paddingTop: 12,
     position: 'relative',
+  },
+  dayChipTablet: {
+    minHeight: 94,
   },
   dayChipIOS: {
     margin: 1,
@@ -961,6 +994,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     paddingHorizontal: 18,
     paddingVertical: 16,
+  },
+  legendCardTabletLandscape: {
+    marginTop: 14,
+    marginBottom: 30,
   },
   legendCardIOS: {
     borderRadius: 28,

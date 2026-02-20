@@ -3,6 +3,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@shared/themeContext';
 import { useLanguage } from '@shared/context/LanguageContext';
+import { useWindowDimensions } from 'react-native';
 
 const iconConfig: Record<
   string,
@@ -38,6 +39,10 @@ export default function TabsLayout() {
 function ThemeAwareTabs({ insets }: { insets: ReturnType<typeof useSafeAreaInsets> }) {
   const { theme } = useTheme();
   const { t } = useLanguage();
+  const { width, height } = useWindowDimensions();
+  const isTablet = width >= 768;
+  const isTabletLandscape = isTablet && width > height;
+  const tabBarMaxWidth = isTabletLandscape ? 1080 : isTablet ? 960 : undefined;
   return (
     <Tabs
       screenOptions={({ route }) => {
@@ -49,23 +54,31 @@ function ThemeAwareTabs({ insets }: { insets: ReturnType<typeof useSafeAreaInset
         return {
           headerShown: false,
           tabBarLabel: t(icon.labelKey),
-          tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+          tabBarLabelStyle: { fontSize: isTablet ? 12 : 11, fontWeight: '600', lineHeight: isTablet ? 14 : 13 },
           tabBarActiveTintColor: theme.primary,
           tabBarInactiveTintColor: theme.textSecondary,
           tabBarStyle: {
             backgroundColor: theme.surfaceElevated,
             borderTopColor: theme.border,
+            borderTopWidth: 1,
             paddingVertical: 6,
-            paddingBottom: Math.max(12, insets.bottom),
+            paddingBottom: Math.max(isTablet ? 10 : 12, insets.bottom),
             shadowColor: '#000',
             shadowOpacity: 0.12,
             shadowOffset: { width: 0, height: -2 },
             shadowRadius: 12,
             elevation: 8,
+            width: '100%',
+            alignSelf: 'center',
+            maxWidth: tabBarMaxWidth,
+            borderTopLeftRadius: isTablet ? 16 : 0,
+            borderTopRightRadius: isTablet ? 16 : 0,
+            overflow: 'hidden',
           },
           tabBarItemStyle: {
             justifyContent: 'center',
-            paddingTop: 2,
+            paddingTop: isTablet ? 1 : 2,
+            paddingHorizontal: isTablet ? 4 : 0,
           },
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons name={(focused ? icon.active : icon.inactive) as any} color={color} size={size} />

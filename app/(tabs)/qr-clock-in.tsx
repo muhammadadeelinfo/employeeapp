@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Camera, CameraView, BarcodeScanningResult, PermissionResponse } from 'expo-camera';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
 import { useLanguage } from '@shared/context/LanguageContext';
@@ -8,9 +8,18 @@ import { useTheme } from '@shared/themeContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { layoutTokens } from '@shared/theme/layout';
+import { getContentMaxWidth } from '@shared/utils/responsiveLayout';
 
 export default function QrClockInScreen() {
   const { theme } = useTheme();
+  const { width, height } = useWindowDimensions();
+  const isLargeTablet = width >= 1024;
+  const isTabletLandscape = isLargeTablet && width > height;
+  const contentMaxWidth =
+    width >= 1366 ? 980 : width >= 1024 ? 920 : getContentMaxWidth(width);
+  const previewStyle = isTabletLandscape
+    ? { maxHeight: Math.min(height * 0.68, 760) }
+    : null;
   const [permission, setPermission] = useState<PermissionResponse | null>(null);
   const [scannedData, setScannedData] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(true);
@@ -56,49 +65,57 @@ export default function QrClockInScreen() {
       style={[styles.container, { backgroundColor: theme.background }]}
       edges={['left', 'right']}
     >
-      <LinearGradient
-        colors={[theme.heroGradientStart, theme.heroGradientEnd]}
-        style={[styles.hero, { borderColor: theme.borderSoft }]}
+      <View
+        style={[
+          styles.contentFrame,
+          isLargeTablet && styles.contentFrameTablet,
+          contentMaxWidth ? { maxWidth: contentMaxWidth } : null,
+        ]}
       >
-        <View style={[styles.heroIconWrap, { backgroundColor: theme.surface }]}>
-          <Ionicons name="qr-code-outline" size={18} color={theme.primary} />
-        </View>
-        <Text style={[styles.instructions, { color: theme.textSecondary }]}>{t('qrInstructions')}</Text>
-      </LinearGradient>
-      <View style={[styles.preview, { borderColor: theme.borderSoft }]}>
-        <CameraView
-          style={styles.camera}
-          onBarcodeScanned={isScanning ? handleBarCodeScanned : undefined}
-          barcodeScannerSettings={{
-            barcodeTypes: ['qr', 'code128', 'code39'],
-          }}
-        />
-        <View pointerEvents="none" style={styles.scanOverlay}>
-          <View style={[styles.scanFrame, { borderColor: `${theme.primary}88` }]}>
-            <View style={[styles.scanCorner, styles.scanCornerTopLeft, { borderColor: theme.primary }]} />
-            <View style={[styles.scanCorner, styles.scanCornerTopRight, { borderColor: theme.primary }]} />
-            <View style={[styles.scanCorner, styles.scanCornerBottomLeft, { borderColor: theme.primary }]} />
-            <View style={[styles.scanCorner, styles.scanCornerBottomRight, { borderColor: theme.primary }]} />
+        <LinearGradient
+          colors={[theme.heroGradientStart, theme.heroGradientEnd]}
+          style={[styles.hero, { borderColor: theme.borderSoft }]}
+        >
+          <View style={[styles.heroIconWrap, { backgroundColor: theme.surface }]}>
+            <Ionicons name="qr-code-outline" size={18} color={theme.primary} />
           </View>
-          <Text style={[styles.scanHint, { color: theme.textSecondary }]}>{t('qrInstructions')}</Text>
+          <Text style={[styles.instructions, { color: theme.textSecondary }]}>{t('qrInstructions')}</Text>
         </View>
+        <View style={[styles.preview, previewStyle, { borderColor: theme.borderSoft }]}>
+          <CameraView
+            style={styles.camera}
+            onBarcodeScanned={isScanning ? handleBarCodeScanned : undefined}
+            barcodeScannerSettings={{
+              barcodeTypes: ['qr', 'code128', 'code39'],
+            }}
+          />
+          <View pointerEvents="none" style={styles.scanOverlay}>
+            <View style={[styles.scanFrame, { borderColor: `${theme.primary}88` }]}>
+              <View style={[styles.scanCorner, styles.scanCornerTopLeft, { borderColor: theme.primary }]} />
+              <View style={[styles.scanCorner, styles.scanCornerTopRight, { borderColor: theme.primary }]} />
+              <View style={[styles.scanCorner, styles.scanCornerBottomLeft, { borderColor: theme.primary }]} />
+              <View style={[styles.scanCorner, styles.scanCornerBottomRight, { borderColor: theme.primary }]} />
+            </View>
+            <Text style={[styles.scanHint, { color: theme.textSecondary }]}>{t('qrInstructions')}</Text>
+          </View>
+        </View>
+        {scannedData ? (
+          <View style={[styles.scanResult, { backgroundColor: theme.surface }]}>
+            <Text style={[styles.scanLabel, { color: theme.textSecondary }]}>{t('lastScanLabel')}</Text>
+            <Text style={[styles.scanValue, { color: theme.textPrimary }]}>{scannedData}</Text>
+          </View>
+        ) : null}
+        {!isScanning ? (
+          <PrimaryButton
+            title={t('scanAnotherBadge')}
+            onPress={() => {
+              setScannedData(null);
+              setIsScanning(true);
+            }}
+            style={styles.button}
+          />
+        ) : null}
       </View>
-      {scannedData ? (
-        <View style={[styles.scanResult, { backgroundColor: theme.surface }]}>
-          <Text style={[styles.scanLabel, { color: theme.textSecondary }]}>{t('lastScanLabel')}</Text>
-          <Text style={[styles.scanValue, { color: theme.textPrimary }]}>{scannedData}</Text>
-        </View>
-      ) : null}
-      {!isScanning ? (
-        <PrimaryButton
-          title={t('scanAnotherBadge')}
-          onPress={() => {
-            setScannedData(null);
-            setIsScanning(true);
-          }}
-          style={styles.button}
-        />
-      ) : null}
     </SafeAreaView>
   );
 }
@@ -109,6 +126,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: layoutTokens.screenHorizontal,
     paddingTop: layoutTokens.screenTop,
     paddingBottom: layoutTokens.screenTop,
+    alignItems: 'center',
+  },
+  contentFrame: {
+    flex: 1,
+    width: '100%',
+  },
+  contentFrameTablet: {
+    paddingBottom: 8,
   },
   hero: {
     borderRadius: layoutTokens.cardRadiusMd,
