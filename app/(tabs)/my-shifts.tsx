@@ -1,9 +1,11 @@
 import {
+  ActivityIndicator,
   LayoutChangeEvent,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -11,12 +13,14 @@ import { ShiftCard } from '@shared/components/ShiftCard';
 import { PrimaryButton } from '@shared/components/PrimaryButton';
 import { useShiftFeed } from '@features/shifts/useShiftFeed';
 import { confirmShiftAssignment } from '@features/shifts/shiftsService';
+import { normalizeShiftConfirmationStatus } from '@lib/shiftConfirmationStatus';
 import { getShiftPhase } from '@shared/utils/shiftPhase';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@shared/themeContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { layoutTokens } from '@shared/theme/layout';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 const getMonthLabel = (date: Date) => date.toLocaleDateString([], { month: 'long', year: 'numeric' });
 
@@ -37,6 +41,7 @@ export default function MyShiftsScreen() {
   const { theme } = useTheme();
   const { orderedShifts, isLoading, error, refetch } = useShiftFeed();
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [confirmingAll, setConfirmingAll] = useState(false);
   const [layoutTick, setLayoutTick] = useState(0);
   const listScrollRef = useRef<ScrollView>(null);
   const shiftLayouts = useRef(new Map<string, number>());
@@ -68,6 +73,21 @@ export default function MyShiftsScreen() {
   }, [nextShift, t]);
 
   const showSkeletons = isLoading && !orderedShifts.length && !error;
+  const pendingAssignmentIds = useMemo(
+    () =>
+      orderedShifts
+        .filter((shift) => {
+          if (!shift.assignmentId) return false;
+          const normalized = normalizeShiftConfirmationStatus(shift.confirmationStatus);
+          return normalized === 'published';
+        })
+        .map((shift) => shift.assignmentId as string),
+    [orderedShifts]
+  );
+  const pendingAssignmentIdSet = useMemo(
+    () => new Set(pendingAssignmentIds),
+    [pendingAssignmentIds]
+  );
 
   const renderListEmptyState = () => (
     <View style={styles.listEmptyState}>
@@ -99,6 +119,26 @@ export default function MyShiftsScreen() {
     },
     [refetch]
   );
+
+  const handleConfirmAll = useCallback(async () => {
+    if (!pendingAssignmentIds.length || confirmingAll) return;
+    try {
+      setConfirmingAll(true);
+      const results = await Promise.allSettled(
+        pendingAssignmentIds.map((assignmentId) => confirmShiftAssignment(assignmentId))
+      );
+      const rejected = results.filter((result) => result.status === 'rejected');
+      if (rejected.length) {
+        console.error('Confirm all shifts failed', {
+          failed: rejected.length,
+          total: results.length,
+        });
+      }
+      await refetch();
+    } finally {
+      setConfirmingAll(false);
+    }
+  }, [confirmingAll, pendingAssignmentIds, refetch]);
 
   useEffect(() => {
     shiftLayouts.current.clear();
@@ -134,9 +174,46 @@ export default function MyShiftsScreen() {
 
   return (
     <SafeAreaView style={containerStyle} edges={['left', 'right']}>
-      <View style={[styles.pageHeader, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-        <Text style={[styles.pageHeaderTitle, { color: theme.textPrimary }]}>{t('shiftOverview')}</Text>
-        <Text style={[styles.pageHeaderSubtitle, { color: theme.textSecondary }]}>{nextShiftLabel}</Text>
+      <View style={[styles.pageHeader, { backgroundColor: theme.surfaceElevated, borderColor: theme.border }]}>
+        <View style={styles.pageHeaderTopRow}>
+          <Text style={[styles.pageHeaderTitle, { color: theme.textPrimary }]}>{t('shiftOverview')}</Text>
+        </View>
+        <View style={styles.pageHeaderMetaRow}>
+          <Text style={[styles.pageHeaderSubtitle, { color: theme.textSecondary }]} numberOfLines={1}>
+            {nextShiftLabel}
+          </Text>
+          {pendingAssignmentIds.length > 0 ? (
+            <TouchableOpacity
+              onPress={() => {
+                void handleConfirmAll();
+              }}
+              disabled={confirmingAll}
+              activeOpacity={0.9}
+              style={[
+                styles.confirmAllAction,
+                {
+                  backgroundColor: theme.surfaceMuted,
+                  borderColor: theme.borderSoft,
+                },
+                confirmingAll && styles.confirmAllActionDisabled,
+              ]}
+            >
+              {confirmingAll ? (
+                <ActivityIndicator color={theme.primary} />
+              ) : (
+                <>
+                  <Ionicons name="checkmark-done-outline" size={13} color={theme.primary} />
+                  <Text style={[styles.confirmAllActionText, { color: theme.textPrimary }]}>
+                    {t('confirmAllShiftsShort')}
+                  </Text>
+                  <View style={[styles.confirmAllCountBadge, { backgroundColor: theme.primary }]}>
+                    <Text style={styles.confirmAllCountText}>{pendingAssignmentIds.length}</Text>
+                  </View>
+                </>
+              )}
+            </TouchableOpacity>
+          ) : null}
+        </View>
       </View>
       {errorView}
       <ScrollView
@@ -163,7 +240,12 @@ export default function MyShiftsScreen() {
                   })
                 }
                 onConfirm={assignmentId ? () => handleConfirm(assignmentId) : undefined}
-                confirmLoading={assignmentId ? confirmingId === assignmentId : false}
+                confirmLoading={
+                  assignmentId
+                    ? confirmingId === assignmentId ||
+                      (confirmingAll && pendingAssignmentIdSet.has(assignmentId))
+                    : false
+                }
               />
                 );
               })()}
@@ -191,18 +273,63 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: layoutTokens.cardRadiusMd,
     paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingVertical: 10,
     marginBottom: layoutTokens.sectionGap,
   },
   pageHeaderTitle: {
-    fontSize: 19,
+    fontSize: 18,
     fontWeight: '800',
     letterSpacing: 0.2,
   },
-  pageHeaderSubtitle: {
-    fontSize: 12,
+  pageHeaderTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  pageHeaderMetaRow: {
     marginTop: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  pageHeaderSubtitle: {
+    flex: 1,
+    fontSize: 12,
+    marginTop: 0,
     fontWeight: '500',
+  },
+  confirmAllAction: {
+    minHeight: 28,
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  confirmAllActionDisabled: {
+    opacity: 0.8,
+  },
+  confirmAllActionText: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  confirmAllCountBadge: {
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  confirmAllCountText: {
+    color: '#fff',
+    fontSize: 9,
+    fontWeight: '800',
   },
   scrollView: {
     borderTopLeftRadius: layoutTokens.cardRadiusLg,

@@ -106,7 +106,7 @@ export const confirmShiftAssignment = async (assignmentId: string): Promise<void
   const { error } = await supabase
     .from('shift_assignments')
     .update({
-      confirmationStatus: 'confirmed',
+      confirmationStatus: 'confirmed by employee',
       confirmedAt: new Date().toISOString(),
     })
     .eq('id', assignmentId);

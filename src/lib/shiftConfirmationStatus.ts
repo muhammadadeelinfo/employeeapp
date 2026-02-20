@@ -53,3 +53,6 @@ export const normalizeShiftConfirmationStatus = (
 export const getShiftConfirmationStatusLabel = (
   status: ShiftConfirmationStatus
 ): string => labels[status];
+
+export const isShiftVisibleToEmployee = (status: ShiftConfirmationStatus): boolean =>
+  status === 'published' || status === 'confirmed' || status === 'confirmed by employee';

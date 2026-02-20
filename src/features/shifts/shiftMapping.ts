@@ -1,5 +1,6 @@
 import {
   ShiftConfirmationStatus,
+  isShiftVisibleToEmployee,
   normalizeShiftConfirmationStatus,
 } from '../../lib/shiftConfirmationStatus';
 import { ensureShiftEndAfterStart } from '../../shared/utils/timeUtils';
@@ -156,7 +157,7 @@ export const mapShiftArray = (
     if (shift.id === 'unknown') return;
     const assignment = assignmentByShiftId.get(shift.id);
     const confirmationStatus = normalizeShiftConfirmationStatus(assignment?.confirmationStatus);
-    if (confirmationStatus === 'not published' || confirmationStatus === 'pending') {
+    if (!isShiftVisibleToEmployee(confirmationStatus)) {
       return;
     }
     parsed.push({

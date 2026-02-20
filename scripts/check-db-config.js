@@ -6,7 +6,6 @@ const { config } = require('dotenv');
 config({ path: path.resolve(process.cwd(), '.env') });
 
 const requiredEnv = ['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'DATABASE_URL', 'DIRECT_URL'];
-const supabaseHost = 'ritalqlveknouvojxfgt.supabase.co';
 const urlEnv = ['SUPABASE_URL', 'DATABASE_URL', 'DIRECT_URL'];
 
 const missing = requiredEnv.filter((key) => !process.env[key]);
@@ -17,7 +16,20 @@ const looksLikeSupabaseKey = (value) =>
     value.startsWith('sb_secret_') ||
     value.startsWith('eyJ'));
 
-const hasSupabaseHost = (value) => typeof value === 'string' && value.includes(supabaseHost);
+const parseHostname = (value) => {
+  if (typeof value !== 'string' || !value.trim()) {
+    return null;
+  }
+  try {
+    return new URL(value).hostname;
+  } catch {
+    return null;
+  }
+};
+
+const expectedSupabaseHost = parseHostname(process.env.SUPABASE_URL);
+const hasSupabaseHost = (value) =>
+  typeof value === 'string' && (!expectedSupabaseHost || value.includes(expectedSupabaseHost));
 
 console.log('Supabase/Postgres configuration check');
 console.log('-------------------------------------');
@@ -29,7 +41,9 @@ requiredEnv.forEach((key) => {
   if (!value) {
     note = '';
   } else if (urlEnv.includes(key)) {
-    note = hasSupabaseHost(value) ? '' : ' (not pointing to shared Supabase host)';
+    note = hasSupabaseHost(value)
+      ? ''
+      : ' (not pointing to the SUPABASE_URL host)';
   } else if (key.endsWith('_KEY')) {
     note = looksLikeSupabaseKey(value) ? '' : ' (unexpected key format)';
   }
@@ -43,9 +57,9 @@ if (missing.length > 0) {
 } else {
   const urlsPointToSupabase = urlEnv.every((key) => hasSupabaseHost(process.env[key]));
   if (!urlsPointToSupabase) {
-    console.log('\nWarning: one or more URL values do not reference the shared Supabase host.');
+    console.log('\nWarning: one or more URL values do not reference the SUPABASE_URL host.');
     process.exitCode = 1;
   } else {
-    console.log('\nAll required env vars are present and URL values point to the Supabase project.');
+    console.log('\nAll required env vars are present and URL values point to the configured Supabase host.');
   }
 }

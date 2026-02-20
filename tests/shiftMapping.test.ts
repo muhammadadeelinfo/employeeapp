@@ -90,6 +90,18 @@ const mappedArray = mapShiftArray(
       end: '2026-03-04T12:00:00Z',
     },
     {
+      id: 'shift-5',
+      title: 'Hidden scheduled',
+      start: '2026-03-05T08:00:00Z',
+      end: '2026-03-05T12:00:00Z',
+    },
+    {
+      id: 'shift-6',
+      title: 'Hidden assigned',
+      start: '2026-03-06T08:00:00Z',
+      end: '2026-03-06T12:00:00Z',
+    },
+    {
       id: '',
       title: 'Unknown id should be filtered',
       start: '2026-03-05T08:00:00Z',
@@ -117,6 +129,16 @@ const mappedArray = mapShiftArray(
       assignmentId: 'a-4',
       shiftId: 'shift-4',
       confirmationStatus: 'not_published',
+    },
+    {
+      assignmentId: 'a-5',
+      shiftId: 'shift-5',
+      confirmationStatus: 'scheduled',
+    },
+    {
+      assignmentId: 'a-6',
+      shiftId: 'shift-6',
+      confirmationStatus: 'assigned',
     },
   ]
 );
