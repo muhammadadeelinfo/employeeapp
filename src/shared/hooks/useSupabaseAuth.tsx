@@ -13,6 +13,7 @@ type AuthContextValue = {
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+const AUTH_BOOT_TIMEOUT_MS = 8000;
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
@@ -27,14 +28,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     let mounted = true;
 
-    (async () => {
-      const {
-        data: { session: currentSession },
-      } = await client.auth.getSession();
+    let didResolveInitialSession = false;
 
-      if (mounted) {
-        setSession(currentSession);
-        setLoading(false);
+    const completeInitialSessionLoad = () => {
+      if (!mounted || didResolveInitialSession) return;
+      didResolveInitialSession = true;
+      setLoading(false);
+    };
+
+    const timeoutId = setTimeout(() => {
+      console.warn(`Supabase session bootstrap timed out after ${AUTH_BOOT_TIMEOUT_MS}ms.`);
+      completeInitialSessionLoad();
+    }, AUTH_BOOT_TIMEOUT_MS);
+
+    (async () => {
+      try {
+        const {
+          data: { session: currentSession },
+        } = await client.auth.getSession();
+
+        if (mounted) {
+          setSession(currentSession);
+        }
+      } catch (error) {
+        console.warn('Failed to bootstrap Supabase session.', error);
+      } finally {
+        clearTimeout(timeoutId);
+        completeInitialSessionLoad();
       }
     })();
 
@@ -49,6 +69,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     return () => {
       mounted = false;
+      clearTimeout(timeoutId);
       subscription.unsubscribe();
     };
   }, []);

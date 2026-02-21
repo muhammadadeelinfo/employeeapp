@@ -53,6 +53,8 @@ Important optional release/runtime values:
 APP_VERSION=1.0.0
 IOS_BUNDLE_IDENTIFIER=com.shiftor.employee
 IOS_BUILD_NUMBER=1
+ANDROID_PACKAGE=com.shiftor.employee
+ANDROID_VERSION_CODE=1
 EXPO_SCHEME=shiftoremployee
 AUTH_REDIRECT_URL=https://expo.dev/@your-account/shiftor-employee
 EAS_PROJECT_ID=
@@ -93,6 +95,8 @@ npx expo start -c
 - `npm run release:check` - release preflight (tests + env/db config + Expo config parse)
 - `npm run release:check:ios` - release preflight plus iOS simulator health check
 - `npm run health:ios-sim` - iOS simulator health check
+- `npm run release:check:android` - release preflight plus Android emulator/device health check
+- `npm run health:android-emu` - Android emulator/device health check
 
 ## Testing
 
@@ -114,6 +118,8 @@ npm run test
 ## Release docs
 
 - `docs/release-safety-checklist.md` - full go-live checklist
-- `docs/release-day-runbook.md` - command order for build and submit day
+- `docs/release-day-runbook.md` - iOS command order for build and submit day
+- `docs/release-day-runbook-android.md` - Android command order for build and submit day
 - `docs/app-store-metadata-template.md` - App Store listing text template
 - `docs/app-store-privacy-draft.md` - App Privacy questionnaire draft
+- `docs/google-play-release-checklist.md` - Google Play go-live checklist
