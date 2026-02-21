@@ -48,8 +48,29 @@ const decodeRepeatedly = (value: string, maxIterations = 3): string => {
   return current;
 };
 
+const unwrapExpoDevClientUrl = (value: string): string => {
+  if (!/^[a-z][a-z0-9+\-.]*:\/\//i.test(value)) return value;
+
+  try {
+    const parsed = new URL(value);
+    const wrappedUrl = parsed.searchParams.get('url');
+    const isDevClientWrapper =
+      parsed.hostname === 'expo-development-client' ||
+      parsed.pathname.includes('expo-development-client');
+
+    if (isDevClientWrapper && wrappedUrl) {
+      return decodeRepeatedly(wrappedUrl);
+    }
+  } catch {
+    // keep original candidate when URL parsing fails
+  }
+
+  return value;
+};
+
 const normalizeRoutePath = (value: string): string => {
   let candidate = decodeRepeatedly(value.trim());
+  candidate = unwrapExpoDevClientUrl(candidate);
 
   // Expo links can look like exp://host:port/--/path
   const expoPathMarker = '/--/';

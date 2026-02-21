@@ -35,6 +35,13 @@ assert.strictEqual(resolveTargetPath({ url: '/help-center', shiftId: 'abc123' })
 assert.strictEqual(resolveTargetPath({ deepLink: '/%2528tabs%2529/account' }), '/account');
 assert.strictEqual(resolveTargetPath({ deepLink: '/(tabs)/notifications' }), '/notifications');
 assert.strictEqual(resolveTargetPath({ deepLink: 'exp://127.0.0.1:8081/--/%2528tabs%2529/account' }), '/account');
+assert.strictEqual(
+  resolveTargetPath({
+    deepLink:
+      'shiftoremployee://expo-development-client/?url=http%3A%2F%2F192.168.18.37%3A8081%2F--%2Fnotifications',
+  }),
+  '/notifications'
+);
 assert.strictEqual(resolveTargetPath({ shiftId: 'abc123' }), '/shift-details/abc123');
 assert.strictEqual(resolveTargetPath(undefined), undefined);
 
